@@ -1,0 +1,30 @@
+{{- if and .Values.meilisearch.enabled .Values.meilisearch.tls.enabled .Values.meilisearch.tls.createCertificate }}
+apiVersion: cert-manager.io/v1
+# Meilisearch HTTPS Certificate
+# Issued by ClusterIssuer for TLS communication
+# ═══════════════════════════════════════════════════════════════
+kind: Certificate
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-meilisearch-tls
+  namespace: {{ include "shoehorn.namespace.data" . }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: meilisearch
+spec:
+  secretName: {{ include "shoehorn.fullname" . }}-meilisearch-tls-cert
+  # Certificate duration and renewal
+  duration: 2160h  # 90 days
+  renewBefore: 720h  # 30 days
+  commonName: {{ include "shoehorn.fullname" . }}-meilisearch
+  dnsNames:
+    # Service DNS names for in-cluster access
+    # Standard, Namespaced, and FQDN
+    - {{ include "shoehorn.fullname" . }}-meilisearch
+    - {{ include "shoehorn.fullname" . }}-meilisearch.{{ include "shoehorn.namespace.data" . }}.svc
+    - {{ include "shoehorn.fullname" . }}-meilisearch.{{ include "shoehorn.namespace.data" . }}.svc.cluster.local
+    # StatefulSet pod DNS (for pod-to-pod communication)
+    - {{ include "shoehorn.fullname" . }}-meilisearch-0.{{ include "shoehorn.fullname" . }}-meilisearch.{{ include "shoehorn.namespace.data" . }}.svc.cluster.local
+  issuerRef:
+    name: {{ .Values.meilisearch.tls.issuerName | default "shoehorn-ca-issuer" }}
+    kind: {{ .Values.meilisearch.tls.issuerKind | default "ClusterIssuer" }}
+{{- end }}

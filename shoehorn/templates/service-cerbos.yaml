@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-cerbos
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: cerbos
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 3592
+      targetPort: http
+      protocol: TCP
+    - name: grpc
+      port: 3593
+      targetPort: grpc
+      protocol: TCP
+  selector:
+    {{- include "shoehorn.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: cerbos

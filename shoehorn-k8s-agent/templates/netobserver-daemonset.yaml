@@ -1,0 +1,129 @@
+{{- if .Values.netobserver.enabled -}}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "shoehorn-agent.fullname" . }}-netobserver
+  labels:
+    {{- include "shoehorn-agent.labels" . | nindent 4 }}
+    app.kubernetes.io/component: netobserver
+  annotations:
+    {{- include "shoehorn-agent.annotations" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "shoehorn-agent.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: netobserver
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      annotations:
+        {{- include "shoehorn-agent.annotations" . | nindent 8 }}
+        {{- with .Values.podAnnotations }}
+        {{- mustToYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "shoehorn-agent.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: netobserver
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "shoehorn-agent.fullname" . }}-netobserver
+      terminationGracePeriodSeconds: 30
+      # eBPF requires root (CAP_BPF + CAP_PERFMON need uid 0 on kernels < 5.19).
+      # Capabilities are restricted to the minimum needed at the container level.
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: netobserver
+          image: {{ include "shoehorn-agent.netobserverImage" . }}
+          imagePullPolicy: {{ .Values.netobserver.image.pullPolicy }}
+          ports:
+            - name: health
+              containerPort: {{ .Values.netobserver.healthPort }}
+              protocol: TCP
+          env:
+            - name: SHOEHORN_API_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "shoehorn-agent.fullname" . }}
+                  key: SHOEHORN_API_ENDPOINT
+            - name: SHOEHORN_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "shoehorn-agent.secretName" . }}
+                  key: {{ include "shoehorn-agent.secretKey" (dict "env" "SHOEHORN_API_TOKEN" "default" "api-token" "root" .) }}
+            - name: SHOEHORN_CLUSTER_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "shoehorn-agent.fullname" . }}
+                  key: SHOEHORN_CLUSTER_ID
+            - name: SHOEHORN_IN_CLUSTER
+              value: "true"
+            - name: SHOEHORN_LOG_LEVEL
+              value: {{ .Values.netobserver.logLevel | quote }}
+            - name: SHOEHORN_LOG_FORMAT
+              value: {{ .Values.netobserver.logFormat | quote }}
+            - name: SHOEHORN_NETOBS_FLUSH_INTERVAL
+              value: {{ .Values.netobserver.flushInterval | quote }}
+            - name: SHOEHORN_NETOBS_MAX_FLOWS_PER_INTERVAL
+              value: {{ .Values.netobserver.maxFlowsPerInterval | quote }}
+            - name: SHOEHORN_NETOBS_DROP_UNRESOLVABLE
+              value: {{ .Values.netobserver.dropUnresolvable | quote }}
+            - name: SHOEHORN_NETOBS_INTRACLUSTER_ONLY
+              value: {{ .Values.netobserver.intraClusterOnly | quote }}
+            {{- if .Values.netobserver.excludePorts }}
+            - name: SHOEHORN_NETOBS_EXCLUDE_PORTS
+              value: {{ .Values.netobserver.excludePorts | quote }}
+            {{- end }}
+            {{- if .Values.netobserver.namespaces }}
+            - name: SHOEHORN_NETOBS_NAMESPACES
+              value: {{ .Values.netobserver.namespaces | join "," | quote }}
+            {{- end }}
+            {{- if .Values.netobserver.excludeNamespaces }}
+            - name: SHOEHORN_NETOBS_EXCLUDE_NAMESPACES
+              value: {{ .Values.netobserver.excludeNamespaces | join "," | quote }}
+            {{- end }}
+          securityContext:
+            capabilities:
+              add:
+                - BPF
+                - PERFMON
+              drop:
+                - ALL
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 0
+            runAsGroup: 0
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            {{- mustToYaml .Values.netobserver.resources | nindent 12 }}
+      {{- with .Values.netobserver.tolerations }}
+      tolerations:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.netobserver.nodeSelector }}
+      nodeSelector:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

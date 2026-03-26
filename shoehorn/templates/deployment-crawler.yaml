@@ -1,0 +1,185 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-crawler
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  labels:
+    {{- include "shoehorn.crawler.labels" . | nindent 4 }}
+  annotations:
+    {{- include "shoehorn.serviceAnnotations" .Values.crawler.annotations | nindent 4 }}
+spec:
+  {{- if not .Values.crawler.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount.crawler }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "shoehorn.crawler.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap-backend.yaml") . | sha256sum }}
+        {{- include "shoehorn.serviceAnnotations" .Values.crawler.annotations | nindent 8 }}
+      labels:
+        {{- include "shoehorn.crawler.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- include "shoehorn.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ include "shoehorn.serviceAccountName" . }}
+      securityContext:
+        {{- mustToYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+      # Wait for infrastructure services to be ready
+      - name: wait-for-postgresql
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z {{ include "shoehorn.postgresql.host" . }} {{ include "shoehorn.postgresql.port" . }}; do echo waiting for postgresql; sleep 2; done;']
+      - name: wait-for-valkey
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z {{ include "shoehorn.valkey.host" . }} {{ include "shoehorn.valkey.port" . }}; do echo waiting for valkey; sleep 2; done;']
+      - name: wait-for-redpanda
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z {{ include "shoehorn.redpanda.host" . }} {{ include "shoehorn.redpanda.port" . }}; do echo waiting for redpanda; sleep 2; done;']
+      - name: wait-for-api
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z {{ include "shoehorn.fullname" . }}-api 8080; do echo waiting for api; sleep 2; done;']
+      containers:
+      - name: crawler
+        securityContext:
+          {{- mustToYaml .Values.securityContext | nindent 12 }}
+        image: {{ include "shoehorn.componentImage" (dict "component" .Values.crawler "Values" .Values) }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.crawler.env.HTTP_PORT }}
+          protocol: TCP
+        - name: grpc
+          containerPort: {{ .Values.crawler.env.GRPC_PORT }}
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: {{ include "shoehorn.fullname" . }}-backend
+        env:
+        # Service-specific configuration
+        - name: SERVICE_NAME
+          value: "crawler"
+        - name: HTTP_PORT
+          value: {{ .Values.crawler.env.HTTP_PORT | quote }}
+        - name: GRPC_PORT
+          value: {{ .Values.crawler.env.GRPC_PORT | quote }}
+
+        # Database configuration (secrets and dynamic values)
+        # IMPORTANT: DB_PASSWORD must be defined BEFORE DATABASE_URL for $(DB_PASSWORD) substitution to work
+        {{- include "shoehorn.secretRef" (dict "env" "DB_PASSWORD" "root" .) | nindent 8 }}
+        {{- $dbUser := "shoehorn_user" }}
+        {{- if .Values.postgresql.rls.enabled }}
+        {{- $dbUser = "app_user" }}
+        {{- end }}
+        - name: DATABASE_URL
+          {{- if .Values.postgresql.tls.enabled }}
+          value: "postgresql://{{ $dbUser }}:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode={{ .Values.postgresql.tls.sslMode | default "require" }}"
+          {{- else }}
+          value: "postgresql://{{ $dbUser }}:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode=disable"
+          {{- end }}
+        - name: DB_HOST
+          value: {{ include "shoehorn.postgresql.host" . }}
+        - name: DB_USER
+          value: "{{ $dbUser }}"
+        - name: DB_SSLMODE
+          value: "disable"
+
+        # Valkey/Redis
+        - name: VALKEY_ADDR
+          value: "{{ include "shoehorn.valkey.host" . }}:{{ include "shoehorn.valkey.port" . }}"
+        {{- include "shoehorn.secretRef" (dict "env" "VALKEY_PASSWORD" "root" .) | nindent 8 }}
+
+        # Meilisearch
+        - name: MEILISEARCH_HOST
+          value: {{ include "shoehorn.meilisearch.host" . }}
+        - name: MEILISEARCH_PORT
+          value: {{ include "shoehorn.meilisearch.port" . | quote }}
+        - name: MEILISEARCH_PROTOCOL
+          value: {{ include "shoehorn.meilisearch.protocol" . }}
+        - name: MEILISEARCH_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.existingSecret }}
+              key: {{ .Values.secret.mappings.MEILISEARCH_MASTER_KEY }}
+
+        # Redpanda/Kafka
+        - name: REDPANDA_BROKERS
+          value: {{ include "shoehorn.redpanda.brokers" . }}
+
+        # Distributed Tracing (OpenTelemetry)
+        - name: TRACING_ENABLED
+          value: {{ .Values.global.tracing.enabled | default false | quote }}
+        {{- if .Values.global.tracing.otlpEndpoint }}
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: {{ .Values.global.tracing.otlpEndpoint | quote }}
+        {{- end }}
+
+        # gRPC mTLS Configuration
+        - name: GRPC_TLS_ENABLED
+          value: {{ .Values.global.mtls.enabled | default false | quote }}
+        {{- if .Values.global.mtls.enabled }}
+        - name: GRPC_TLS_CERT_FILE
+          value: {{ .Values.global.mtls.certFile | quote }}
+        - name: GRPC_TLS_KEY_FILE
+          value: {{ .Values.global.mtls.keyFile | quote }}
+        - name: GRPC_TLS_CA_FILE
+          value: {{ .Values.global.mtls.caFile | quote }}
+        {{- end }}
+
+        # GitHub Integration
+        {{- include "shoehorn.secretRef" (dict "env" "GITHUB_APP_ID" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "GITHUB_APP_INSTALLATION_ID" "root" .) | nindent 8 }}
+        - name: GITHUB_INSTALLATION_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.existingSecret }}
+              key: {{ .Values.secret.mappings.GITHUB_APP_INSTALLATION_ID }}
+        {{- include "shoehorn.secretRef" (dict "env" "GITHUB_WEBHOOK_SECRET" "root" .) | nindent 8 }}
+        - name: GITHUB_APP_PRIVATE_KEY_PATH
+          value: /var/secrets/github/private-key
+
+        {{- if .Values.cloudProviders.upcloud.enabled }}
+        # UpCloud Cloud Provider Discovery
+        - name: CLOUD_PROVIDER_UPCLOUD_ENABLED
+          value: "true"
+        {{- include "shoehorn.secretRef" (dict "env" "UPCLOUD_TOKEN" "root" .) | nindent 8 }}
+        {{- with .Values.cloudProviders.upcloud.apiBaseUrl }}
+        - name: UPCLOUD_API_BASE_URL
+          value: {{ . | quote }}
+        {{- end }}
+        {{- with .Values.cloudProviders.syncInterval }}
+        - name: CLOUD_PROVIDER_SYNC_INTERVAL
+          value: {{ . | quote }}
+        {{- end }}
+        {{- with .Values.cloudProviders.upcloud.syncInterval }}
+        - name: UPCLOUD_SYNC_INTERVAL
+          value: {{ . | quote }}
+        {{- end }}
+        {{- end }}
+
+        volumeMounts:
+        {{- include "shoehorn.extraVolumeMounts" . | nindent 8 }}
+        {{- include "shoehorn.grpcMtlsVolumeMounts" . | nindent 8 }}
+
+        livenessProbe:
+          {{- mustToYaml .Values.crawler.livenessProbe | nindent 12 }}
+        readinessProbe:
+          {{- mustToYaml .Values.crawler.readinessProbe | nindent 12 }}
+        resources:
+          {{- mustToYaml .Values.crawler.resources | nindent 12 }}
+      volumes:
+      {{- include "shoehorn.extraVolumes" . | nindent 6 }}
+      {{- include "shoehorn.grpcMtlsVolumes" . | nindent 6 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}

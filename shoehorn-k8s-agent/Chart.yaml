@@ -1,0 +1,83 @@
+apiVersion: v2
+name: shoehorn-k8s-agent
+description: Kubernetes agent for Shoehorn Internal Developer Platform - discovers and syncs workloads
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+home: https://shoehorn.dev
+icon: https://shoehorn.dev/maskot1.png
+
+keywords:
+  - kubernetes
+  - monitoring
+  - discovery
+  - shoehorn
+  - service-catalog
+  - internal-developer-platform
+  - workload-discovery
+  - k8s-agent
+
+maintainers:
+  - name: Shoehorn Team
+    email: support@shoehorn.dev
+    url: https://github.com/shoehorn-dev
+
+sources:
+  - https://github.com/shoehorn-dev/helm-charts
+
+# Kubernetes version requirement
+kubeVersion: ">=1.24.0-0"
+
+# Chart dependencies (none - standalone agent)
+dependencies: []
+
+annotations:
+  artifacthub.io/category: integration-delivery
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/operator: "false"
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/containsSecurityUpdates: "false"
+
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://docs.shoehorn.dev
+    - name: GitHub
+      url: https://github.com/shoehorn-dev/helm-charts
+    - name: Support
+      url: https://github.com/shoehorn-dev/helm-charts/issues
+
+  artifacthub.io/recommendations: |
+    - url: https://artifacthub.io/packages/helm/shoehorn/shoehorn
+
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial release of Shoehorn Kubernetes Agent
+    - kind: added
+      description: Workload discovery for Deployments, StatefulSets, DaemonSets, CronJobs, Jobs, Services, and Pods
+    - kind: added
+      description: Three monitoring levels (basic, detailed, full) with per-resource annotation control
+    - kind: added
+      description: Annotation-based monitoring control (shoehorn.dev/* annotations)
+    - kind: added
+      description: Configurable default monitoring behavior (monitor-all, require-annotation, monitor-none)
+    - kind: added
+      description: Resource usage metrics via metrics-server with rolling window analysis
+    - kind: added
+      description: GitOps integration for ArgoCD and FluxCD with sync/refresh commands from UI
+    - kind: added
+      description: Network policy visibility (Kubernetes NetworkPolicy and Cilium CiliumNetworkPolicy)
+    - kind: added
+      description: eBPF Network Observer DaemonSet for automatic service dependency mapping
+    - kind: added
+      description: High availability with leader election and PodDisruptionBudget
+    - kind: added
+      description: Template-time validation for required configuration
+    - kind: added
+      description: Namespace filtering, exclusion, and label selector support
+    - kind: added
+      description: Pod-level restart counts, container state tracking, and resource extraction
+    - kind: added
+      description: values.schema.json for IDE autocompletion
+    - kind: added
+      description: Example values files (minimal, production, filtered, annotations)

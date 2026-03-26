@@ -1,0 +1,98 @@
+# Minimal Values - Quick Start
+# ==============================
+# This is the bare minimum configuration to deploy Shoehorn for local development
+# or testing. Uses all default settings with in-cluster data services.
+#
+# Usage:
+#   helm install shoehorn ./charts/shoehorn -n shoehorn --create-namespace \
+#     -f ./charts/shoehorn/examples/values-minimal.yaml
+#
+# Prerequisites:
+#   1. Create the shoehorn-credentials secret (see below)
+#   2. Have a domain pointed to your cluster (or use port-forward)
+
+global:
+  # REQUIRED: Set your domain
+  domain: shoehorn.localhost
+
+  # Organization info (shown in UI)
+  organization:
+    name: "My Company"
+    slug: "my-company"
+
+# Authentication - Zitadel (default)
+# For quick testing, you can use the hosted demo: https://zitadel.cloud
+auth:
+  provider: zitadel
+  zitadel:
+    projectId: "YOUR_PROJECT_ID"      # From Zitadel console
+    clientId: "YOUR_CLIENT_ID"        # From OIDC app settings
+    externalUrl: "https://YOUR_INSTANCE.zitadel.cloud"
+    insecure: false
+
+# Use single replica for everything (development)
+replicaCount:
+  api: 1
+  web: 1
+  eventbus: 1
+  search: 1
+  worker: 1
+  crawler: 1
+  forge: 1
+
+# Minimal resources (suitable for local/dev)
+api:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+web:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+# Single secret containing all credentials
+secret:
+  existingSecret: "shoehorn-credentials"
+
+# Mount GitHub App private key from the same secret (for repository crawling)
+extraVolumes:
+  - name: github-private-key
+    secret:
+      secretName: shoehorn-credentials
+      items:
+        - key: github_app_private_key
+          path: private-key
+
+extraVolumeMounts:
+  - name: github-private-key
+    mountPath: /var/secrets/github
+    readOnly: true
+
+# ============================================================================
+# SECRET SETUP (run before helm install)
+# ============================================================================
+#
+# Create a single secret with all credentials:
+#   kubectl create secret generic shoehorn-credentials -n shoehorn \
+#     --from-literal=postgres_password=changeme123 \
+#     --from-literal=db_password=changeme123 \
+#     --from-literal=meilisearch_master_key=$(openssl rand -hex 32) \
+#     --from-literal=valkey_password=$(openssl rand -hex 16) \
+#     --from-literal=jwt_secret=$(openssl rand -hex 32) \
+#     --from-literal=auth_encryption_key=$(openssl rand -hex 32) \
+#     --from-literal=session_encryption_key=$(openssl rand -hex 32) \
+#     --from-literal=service_user_pat=YOUR_PAT_TOKEN \
+#     --from-literal=github_app_id=YOUR_APP_ID \
+#     --from-literal=github_app_installation_id=YOUR_INSTALLATION_ID \
+#     --from-literal=github_webhook_secret=YOUR_WEBHOOK_SECRET \
+#     --from-file=github_app_private_key=/path/to/private-key.pem
+# ============================================================================

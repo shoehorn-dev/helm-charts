@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lint-and-template:
+    name: Lint & Template
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Install Helm
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5
+        with:
+          version: '4.1.1'
+
+      - name: Add Helm repositories
+        run: |
+          helm repo add jetstack https://charts.jetstack.io
+          helm repo update
+
+      - name: Build dependencies (shoehorn)
+        run: helm dependency build shoehorn/
+
+      - name: Lint shoehorn
+        run: |
+          helm lint shoehorn/ \
+            --set secret.existingSecret=ci-test \
+            --set auth.zitadel.externalUrl=https://auth.example.com \
+            --set secret.mappings.ZITADEL_PROJECT_ID=test \
+            --set secret.mappings.ZITADEL_CLIENT_ID=test
+
+      - name: Template shoehorn
+        run: |
+          helm template ci-test shoehorn/ \
+            --set secret.existingSecret=ci-test \
+            --set auth.zitadel.externalUrl=https://auth.example.com \
+            --set secret.mappings.ZITADEL_PROJECT_ID=test \
+            --set secret.mappings.ZITADEL_CLIENT_ID=test \
+            > /dev/null
+
+      - name: Lint shoehorn-k8s-agent
+        run: |
+          helm lint shoehorn-k8s-agent/ \
+            --set shoehorn.apiURL=https://test.example.com \
+            --set shoehorn.apiToken=ci-test \
+            --set shoehorn.cluster.id=ci-test
+
+      - name: Template shoehorn-k8s-agent
+        run: |
+          helm template ci-test shoehorn-k8s-agent/ \
+            --set shoehorn.apiURL=https://test.example.com \
+            --set shoehorn.apiToken=ci-test \
+            --set shoehorn.cluster.id=ci-test \
+            > /dev/null
+
+      - name: Template shoehorn-k8s-agent (existingSecret mode)
+        run: |
+          helm template ci-test shoehorn-k8s-agent/ \
+            --set shoehorn.apiURL=https://test.example.com \
+            --set shoehorn.existingSecret=ci-test \
+            --set shoehorn.cluster.id=ci-test \
+            > /dev/null

@@ -1,0 +1,20 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "shoehorn-agent.fullname" . }}
+  labels:
+    {{- include "shoehorn-agent.labels" . | nindent 4 }}
+  annotations:
+    {{- include "shoehorn-agent.annotations" . | nindent 4 }}
+spec:
+  {{- if or (eq (.Values.podDisruptionBudget.minAvailable | toString) "0") (.Values.podDisruptionBudget.minAvailable) }}
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if or (eq (.Values.podDisruptionBudget.maxUnavailable | toString) "0") (.Values.podDisruptionBudget.maxUnavailable) }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "shoehorn-agent.selectorLabels" . | nindent 6 }}
+{{- end }}

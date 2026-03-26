@@ -1,0 +1,81 @@
+{{- if and .Values.kroki.enabled (not .Values.kroki.external.enabled) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-kroki
+  namespace: {{ include "shoehorn.namespace.data" . }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: kroki
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "shoehorn.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: kroki
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-kroki
+  namespace: {{ include "shoehorn.namespace.data" . }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: kroki
+spec:
+  replicas: {{ .Values.kroki.replicas | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "shoehorn.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: kroki
+  template:
+    metadata:
+      labels:
+        {{- include "shoehorn.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: kroki
+    spec:
+      {{- include "shoehorn.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ include "shoehorn.serviceAccountName" . }}
+      securityContext:
+        {{- mustToYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: kroki
+        securityContext:
+          {{- mustToYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.kroki.image.repository }}:{{ .Values.kroki.image.tag }}"
+        imagePullPolicy: {{ .Values.kroki.image.pullPolicy | default "IfNotPresent" }}
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          {{- mustToYaml .Values.kroki.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

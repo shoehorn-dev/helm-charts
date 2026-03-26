@@ -1,0 +1,390 @@
+# Production Values - Hardened Configuration
+# ==========================================
+# Production-ready configuration with:
+# - Multiple replicas for high availability
+# - Resource limits tuned for production workloads
+# - Persistence enabled for all stateful services
+# - Security hardening enabled
+# - Autoscaling configured (disabled by default)
+#
+# Usage:
+#   helm install shoehorn ./charts/shoehorn -n shoehorn --create-namespace \
+#     -f ./charts/shoehorn/examples/values-production.yaml
+#
+# IMPORTANT: Review and customize all values marked with "CHANGE_ME" before deploying!
+
+global:
+  # CHANGE_ME: Your production domain
+  domain: shoehorn.example.com
+
+  environment: production
+  logLevel: info
+
+  # CHANGE_ME: Your storage class (check: kubectl get storageclass)
+  storageClass: ""
+
+  organization:
+    # CHANGE_ME: Your organization details
+    name: "Acme Corp"
+    slug: "acme-corp"
+
+  # Enable distributed tracing (optional - requires OTLP collector)
+  tracing:
+    enabled: false
+    # otlpEndpoint: "http://jaeger-collector:4317"
+    sampleRate: 0.1  # 10% sampling in production
+
+  # Enable mTLS for inter-service communication (recommended)
+  mtls:
+    enabled: false  # Enable after setting up cert-manager
+    certFile: "/etc/shoehorn/certs/tls.crt"
+    keyFile: "/etc/shoehorn/certs/tls.key"
+    caFile: "/etc/shoehorn/certs/ca.crt"
+
+  imagePullSecrets:
+    - name: ghcr-secret
+
+# Image configuration
+image:
+  registry: ghcr.io
+  repository: imbabamba
+  # CHANGE_ME: Pin to a specific version
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+# Single secret containing all credentials
+secret:
+  existingSecret: "shoehorn-credentials"
+
+# Traefik IngressRoute (or use ingress section for nginx/other)
+ingressRoute:
+  enabled: true
+  tls:
+    enabled: true
+    certResolver: letsencrypt
+
+# High availability replica counts
+replicaCount:
+  api: 3
+  web: 2
+  eventbus: 2
+  search: 2
+  worker: 3
+  crawler: 2
+  forge: 2
+  postgresql: 1   # Use external DB for HA
+  meilisearch: 1    # Use external Meilisearch for HA
+  redpanda: 1     # Use external Kafka for HA
+  valkey: 1       # Use external Redis for HA
+  cerbos: 2
+
+# Authentication - Zitadel
+auth:
+  provider: zitadel
+  zitadel:
+    # CHANGE_ME: Your Zitadel configuration
+    projectId: "YOUR_PROJECT_ID"
+    clientId: "YOUR_CLIENT_ID"
+    externalUrl: "https://auth.example.com"
+    insecure: false
+  session:
+    maxAge: "8h"       # 8 hours - covers a workday
+  csrf:
+    enabled: true      # CSRF double-submit cookie protection
+  # Multi-Provider OrgData Sync (optional)
+  # Sync users and teams from multiple providers
+  # orgdata:
+  #   enabled: true
+  #   providers: ["okta", "zitadel"]  # Sync from both
+  #   primaryProvider: "zitadel"  # Primary for conflicts
+
+# RBAC configuration
+rbac:
+  enabled: true
+  roleAssignment:
+    adminUiEnabled: true
+    tenantAdmin:
+      # CHANGE_ME: Bootstrap admin email (single user OR single group)
+      # Bootstrap admin gets tenant:admin role on first login (if no roles in database)
+      # After bootstrap, manage roles via admin UI at /admin/roles
+      user: "admin@example.com"
+      # group: "platform-admins"  # OR use a single group instead
+
+# ============================================================================
+# Service Configurations
+# ============================================================================
+
+api:
+  name: api
+  annotations:
+    team: "platform-team"
+    tier: "Gold"
+  image:
+    repository: shoehorn-api
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  env:
+    ENVIRONMENT: production
+    LOG_LEVEL: info
+    LOG_FORMAT: json
+    HTTP_PORT: "8080"
+    METRICS_PORT: "9090"
+    # CHANGE_ME: GitHub integration
+    GITHUB_ORGANIZATIONS: "your-org"
+    GITHUB_REPOSITORIES: ""
+    GITHUB_FORGE_ORGANIZATION: "your-org"
+    GITHUB_MANIFEST_PATTERNS: ".shoehorn/**/*.yml,.shoehorn/**/*.yaml,catalog-info.yaml"
+    GITHUB_README_PATTERNS: "README.md,docs/README.md"
+    GITHUB_RATE_LIMIT_PER_HOUR: "1000"
+    ENTITY_CACHE_TTL: "300"
+    REPOSITORY_CACHE_TTL: "600"
+    README_CACHE_TTL: "300"
+    TELEMETRY_ENABLED: "true"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /healthz
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+web:
+  name: web
+  annotations:
+    team: "platform-team"
+    tier: "Gold"
+  image:
+    repository: shoehorn-web
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    VITE_ENVIRONMENT: production
+    VITE_API_URL: /api/v1
+    VITE_DEV_MODE: "false"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+eventbus:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+
+search:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+
+worker:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+
+crawler:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+
+forge:
+  env:
+    FORGE_ENVIRONMENT: "production"  # CRITICAL: Enables container-only execution
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+
+# ============================================================================
+# Data Layer - Enable Persistence
+# ============================================================================
+
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "18"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  persistence:
+    enabled: true
+    size: 50Gi
+    # storageClass: ""  # Uses global.storageClass
+
+meilisearch:
+  enabled: true
+  resources:
+    requests:
+      cpu: 200m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  persistence:
+    enabled: true
+    size: 20Gi
+
+valkey:
+  enabled: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  persistence:
+    enabled: true
+    size: 5Gi
+
+redpanda:
+  enabled: true
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  persistence:
+    enabled: true
+    size: 50Gi
+  config:
+    smp: 2
+    memory: 1G
+
+cerbos:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  audit:
+    enabled: true
+    retentionPeriod: "720h"  # 30 days
+
+# ============================================================================
+# Security Configuration
+# ============================================================================
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# ============================================================================
+# High Availability
+# ============================================================================
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - shoehorn
+          topologyKey: kubernetes.io/hostname
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# ============================================================================
+# Monitoring (enable if you have Prometheus Operator)
+# ============================================================================
+
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+  prometheusRule:
+    enabled: false

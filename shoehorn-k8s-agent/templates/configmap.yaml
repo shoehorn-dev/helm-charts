@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "shoehorn-agent.fullname" . }}
+  labels:
+    {{- include "shoehorn-agent.labels" . | nindent 4 }}
+  annotations:
+    {{- include "shoehorn-agent.annotations" . | nindent 4 }}
+data:
+  SHOEHORN_API_ENDPOINT: {{ .Values.shoehorn.apiURL | required "shoehorn.apiURL is required" | quote }}
+  SHOEHORN_CLUSTER_ID: {{ .Values.shoehorn.cluster.id | required "shoehorn.cluster.id is required" | quote }}
+  SHOEHORN_CLUSTER_NAME: {{ .Values.shoehorn.cluster.name | default .Values.shoehorn.cluster.id | quote }}
+  SHOEHORN_DASHBOARD_URL: {{ .Values.shoehorn.cluster.dashboardURL | quote }}
+  SHOEHORN_LOG_LEVEL: {{ .Values.agent.logLevel | quote }}
+  SHOEHORN_LOG_FORMAT: {{ .Values.agent.logFormat | quote }}
+  SHOEHORN_BATCH_INTERVAL: {{ .Values.agent.batchInterval | quote }}
+  SHOEHORN_BATCH_SIZE: {{ .Values.agent.batchSize | quote }}
+  SHOEHORN_PUSH_RETRIES: {{ .Values.agent.pushRetries | quote }}
+  SHOEHORN_PUSH_TIMEOUT: {{ .Values.agent.pushTimeout | quote }}
+  SHOEHORN_HEARTBEAT_INTERVAL: {{ .Values.agent.heartbeatInterval | quote }}
+  SHOEHORN_HEALTH_PORT: {{ .Values.agent.healthPort | quote }}
+  SHOEHORN_IN_CLUSTER: "true"
+  {{- if .Values.agent.kubernetes.namespaces }}
+  SHOEHORN_NAMESPACES: {{ .Values.agent.kubernetes.namespaces | join "," | quote }}
+  {{- end }}
+  {{- if .Values.agent.kubernetes.excludeNamespaces }}
+  SHOEHORN_EXCLUDE_NAMESPACES: {{ .Values.agent.kubernetes.excludeNamespaces | join "," | quote }}
+  {{- end }}
+  {{- if .Values.agent.kubernetes.labelSelector }}
+  SHOEHORN_LABEL_SELECTOR: {{ .Values.agent.kubernetes.labelSelector | quote }}
+  {{- end }}
+  {{- if .Values.agent.kubernetes.watchedKinds }}
+  SHOEHORN_WATCHED_KINDS: {{ .Values.agent.kubernetes.watchedKinds | join "," | quote }}
+  {{- end }}
+  {{- if .Values.agent.annotations }}
+  SHOEHORN_ANNOTATION_DEFAULT_BEHAVIOR: {{ .Values.agent.annotations.defaultBehavior | default "monitor-all" | quote }}
+  SHOEHORN_ANNOTATION_DEFAULT_LEVEL: {{ .Values.agent.annotations.defaultLevel | default "basic" | quote }}
+  {{- end }}
+  {{- if .Values.agent.metrics }}
+  SHOEHORN_METRICS_SAMPLE_INTERVAL: {{ .Values.agent.metrics.sampleInterval | default "5m" | quote }}
+  SHOEHORN_METRICS_WINDOW_HOURS: {{ .Values.agent.metrics.windowHours | default 168 | quote }}
+  {{- end }}
+  {{- if .Values.agent.gitops.tool }}
+  SHOEHORN_GITOPS_TOOL: {{ .Values.agent.gitops.tool | quote }}
+  SHOEHORN_GITOPS_WATCH_ALL_NAMESPACES: {{ .Values.agent.gitops.watchAllNamespaces | toString | quote }}
+  SHOEHORN_GITOPS_COMMAND_POLL_INTERVAL: {{ .Values.agent.gitops.commandPollInterval | default "30s" | quote }}
+  {{- if eq .Values.agent.gitops.tool "argocd" }}
+  SHOEHORN_GITOPS_ARGOCD_NAMESPACE: {{ .Values.agent.gitops.argocd.namespace | default "argocd" | quote }}
+  {{- if .Values.agent.gitops.argocd.serverURL }}
+  SHOEHORN_GITOPS_ARGOCD_SERVER_URL: {{ .Values.agent.gitops.argocd.serverURL | quote }}
+  {{- end }}
+  {{- end }}
+  {{- if eq .Values.agent.gitops.tool "fluxcd" }}
+  SHOEHORN_GITOPS_FLUXCD_NAMESPACE: {{ .Values.agent.gitops.fluxcd.namespace | default "flux-system" | quote }}
+  {{- end }}
+  {{- end }}

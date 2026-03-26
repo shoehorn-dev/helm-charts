@@ -1,0 +1,148 @@
+{{- if and .Values.meilisearch.enabled (not .Values.meilisearch.external.enabled) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-meilisearch
+  namespace: {{ include "shoehorn.namespace.data" . }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: meilisearch
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 7700
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "shoehorn.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: meilisearch
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-meilisearch
+  namespace: {{ include "shoehorn.namespace.data" . }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: meilisearch
+spec:
+  serviceName: {{ include "shoehorn.fullname" . }}-meilisearch
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "shoehorn.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: meilisearch
+  template:
+    metadata:
+      labels:
+        {{- include "shoehorn.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: meilisearch
+    spec:
+      {{- include "shoehorn.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ include "shoehorn.serviceAccountName" . }}
+      securityContext:
+        # fsGroup handles volume permissions automatically (matches official chart)
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      # Note: Official chart has no initContainers - fsGroup handles permissions
+      containers:
+      - name: meilisearch
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: true
+        image: "{{ .Values.meilisearch.image.repository }}:{{ .Values.meilisearch.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 7700
+          protocol: TCP
+        env:
+        - name: MEILI_ENV
+          value: {{ .Values.meilisearch.env.MEILI_ENV | quote }}
+        - name: MEILI_NO_ANALYTICS
+          value: {{ .Values.meilisearch.env.MEILI_NO_ANALYTICS | quote }}
+        {{- if eq .Values.meilisearch.env.MEILI_ENV "production" }}
+        - name: MEILI_MASTER_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.existingSecret }}
+              key: {{ .Values.secret.mappings.MEILISEARCH_MASTER_KEY }}
+        {{- end }}
+        {{- if .Values.meilisearch.tls.enabled }}
+        # HTTPS Configuration
+        - name: MEILI_SSL_CERT_PATH
+          value: {{ .Values.meilisearch.tls.certFile | quote }}
+        - name: MEILI_SSL_KEY_PATH
+          value: {{ .Values.meilisearch.tls.keyFile | quote }}
+        {{- end }}
+        startupProbe:
+          {{- mustToYaml .Values.meilisearch.startupProbe | nindent 12 }}
+        livenessProbe:
+          {{- mustToYaml .Values.meilisearch.livenessProbe | nindent 12 }}
+        readinessProbe:
+          {{- mustToYaml .Values.meilisearch.readinessProbe | nindent 12 }}
+        resources:
+          {{- mustToYaml .Values.meilisearch.resources | nindent 12 }}
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: data
+          mountPath: /meili_data
+        {{- if .Values.meilisearch.tls.enabled }}
+        - name: meilisearch-certs
+          mountPath: /etc/meilisearch/certs
+          readOnly: true
+        {{- end }}
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      {{- if not .Values.meilisearch.persistence.enabled }}
+      - name: data
+        emptyDir: {}
+      {{- end }}
+      {{- if .Values.meilisearch.tls.enabled }}
+      - name: meilisearch-certs
+        secret:
+          secretName: {{ include "shoehorn.fullname" . }}-meilisearch-tls-cert
+          defaultMode: 0400
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.meilisearch.persistence.enabled }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.meilisearch.persistence.storageClass }}
+      {{- if (eq "-" .Values.meilisearch.persistence.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: {{ .Values.meilisearch.persistence.storageClass | quote }}
+      {{- end }}
+      {{- else }}
+      storageClassName: {{ .Values.global.storageClass | quote }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.meilisearch.persistence.size }}
+  {{- end }}
+{{- end }}

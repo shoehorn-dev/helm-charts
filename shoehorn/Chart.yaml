@@ -1,0 +1,119 @@
+apiVersion: v2
+name: shoehorn
+description: Intelligent Platform for Engineering - Internal Developer Platform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+home: https://shoehorn.dev
+icon: https://shoehorn.dev/maskot1.png
+
+keywords:
+  - developer-portal
+  - developer-platform
+  - service-catalog
+  - shoehorn
+  - internal-developer-platform
+  - Intelligent-developer-platform
+  - self-hosted
+  - backstage-alternative
+  - event-driven
+  - multitenant
+  - documentation
+  - kubernetes
+  - idp
+  - platform-engineering
+  - golden-paths
+  - scaffolding
+
+maintainers:
+  - name: Shoehorn Team
+    email: support@shoehorn.dev
+    url: https://github.com/shoehorn-dev
+
+sources:
+  - https://github.com/shoehorn-dev/helm-charts
+
+# Kubernetes version requirement
+kubeVersion: ">=1.24.0-0"
+
+# Chart dependencies
+dependencies:
+  # cert-manager - Optional TLS certificate management
+  # Set certManager.install: true to bundle cert-manager
+  # Set certManager.install: false to use existing cert-manager installation
+  - name: cert-manager
+    version: "v1.20.0"
+    repository: https://charts.jetstack.io
+    condition: certManager.install
+
+annotations:
+  artifacthub.io/category: integration-delivery
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/operator: "false"
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/containsSecurityUpdates: "false"
+
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://docs.shoehorn.dev
+    - name: GitHub
+      url: https://github.com/shoehorn-dev/helm-charts
+    - name: Support
+      url: https://github.com/shoehorn-dev/helm-charts/issues
+
+  artifacthub.io/recommendations: |
+    - url: https://artifacthub.io/packages/helm/traefik/traefik
+    - url: https://artifacthub.io/packages/helm/cert-manager/cert-manager
+
+  artifacthub.io/screenshots: |
+     - title: Dashboard
+       url: https://shoehorn.dev/dashboard.png
+
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial release of Shoehorn Helm chart
+    - kind: added
+      description: Event-driven microservice architecture (API, Web, EventBus, Search, Worker, Crawler, Forge)
+    - kind: added
+      description: Multi-tenant PostgreSQL Row-Level Security (RLS) with two-user mode
+    - kind: added
+      description: Authentication via Zitadel OIDC, Okta, and Microsoft Entra ID
+    - kind: added
+      description: Multi-provider OrgData sync (users and teams from Okta, Zitadel)
+    - kind: added
+      description: Cerbos policy-based RBAC authorization
+    - kind: added
+      description: GitHub integration for repository discovery and Forge workflow engine
+    - kind: added
+      description: Cloud provider resource discovery (UpCloud)
+    - kind: added
+      description: Ingress support for Traefik IngressRoute, Envoy Gateway HTTPRoute, and standard Kubernetes Ingress
+    - kind: added
+      description: OpenTelemetry distributed tracing
+    - kind: added
+      description: gRPC mTLS for inter-service communication via cert-manager
+    - kind: added
+      description: PostgreSQL 18 with pgaudit for compliance auditing (SOC 2, HIPAA)
+    - kind: added
+      description: Meilisearch full-text search engine with optional TLS
+    - kind: added
+      description: Valkey (Redis-compatible) caching
+    - kind: added
+      description: Redpanda (Kafka-compatible) event streaming with optional TLS
+    - kind: added
+      description: Kroki diagram rendering server for TechDocs (PlantUML, C4, BPMN, and more)
+    - kind: added
+      description: SMTP integration for email delivery
+    - kind: added
+      description: Template-time validation for required configuration
+    - kind: added
+      description: HPA autoscaling, PodDisruptionBudgets, and pod security contexts
+    - kind: added
+      description: External service support (RDS, ElastiCache, Meilisearch Cloud, Confluent/MSK)
+    - kind: added
+      description: Shoehorn service catalog annotations for self-cataloging
+    - kind: added
+      description: values.schema.json for IDE autocompletion
+    - kind: added
+      description: Example values files (minimal, production, external-db)

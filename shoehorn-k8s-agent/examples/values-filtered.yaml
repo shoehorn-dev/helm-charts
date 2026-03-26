@@ -1,0 +1,67 @@
+# Filtered configuration for Shoehorn K8s Agent
+# Example showing namespace and resource filtering
+#
+# Usage:
+#   helm install shoehorn-k8s-agent oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn-k8s-agent \
+#     -f values-filtered.yaml \
+#     --set shoehorn.apiToken=sha_your_token_here
+
+# REQUIRED: Shoehorn API configuration
+shoehorn:
+  apiURL: "https://shoehorn.example.com"
+  apiToken: ""  # Set via --set flag
+
+  cluster:
+    id: "staging-filtered"
+    name: "Staging (Filtered View)"
+
+# Agent configuration with filtering
+agent:
+  logLevel: info
+  logFormat: json
+
+  kubernetes:
+    # Option 1: Watch specific namespaces only
+    # Uncomment to watch only these namespaces:
+    namespaces:
+      - production
+      - staging
+      - default
+
+    # Option 2: Watch all EXCEPT certain namespaces
+    # Uncomment and comment out 'namespaces' above:
+    # excludeNamespaces:
+    #   - kube-system
+    #   - kube-public
+    #   - kube-node-lease
+    #   - cert-manager
+    #   - ingress-nginx
+    #   - monitoring
+
+    # Filter by labels (optional)
+    # Only watch resources with specific labels:
+    labelSelector: "app.kubernetes.io/managed-by=Helm"
+
+    # Watch specific resource kinds only
+    # Supported: Deployment, StatefulSet, DaemonSet, CronJob, Job, Service
+    watchedKinds:
+      - Deployment
+      - StatefulSet
+      - Service
+
+# Single replica is fine for non-critical/staging
+replicaCount: 1
+
+# Lower resources for staging
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 20m
+    memory: 64Mi
+
+# Enable PDB but allow disruption for single replica
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 0  # Prevent disruption during maintenance

@@ -1,0 +1,24 @@
+
+ ┌─────────────────────────────────────────────────────┐
+ │  ____  _                _                           │
+ │ / ___|| |__   ___   ___| |__   ___  _ __ _ __       │
+ │ \___ \| '_ \ / _ \ / _ \ '_ \ / _ \| '__| '_ \      │
+ │  ___) | | | | (_) |  __/ | | | (_) | |  | | | |     │
+ │ |____/|_| |_|\___/ \___|_| |_|\___/|_|  |_| |_|     │
+ │ {{ printf "%-52s" (printf "K8s Agent v%s" .Chart.AppVersion) }}│
+ └─────────────────────────────────────────────────────┘
+
+ ▸ Cluster    {{ .Values.shoehorn.cluster.id }}
+ ▸ API        {{ .Values.shoehorn.apiURL }}
+ ▸ Replicas   {{ .Values.replicaCount }}
+{{- if .Values.agent.gitops.tool }}
+ ▸ GitOps     {{ .Values.agent.gitops.tool }}
+{{- end }}
+{{- if .Values.netobserver.enabled }}
+ ▸ NetObserver enabled
+{{- end }}
+
+ ▸ Verify   kubectl get pods -l app.kubernetes.io/name={{ include "shoehorn-agent.name" . }} -n {{ .Release.Namespace }}
+ ▸ Logs     kubectl logs -l app.kubernetes.io/name={{ include "shoehorn-agent.name" . }} -n {{ .Release.Namespace }} -f
+ ▸ Docs     https://docs.shoehorn.dev
+

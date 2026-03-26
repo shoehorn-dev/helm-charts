@@ -1,0 +1,92 @@
+# Production configuration for Shoehorn K8s Agent
+# High availability deployment with 3 replicas
+#
+# Usage:
+#   helm install shoehorn-k8s-agent oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn-k8s-agent \
+#     -f values-production.yaml \
+#     --set shoehorn.apiToken=sha_your_token_here
+
+# REQUIRED: Shoehorn API configuration
+shoehorn:
+  apiURL: "https://shoehorn.example.com"
+  apiToken: ""  # Set via --set flag
+
+  cluster:
+    id: "prod-us-east-1"
+    name: "Production US East"
+    # Link to your K8s dashboard (optional)
+    dashboardURL: "https://k8s-dashboard.example.com"
+
+# Agent configuration
+agent:
+  logLevel: info
+  logFormat: json
+
+  # Batch settings for high-traffic clusters
+  batchInterval: 30s
+  batchSize: 200
+
+  # Reliability settings
+  pushRetries: 5
+  pushTimeout: 60s
+  heartbeatInterval: 5m
+
+  # Exclude system namespaces from monitoring
+  kubernetes:
+    excludeNamespaces:
+      - kube-system
+      - kube-public
+      - kube-node-lease
+
+# High availability configuration
+replicaCount: 3
+
+leaderElection:
+  enabled: true
+
+# PodDisruptionBudget for HA
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: null  # Don't set this when using minAvailable
+  minAvailable: 2       # Ensure 2/3 pods always available
+
+# Anti-affinity to spread across nodes
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: shoehorn-k8s-agent
+          topologyKey: kubernetes.io/hostname
+
+# Production resource limits
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 128Mi
+
+# Security hardening (already defaults, but explicit for audit)
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+
+# Team ownership
+annotations:
+  shoehorn:
+    team: "platform-team"
