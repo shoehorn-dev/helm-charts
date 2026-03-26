@@ -1,0 +1,27 @@
+
+ ┌─────────────────────────────────────────────────────┐
+ │  ____  _                _                           │
+ │ / ___|| |__   ___   ___| |__   ___  _ __ _ __       │
+ │ \___ \| '_ \ / _ \ / _ \ '_ \ / _ \| '__| '_ \      │
+ │  ___) | | | | (_) |  __/ | | | (_) | |  | | | |     │
+ │ |____/|_| |_|\___/ \___|_| |_|\___/|_|  |_| |_|     │
+ │ {{ printf "%-52s" (printf "v%s" .Chart.AppVersion) }}│
+ └─────────────────────────────────────────────────────┘
+
+{{- if or .Values.ingressRoute.enabled .Values.ingress.enabled }}
+
+ ▸ Web UI   https://{{ .Values.global.domain }}
+ ▸ API      https://{{ .Values.global.domain }}/api/v1
+{{- else }}
+
+ No ingress configured. Access locally:
+
+   kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "shoehorn.fullname" . }}-web 4173:4173
+
+ Then open http://localhost:4173
+{{- end }}
+
+ ▸ Verify   kubectl get pods -n {{ .Release.Namespace }}
+ ▸ Logs     kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=api -f
+ ▸ Docs     https://docs.shoehorn.dev
+

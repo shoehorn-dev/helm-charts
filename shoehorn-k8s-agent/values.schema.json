@@ -1,0 +1,458 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/shoehorn-dev/helm-charts/shoehorn-k8s-agent/values.schema.json",
+  "title": "Shoehorn K8s Agent Helm Values",
+  "description": "Schema for Shoehorn Kubernetes Agent Helm chart values",
+  "type": "object",
+  "properties": {
+    "shoehorn": {
+      "type": "object",
+      "description": "Shoehorn API configuration",
+      "properties": {
+        "apiURL": {
+          "type": "string",
+          "description": "URL of the Shoehorn API (REQUIRED)",
+          "format": "uri",
+          "examples": ["https://shoehorn.example.com"]
+        },
+        "apiToken": {
+          "type": "string",
+          "description": "API token for authentication (REQUIRED). Generate in Shoehorn Portal: Settings > Kubernetes Clusters > Register New Cluster",
+          "examples": ["sha_xxxxxxxxxxxx"]
+        },
+        "cluster": {
+          "type": "object",
+          "description": "Cluster configuration",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique cluster ID (REQUIRED)",
+              "pattern": "^[a-z0-9-]*$",
+              "examples": ["prod-us-east-1", "staging-eu-west-1"]
+            },
+            "name": {
+              "type": "string",
+              "description": "Human-readable cluster name (optional, defaults to cluster.id)",
+              "examples": ["Production US East", "Staging EU"]
+            },
+            "dashboardURL": {
+              "type": "string",
+              "description": "Dashboard URL for cluster (K8s Dashboard, ArgoCD, FluxCD, etc.)",
+              "format": "uri",
+              "examples": ["https://k8s-dashboard.example.com"]
+            }
+          }
+        }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "description": "Agent configuration",
+      "properties": {
+        "logLevel": {
+          "type": "string",
+          "description": "Log level",
+          "enum": ["debug", "info", "warn", "error"],
+          "default": "info"
+        },
+        "logFormat": {
+          "type": "string",
+          "description": "Log format",
+          "enum": ["json", "console"],
+          "default": "json"
+        },
+        "healthPort": {
+          "type": "integer",
+          "description": "Health server port",
+          "default": 8080,
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "batchInterval": {
+          "type": "string",
+          "description": "Batch flush interval",
+          "pattern": "^[0-9]+(s|m|h)$",
+          "default": "30s",
+          "examples": ["30s", "1m"]
+        },
+        "batchSize": {
+          "type": "integer",
+          "description": "Maximum batch size",
+          "default": 100,
+          "minimum": 1
+        },
+        "pushRetries": {
+          "type": "integer",
+          "description": "Number of push retries",
+          "default": 3,
+          "minimum": 0
+        },
+        "pushTimeout": {
+          "type": "string",
+          "description": "Push timeout",
+          "pattern": "^[0-9]+(s|m)$",
+          "default": "30s"
+        },
+        "heartbeatInterval": {
+          "type": "string",
+          "description": "Heartbeat interval",
+          "pattern": "^[0-9]+(s|m|h)$",
+          "default": "5m"
+        },
+        "livenessProbe": {
+          "type": "object",
+          "description": "Liveness probe configuration",
+          "$ref": "#/$defs/probe"
+        },
+        "readinessProbe": {
+          "type": "object",
+          "description": "Readiness probe configuration",
+          "$ref": "#/$defs/probe"
+        },
+        "kubernetes": {
+          "type": "object",
+          "description": "Kubernetes filtering configuration",
+          "properties": {
+            "namespaces": {
+              "type": "array",
+              "description": "Namespaces to watch (empty = all namespaces)",
+              "items": { "type": "string" },
+              "default": [],
+              "examples": [["prod", "prod-east", "prod-west"]]
+            },
+            "excludeNamespaces": {
+              "type": "array",
+              "description": "Namespaces to exclude from monitoring",
+              "items": { "type": "string" },
+              "default": [],
+              "examples": [["kube-system", "kube-public"]]
+            },
+            "labelSelector": {
+              "type": "string",
+              "description": "Label selector filter (optional)",
+              "examples": ["app.kubernetes.io/managed-by=Helm"]
+            },
+            "watchedKinds": {
+              "type": "array",
+              "description": "Resource kinds to watch (empty = all default kinds). Supported: Deployment, StatefulSet, DaemonSet, CronJob, Job, Service, Pod",
+              "items": {
+                "type": "string",
+                "enum": ["Deployment", "StatefulSet", "DaemonSet", "CronJob", "Job", "Service", "Pod"]
+              },
+              "default": [],
+              "examples": [["Deployment", "StatefulSet", "Service", "Pod"]]
+            }
+          }
+        },
+        "gitops": {
+          "type": "object",
+          "description": "GitOps integration configuration (ArgoCD/FluxCD)",
+          "properties": {
+            "tool": {
+              "type": "string",
+              "description": "GitOps tool to monitor: argocd, fluxcd, or empty string (disabled)",
+              "enum": ["argocd", "fluxcd", ""],
+              "default": ""
+            },
+            "watchAllNamespaces": {
+              "type": "boolean",
+              "description": "Watch all namespaces for GitOps CRDs. false = namespace-scoped RBAC (default); true = ClusterRole access",
+              "default": false
+            },
+            "argocd": {
+              "type": "object",
+              "description": "ArgoCD-specific configuration (used when tool: argocd)",
+              "properties": {
+                "namespace": {
+                  "type": "string",
+                  "description": "Namespace where ArgoCD is installed",
+                  "default": "argocd",
+                  "examples": ["argocd"]
+                },
+                "serverURL": {
+                  "type": "string",
+                  "description": "ArgoCD API server URL for sync/refresh commands. Required to enable action buttons in the UI.",
+                  "examples": ["https://argocd.example.com"]
+                },
+                "token": {
+                  "type": "string",
+                  "description": "ArgoCD API token for sync commands (stored as a Kubernetes Secret). Generate with: argocd account generate-token"
+                }
+              }
+            },
+            "fluxcd": {
+              "type": "object",
+              "description": "FluxCD-specific configuration (used when tool: fluxcd)",
+              "properties": {
+                "namespace": {
+                  "type": "string",
+                  "description": "Namespace where FluxCD is installed",
+                  "default": "flux-system",
+                  "examples": ["flux-system"]
+                }
+              }
+            },
+            "commandPollInterval": {
+              "type": "string",
+              "description": "How often the agent polls for pending GitOps commands from the UI",
+              "pattern": "^[0-9]+(s|m)$",
+              "default": "10s",
+              "examples": ["10s", "30s"]
+            }
+          }
+        },
+        "annotations": {
+          "type": "object",
+          "description": "Annotation-based monitoring configuration for fine-grained control",
+          "properties": {
+            "defaultBehavior": {
+              "type": "string",
+              "description": "Default behavior when resource has no shoehorn.dev/monitor annotation",
+              "enum": ["monitor-all", "require-annotation", "monitor-none"],
+              "default": "monitor-all",
+              "examples": ["monitor-all"]
+            },
+            "defaultLevel": {
+              "type": "string",
+              "description": "Default monitoring level for resources without shoehorn.dev/monitoring-level annotation",
+              "enum": ["basic", "detailed", "full"],
+              "default": "basic",
+              "examples": ["basic", "detailed", "full"]
+            }
+          }
+        }
+      }
+    },
+    "image": {
+      "type": "object",
+      "description": "Image configuration",
+      "properties": {
+        "registry": {
+          "type": "string",
+          "description": "Container registry",
+          "default": "ghcr.io"
+        },
+        "repository": {
+          "type": "string",
+          "description": "Image repository",
+          "default": "shoehorn-dev/shoehorn-k8s-agent"
+        },
+        "tag": {
+          "type": "string",
+          "description": "Image tag (defaults to .Chart.AppVersion)"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "description": "Image pull policy",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "default": "IfNotPresent"
+        }
+      }
+    },
+    "imagePullSecrets": {
+      "type": "array",
+      "description": "Image pull secrets for private registries",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" }
+        },
+        "required": ["name"]
+      },
+      "default": []
+    },
+    "serviceAccount": {
+      "type": "object",
+      "description": "Service account configuration",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Specifies whether a service account should be created",
+          "default": true
+        },
+        "annotations": {
+          "type": "object",
+          "description": "Annotations to add to the service account",
+          "additionalProperties": { "type": "string" },
+          "default": {}
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the service account to use"
+        }
+      }
+    },
+    "rbac": {
+      "type": "object",
+      "description": "RBAC configuration",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Specifies whether RBAC resources should be created",
+          "default": true
+        }
+      }
+    },
+    "podAnnotations": {
+      "type": "object",
+      "description": "Pod annotations",
+      "additionalProperties": { "type": "string" },
+      "default": {}
+    },
+    "annotations": {
+      "type": "object",
+      "description": "Shoehorn ownership annotations",
+      "properties": {
+        "shoehorn": {
+          "type": "object",
+          "properties": {
+            "team": {
+              "type": "string",
+              "description": "Team responsible for this agent"
+            }
+          }
+        }
+      }
+    },
+    "podSecurityContext": {
+      "type": "object",
+      "description": "Pod security context",
+      "$ref": "#/$defs/podSecurityContext"
+    },
+    "securityContext": {
+      "type": "object",
+      "description": "Container security context",
+      "$ref": "#/$defs/securityContext"
+    },
+    "resources": {
+      "type": "object",
+      "description": "Resource limits and requests",
+      "$ref": "#/$defs/resources"
+    },
+    "nodeSelector": {
+      "type": "object",
+      "description": "Node selector",
+      "additionalProperties": { "type": "string" },
+      "default": {}
+    },
+    "tolerations": {
+      "type": "array",
+      "description": "Tolerations",
+      "items": { "type": "object" },
+      "default": []
+    },
+    "affinity": {
+      "type": "object",
+      "description": "Affinity rules",
+      "default": {}
+    },
+    "podDisruptionBudget": {
+      "type": "object",
+      "description": "PodDisruptionBudget configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable PodDisruptionBudget for high availability",
+          "default": true
+        },
+        "maxUnavailable": {
+          "type": ["integer", "null"],
+          "description": "Max unavailable pods (use 0 for single replica mode)"
+        },
+        "minAvailable": {
+          "type": ["integer", "null"],
+          "description": "Min available pods (use 2 for HA mode with 3 replicas)"
+        }
+      }
+    },
+    "leaderElection": {
+      "type": "object",
+      "description": "Leader election configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable leader election for high availability",
+          "default": true
+        },
+        "namespace": {
+          "type": "string",
+          "description": "Namespace for leader election lease (defaults to release namespace)"
+        }
+      }
+    },
+    "replicaCount": {
+      "type": "integer",
+      "description": "Number of replicas (use 3 for HA)",
+      "default": 1,
+      "minimum": 1
+    }
+  },
+  "$defs": {
+    "probe": {
+      "type": "object",
+      "properties": {
+        "httpGet": {
+          "type": "object",
+          "properties": {
+            "path": { "type": "string" },
+            "port": { "type": ["integer", "string"] }
+          }
+        },
+        "initialDelaySeconds": { "type": "integer", "minimum": 0 },
+        "periodSeconds": { "type": "integer", "minimum": 1 },
+        "timeoutSeconds": { "type": "integer", "minimum": 1 },
+        "failureThreshold": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "limits": {
+          "type": "object",
+          "properties": {
+            "cpu": { "type": "string" },
+            "memory": { "type": "string" }
+          }
+        },
+        "requests": {
+          "type": "object",
+          "properties": {
+            "cpu": { "type": "string" },
+            "memory": { "type": "string" }
+          }
+        }
+      }
+    },
+    "podSecurityContext": {
+      "type": "object",
+      "properties": {
+        "runAsNonRoot": { "type": "boolean" },
+        "runAsUser": { "type": "integer" },
+        "runAsGroup": { "type": "integer" },
+        "fsGroup": { "type": "integer" },
+        "seccompProfile": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string" }
+          }
+        }
+      }
+    },
+    "securityContext": {
+      "type": "object",
+      "properties": {
+        "allowPrivilegeEscalation": { "type": "boolean" },
+        "capabilities": {
+          "type": "object",
+          "properties": {
+            "drop": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "readOnlyRootFilesystem": { "type": "boolean" }
+      }
+    }
+  }
+}

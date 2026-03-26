@@ -1,0 +1,72 @@
+{{- $tlsEnabled := or .Values.global.mtls.enabled .Values.postgresql.tls.enabled .Values.redpanda.tls.enabled .Values.meilisearch.tls.enabled -}}
+{{- if and $tlsEnabled .Values.certManager.createClusterIssuer }}
+---
+# ═══════════════════════════════════════════════════════════════
+# cert-manager ClusterIssuer for Shoehorn TLS Certificates
+# ═══════════════════════════════════════════════════════════════
+# This creates a self-signed CA certificate authority that issues
+# certificates for internal services (gRPC, PostgreSQL, Redpanda, Meilisearch)
+#
+# Three-step process:
+# 1. Bootstrap self-signed issuer
+# 2. Create CA certificate signed by bootstrap issuer
+# 3. Create CA issuer that uses the CA certificate
+#
+# To use external issuer instead:
+#   Set certManager.createClusterIssuer: false
+#   Update certManager.issuer.name to point to your existing issuer
+
+# Step 1: Bootstrap self-signed issuer (temporary, used only to create CA)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Release.Name }}-selfsigned-issuer
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: certificate-authority
+spec:
+  selfSigned: {}
+
+---
+# Step 2: Create CA certificate (signed by bootstrap issuer)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Release.Name }}-ca
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: certificate-authority
+spec:
+  secretName: {{ .Release.Name }}-ca-secret
+  isCA: true
+  commonName: {{ .Values.certManager.issuer.ca.organizationName | default "Shoehorn Platform" }} Root CA
+  subject:
+    organizations:
+      - {{ .Values.certManager.issuer.ca.organizationName | default "Shoehorn Platform" }}
+  duration: {{ .Values.certManager.issuer.ca.duration | default "87600h" }}  # 10 years
+  renewBefore: {{ .Values.certManager.issuer.ca.renewBefore | default "8760h" }}  # 1 year
+  issuerRef:
+    name: {{ .Release.Name }}-selfsigned-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+  privateKey:
+    algorithm: RSA
+    size: 4096
+
+---
+# Step 3: Create CA issuer (uses the CA certificate to sign service certificates)
+apiVersion: cert-manager.io/v1
+kind: {{ .Values.certManager.issuer.kind | default "ClusterIssuer" }}
+metadata:
+  name: {{ .Values.certManager.issuer.name | default "shoehorn-ca-issuer" }}
+  {{- if eq (.Values.certManager.issuer.kind | default "ClusterIssuer") "Issuer" }}
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  {{- end }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: certificate-authority
+spec:
+  ca:
+    secretName: {{ .Release.Name }}-ca-secret
+{{- end }}

@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "shoehorn-agent.fullname" . }}
+  labels:
+    {{- include "shoehorn-agent.labels" . | nindent 4 }}
+  annotations:
+    {{- include "shoehorn-agent.annotations" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "shoehorn-agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- include "shoehorn-agent.annotations" . | nindent 8 }}
+        checksum/config: {{ include "shoehorn-agent.configmap" . | sha256sum }}
+        checksum/secret: {{ include "shoehorn-agent.secret" . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- mustToYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "shoehorn-agent.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "shoehorn-agent.serviceAccountName" . }}
+      securityContext:
+        {{- mustToYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: agent
+          securityContext:
+            {{- mustToYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "shoehorn-agent.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: health
+              containerPort: {{ .Values.agent.healthPort }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "shoehorn-agent.fullname" . }}
+          env:
+            - name: SHOEHORN_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "shoehorn-agent.secretName" . }}
+                  key: {{ include "shoehorn-agent.secretKey" (dict "env" "SHOEHORN_API_TOKEN" "default" "api-token" "root" .) }}
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            {{- if and (eq (.Values.agent.gitops.tool | default "") "argocd") (or .Values.agent.gitops.argocd.token (and .Values.shoehorn.existingSecret (hasKey .Values.shoehorn.secretMappings "SHOEHORN_GITOPS_ARGOCD_TOKEN"))) }}
+            - name: SHOEHORN_GITOPS_ARGOCD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "shoehorn-agent.secretName" . }}
+                  key: {{ include "shoehorn-agent.secretKey" (dict "env" "SHOEHORN_GITOPS_ARGOCD_TOKEN" "default" "argocd-token" "root" .) }}
+            {{- end }}
+          {{- with .Values.agent.livenessProbe }}
+          livenessProbe:
+            {{- mustToYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.agent.readinessProbe }}
+          readinessProbe:
+            {{- mustToYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- mustToYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}

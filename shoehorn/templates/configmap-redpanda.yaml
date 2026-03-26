@@ -1,0 +1,92 @@
+{{- if and .Values.redpanda.enabled (not .Values.redpanda.external.enabled) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-redpanda-config
+  namespace: {{ include "shoehorn.namespace.data" . }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redpanda
+data:
+  redpanda.yaml: |
+    redpanda:
+      data_directory: /var/lib/redpanda/data
+      seed_servers: []
+      rpc_server:
+        address: 0.0.0.0
+        port: 33145
+      kafka_api:
+        - address: 0.0.0.0
+          {{- if .Values.redpanda.tls.enabled }}
+          port: 9093  # TLS port
+          name: internal_tls
+          {{- else }}
+          port: 9092  # Plaintext port
+          name: internal
+          {{- end }}
+      admin:
+        - address: 0.0.0.0
+          port: 9644
+          name: internal
+          {{- if .Values.redpanda.tls.enabled }}
+          # Admin API TLS configuration
+          tls:
+            enabled: true
+            cert_file: {{ .Values.redpanda.tls.certFile }}
+            key_file: {{ .Values.redpanda.tls.keyFile }}
+            truststore_file: {{ .Values.redpanda.tls.caFile }}
+          {{- end }}
+      advertised_rpc_api:
+        address: {{ include "shoehorn.fullname" . }}-redpanda-0.{{ include "shoehorn.fullname" . }}-redpanda.{{ include "shoehorn.namespace.data" . }}.svc.cluster.local
+        port: 33145
+      advertised_kafka_api:
+        - address: {{ include "shoehorn.fullname" . }}-redpanda-0.{{ include "shoehorn.fullname" . }}-redpanda.{{ include "shoehorn.namespace.data" . }}.svc.cluster.local
+          {{- if .Values.redpanda.tls.enabled }}
+          port: 9093
+          name: internal_tls
+          {{- else }}
+          port: 9092
+          name: internal
+          {{- end }}
+      developer_mode: true
+      auto_create_topics_enabled: true
+
+    {{- if .Values.redpanda.tls.enabled }}
+    # Kafka API TLS Configuration
+    kafka_api_tls:
+      - name: internal_tls
+        enabled: true
+        cert_file: {{ .Values.redpanda.tls.certFile }}
+        key_file: {{ .Values.redpanda.tls.keyFile }}
+        truststore_file: {{ .Values.redpanda.tls.caFile }}
+        require_client_auth: {{ .Values.redpanda.tls.requireClientAuth | default false }}
+    {{- end }}
+
+    pandaproxy:
+      pandaproxy_api:
+        - address: 0.0.0.0
+          port: 8082
+          name: internal
+          {{- if .Values.redpanda.tls.enabled }}
+          # Pandaproxy TLS configuration
+          tls:
+            enabled: true
+            cert_file: {{ .Values.redpanda.tls.certFile }}
+            key_file: {{ .Values.redpanda.tls.keyFile }}
+            truststore_file: {{ .Values.redpanda.tls.caFile }}
+          {{- end }}
+
+    schema_registry:
+      schema_registry_api:
+        - address: 0.0.0.0
+          port: 8081
+          name: internal
+          {{- if .Values.redpanda.tls.enabled }}
+          # Schema Registry TLS configuration
+          tls:
+            enabled: true
+            cert_file: {{ .Values.redpanda.tls.certFile }}
+            key_file: {{ .Values.redpanda.tls.keyFile }}
+            truststore_file: {{ .Values.redpanda.tls.caFile }}
+          {{- end }}
+{{- end }}

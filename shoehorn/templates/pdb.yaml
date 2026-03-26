@@ -1,0 +1,86 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+# API Pod Disruption Budget
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-api
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  labels:
+    {{- include "shoehorn.api.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "shoehorn.api.selectorLabels" . | nindent 6 }}
+---
+# Web Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-web
+  namespace: {{ include "shoehorn.namespace.frontend" . }}
+  labels:
+    {{- include "shoehorn.web.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "shoehorn.web.selectorLabels" . | nindent 6 }}
+---
+# EventBus Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-eventbus
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  labels:
+    {{- include "shoehorn.eventbus.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "shoehorn.eventbus.selectorLabels" . | nindent 6 }}
+---
+# Search Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-search
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  labels:
+    {{- include "shoehorn.search.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "shoehorn.search.selectorLabels" . | nindent 6 }}
+---
+# Worker Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-worker
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  labels:
+    {{- include "shoehorn.worker.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "shoehorn.worker.selectorLabels" . | nindent 6 }}
+---
+# Forge Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-forge
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  labels:
+    {{- include "shoehorn.forge.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "shoehorn.forge.selectorLabels" . | nindent 6 }}
+{{- end }}

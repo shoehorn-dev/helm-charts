@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-web
+  namespace: {{ include "shoehorn.namespace.frontend" . }}
+  labels:
+    {{- include "shoehorn.web.labels" . | nindent 4 }}
+  annotations:
+    {{- include "shoehorn.serviceAnnotations" .Values.web.annotations | nindent 4 }}
+spec:
+  {{- if not .Values.web.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount.web }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "shoehorn.web.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- include "shoehorn.serviceAnnotations" .Values.web.annotations | nindent 8 }}
+      labels:
+        {{- include "shoehorn.web.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- include "shoehorn.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ include "shoehorn.serviceAccountName" . }}
+      securityContext:
+        {{- mustToYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: web
+        securityContext:
+          {{- mustToYaml .Values.securityContext | nindent 12 }}
+        image: {{ include "shoehorn.componentImage" (dict "component" .Values.web "Values" .Values) }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 4173
+          protocol: TCP
+        env:
+        - name: VITE_ENVIRONMENT
+          value: {{ .Values.web.env.VITE_ENVIRONMENT }}
+        - name: VITE_API_URL
+          value: "/api/v1"
+        - name: VITE_DOMAIN
+          value: {{ .Values.global.domain }}
+        livenessProbe:
+          {{- mustToYaml .Values.web.livenessProbe | nindent 12 }}
+        readinessProbe:
+          {{- mustToYaml .Values.web.readinessProbe | nindent 12 }}
+        resources:
+          {{- mustToYaml .Values.web.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}

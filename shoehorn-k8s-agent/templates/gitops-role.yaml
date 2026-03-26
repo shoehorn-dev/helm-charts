@@ -1,0 +1,86 @@
+{{- if and .Values.rbac.create .Values.agent.gitops.tool (not .Values.agent.gitops.watchAllNamespaces) -}}
+{{- $namespace := "" -}}
+{{- if eq .Values.agent.gitops.tool "argocd" -}}
+{{- $namespace = .Values.agent.gitops.argocd.namespace | default "argocd" -}}
+{{- else if eq .Values.agent.gitops.tool "fluxcd" -}}
+{{- $namespace = .Values.agent.gitops.fluxcd.namespace | default "flux-system" -}}
+{{- else -}}
+{{- $namespace = "argocd" -}}
+{{- end -}}
+---
+# Namespace-scoped Role for GitOps CRD access.
+# Grants read access only to the namespace where the GitOps tool is installed.
+# To watch CRDs across all namespaces instead, set gitops.watchAllNamespaces=true
+# (which adds ClusterRole rules instead).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "shoehorn-agent.fullname" . }}-gitops
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "shoehorn-agent.labels" . | nindent 4 }}
+  annotations:
+    {{- include "shoehorn-agent.annotations" . | nindent 4 }}
+rules:
+  {{- if eq .Values.agent.gitops.tool "argocd" }}
+  - apiGroups: ["argoproj.io"]
+    resources:
+      - applications
+    verbs:
+      - get
+      - list
+      - watch
+  {{- end }}
+  {{- if eq .Values.agent.gitops.tool "fluxcd" }}
+  - apiGroups: ["kustomize.toolkit.fluxcd.io"]
+    resources:
+      - kustomizations
+    verbs:
+      - get
+      - list
+      - watch
+      - patch
+  - apiGroups: ["helm.toolkit.fluxcd.io"]
+    resources:
+      - helmreleases
+    verbs:
+      - get
+      - list
+      - watch
+      - patch
+  - apiGroups: ["source.toolkit.fluxcd.io"]
+    resources:
+      - gitrepositories
+      - helmrepositories
+    verbs:
+      - get
+      - list
+      - watch
+  {{- end }}
+  # Read events in this namespace (for recent_events on GitOps resources)
+  - apiGroups: [""]
+    resources:
+      - events
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "shoehorn-agent.fullname" . }}-gitops
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "shoehorn-agent.labels" . | nindent 4 }}
+  annotations:
+    {{- include "shoehorn-agent.annotations" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "shoehorn-agent.fullname" . }}-gitops
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "shoehorn-agent.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

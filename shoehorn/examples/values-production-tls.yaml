@@ -1,0 +1,118 @@
+# Production Values with TLS Enabled
+# This is an example configuration for production deployments with full TLS security
+
+# Production Values with gRPC mTLS Enabled
+# ==========================================
+# This configuration enables mutual TLS for all internal gRPC communication
+
+# Global settings
+global:
+  domain: shoehorn.example.com
+  organization:
+    name: "Your Company"
+    slug: "your-company"
+  environment: production
+
+  # Enable mTLS for ALL gRPC services (API, Forge, Worker, Crawler, Search, Eventbus, Cerbos)
+  mtls:
+    enabled: true  # PRODUCTION: Enable mutual TLS
+    createCertificates: true  # Let chart create certificates via cert-manager
+    issuerName: shoehorn-ca-issuer
+    issuerKind: ClusterIssuer
+    certFile: "/etc/shoehorn/certs/tls.crt"
+    keyFile: "/etc/shoehorn/certs/tls.key"
+    caFile: "/etc/shoehorn/certs/ca.crt"
+
+# Single secret containing all credentials
+secret:
+  existingSecret: "shoehorn-credentials"
+
+# Cerbos Authorization
+# NOTE: Cerbos TLS is controlled by global.mtls.enabled
+cerbos:
+  replicas: 2  # High availability
+  image:
+    repository: ghcr.io/cerbos/cerbos
+    tag: "0.39.0"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  audit:
+    enabled: true
+    retentionPeriod: "720h"  # 30 days for production
+
+# PostgreSQL with RLS (Two-User Mode)
+postgresql:
+  enabled: true
+  replicas: 1
+  persistence:
+    enabled: true
+    size: 100Gi
+    storageClass: fast-ssd
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  # Production RLS configuration
+  rls:
+    enabled: true  # Two-user mode for production
+    appUserPassword: "CHANGE_ME_IN_PRODUCTION"  # Override with secret
+  # Audit logging
+  pgaudit:
+    enabled: true
+    log: "write,ddl,role"
+
+# API Service
+api:
+  replicas: 3  # High availability
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+
+# Ingress with TLS
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  tls:
+    enabled: true
+    certResolver: letsencrypt-prod
+
+# Security Context (Production hardening)
+podSecurityContext:
+  runAsNonRoot: true
+  fsGroup: 65534
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+  capabilities:
+    drop:
+      - ALL
+
+# Resource Quotas
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

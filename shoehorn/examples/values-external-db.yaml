@@ -1,0 +1,230 @@
+# External Database Values
+# =========================
+# Configuration for using external managed services instead of in-cluster StatefulSets.
+# Ideal for production environments using:
+# - AWS RDS, Azure Database, Cloud SQL for PostgreSQL
+# - ElastiCache, MemoryDB, or managed Redis for Valkey
+# - Meilisearch Cloud or self-hosted cluster
+# - Amazon MSK, Confluent Cloud, or managed Kafka for Redpanda
+#
+# Usage:
+#   helm install shoehorn ./charts/shoehorn -n shoehorn --create-namespace \
+#     -f ./charts/shoehorn/examples/values-external-db.yaml
+#
+# IMPORTANT: Update all "CHANGE_ME" values before deploying!
+
+global:
+  # CHANGE_ME: Your domain
+  domain: shoehorn.example.com
+
+  environment: production
+  logLevel: info
+
+  organization:
+    name: "Acme Corp"
+    slug: "acme-corp"
+
+  imagePullSecrets:
+    - name: ghcr-secret
+
+# Image configuration
+image:
+  registry: ghcr.io
+  repository: imbabamba
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+# Single secret containing all credentials
+secret:
+  existingSecret: "shoehorn-credentials"
+
+# Mount GitHub App private key from the credentials secret (for repository crawling)
+extraVolumes:
+  - name: github-private-key
+    secret:
+      secretName: shoehorn-credentials
+      items:
+        - key: github_app_private_key
+          path: private-key
+
+extraVolumeMounts:
+  - name: github-private-key
+    mountPath: /var/secrets/github
+    readOnly: true
+
+# Ingress
+ingressRoute:
+  enabled: true
+  tls:
+    enabled: true
+    certResolver: letsencrypt
+
+# Replica counts (no data layer - external services)
+replicaCount:
+  api: 3
+  web: 2
+  eventbus: 2
+  search: 2
+  worker: 3
+  crawler: 2
+  forge: 2
+  cerbos: 2
+
+# ============================================================================
+# External PostgreSQL (AWS RDS, Azure Database, Cloud SQL, etc.)
+# ============================================================================
+
+postgresql:
+  # Disable in-cluster PostgreSQL
+  enabled: false
+
+  # External PostgreSQL configuration
+  external:
+    enabled: true
+    # CHANGE_ME: Your external PostgreSQL host
+    host: "shoehorn-db.xxxx.us-east-1.rds.amazonaws.com"
+    port: 5432
+
+# ============================================================================
+# External Meilisearch (Meilisearch Cloud or self-hosted)
+# ============================================================================
+
+meilisearch:
+  # Disable in-cluster Meilisearch
+  enabled: false
+
+  # External Meilisearch configuration
+  external:
+    enabled: true
+    # CHANGE_ME: Your Meilisearch cluster
+    host: "xxxx.meilisearch.com"
+    port: 443
+    protocol: https
+
+# ============================================================================
+# External Valkey/Redis (ElastiCache, MemoryDB, etc.)
+# ============================================================================
+
+valkey:
+  # Disable in-cluster Valkey
+  enabled: false
+
+  # External Redis configuration
+  external:
+    enabled: true
+    # CHANGE_ME: Your Redis endpoint
+    host: "shoehorn-cache.xxxx.cache.amazonaws.com"
+    port: 6379
+
+# ============================================================================
+# External Kafka/Redpanda (MSK, Confluent Cloud, etc.)
+# ============================================================================
+
+redpanda:
+  # Disable in-cluster Redpanda
+  enabled: false
+
+  # External Kafka configuration
+  external:
+    enabled: true
+    # CHANGE_ME: Your Kafka brokers (comma-separated)
+    brokers: "b-1.shoehorn-kafka.xxxx.kafka.us-east-1.amazonaws.com:9092,b-2.shoehorn-kafka.xxxx.kafka.us-east-1.amazonaws.com:9092"
+
+# ============================================================================
+# Cerbos (keep in-cluster - lightweight)
+# ============================================================================
+
+cerbos:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+# ============================================================================
+# Authentication
+# ============================================================================
+
+auth:
+  provider: zitadel
+  zitadel:
+    # CHANGE_ME: Your Zitadel configuration
+    projectId: "YOUR_PROJECT_ID"
+    clientId: "YOUR_CLIENT_ID"
+    externalUrl: "https://auth.example.com"
+    insecure: false
+
+# ============================================================================
+# Services (API, Web, Microservices)
+# ============================================================================
+
+api:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  env:
+    ENVIRONMENT: production
+    LOG_LEVEL: info
+    LOG_FORMAT: json
+    # CHANGE_ME: GitHub integration
+    GITHUB_ORGANIZATIONS: "your-org"
+    TELEMETRY_ENABLED: "true"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+web:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+
+forge:
+  env:
+    FORGE_ENVIRONMENT: "production"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ============================================================================
+# Security
+# ============================================================================
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsNonRoot: true
+  runAsUser: 1000
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

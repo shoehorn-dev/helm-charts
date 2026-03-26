@@ -1,0 +1,174 @@
+{{- if and .Values.redpanda.enabled (not .Values.redpanda.external.enabled) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-redpanda
+  namespace: {{ include "shoehorn.namespace.data" . }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redpanda
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    {{- if .Values.redpanda.tls.enabled }}
+    - port: 9093
+      targetPort: kafka-tls
+      protocol: TCP
+      name: kafka
+    {{- else }}
+    - port: 9092
+      targetPort: kafka
+      protocol: TCP
+      name: kafka
+    {{- end }}
+    - port: 8082
+      targetPort: proxy
+      protocol: TCP
+      name: proxy
+    - port: 8081
+      targetPort: schema
+      protocol: TCP
+      name: schema
+    - port: 9644
+      targetPort: admin
+      protocol: TCP
+      name: admin
+  selector:
+    {{- include "shoehorn.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: redpanda
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-redpanda
+  namespace: {{ include "shoehorn.namespace.data" . }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redpanda
+spec:
+  serviceName: {{ include "shoehorn.fullname" . }}-redpanda
+  replicas: {{ .Values.replicaCount.redpanda | default .Values.redpanda.replicas }}
+  selector:
+    matchLabels:
+      {{- include "shoehorn.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: redpanda
+  template:
+    metadata:
+      labels:
+        {{- include "shoehorn.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: redpanda
+    spec:
+      {{- include "shoehorn.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ include "shoehorn.serviceAccountName" . }}
+      securityContext:
+        {{- if .Values.redpanda.podSecurityContext }}
+        {{- mustToYaml .Values.redpanda.podSecurityContext | nindent 8 }}
+        {{- else }}
+        {{- mustToYaml .Values.podSecurityContext | nindent 8 }}
+        {{- end }}
+      initContainers:
+      - name: copy-config
+        image: busybox:1.36
+        command:
+          - sh
+          - -c
+          - cp /tmp/config/redpanda.yaml /etc/redpanda/redpanda.yaml
+        volumeMounts:
+        - name: config-source
+          mountPath: /tmp/config
+        - name: config
+          mountPath: /etc/redpanda
+      containers:
+      - name: redpanda
+        securityContext:
+          {{- if .Values.redpanda.securityContext }}
+          {{- mustToYaml .Values.redpanda.securityContext | nindent 12 }}
+          {{- else }}
+          {{- mustToYaml .Values.securityContext | nindent 12 }}
+          {{- end }}
+        image: "{{ .Values.redpanda.image.repository }}:{{ .Values.redpanda.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        {{- if .Values.redpanda.tls.enabled }}
+        - name: kafka-tls
+          containerPort: 9093
+          protocol: TCP
+        {{- else }}
+        - name: kafka
+          containerPort: 9092
+          protocol: TCP
+        {{- end }}
+        - name: proxy
+          containerPort: 8082
+          protocol: TCP
+        - name: schema
+          containerPort: 8081
+          protocol: TCP
+        - name: admin
+          containerPort: 9644
+          protocol: TCP
+        livenessProbe:
+          {{- mustToYaml .Values.redpanda.livenessProbe | nindent 12 }}
+        readinessProbe:
+          {{- mustToYaml .Values.redpanda.readinessProbe | nindent 12 }}
+        resources:
+          {{- mustToYaml .Values.redpanda.resources | nindent 12 }}
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/redpanda/data
+        - name: config
+          mountPath: /etc/redpanda
+        {{- if .Values.redpanda.tls.enabled }}
+        - name: redpanda-certs
+          mountPath: /etc/redpanda/certs
+          readOnly: true
+        {{- end }}
+      volumes:
+      - name: config-source
+        configMap:
+          name: {{ include "shoehorn.fullname" . }}-redpanda-config
+      - name: config
+        emptyDir: {}
+      {{- if not .Values.redpanda.persistence.enabled }}
+      - name: data
+        emptyDir: {}
+      {{- end }}
+      {{- if .Values.redpanda.tls.enabled }}
+      - name: redpanda-certs
+        secret:
+          secretName: {{ include "shoehorn.fullname" . }}-redpanda-tls-cert
+          defaultMode: 0400
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.redpanda.persistence.enabled }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.redpanda.persistence.storageClass }}
+      {{- if (eq "-" .Values.redpanda.persistence.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: {{ .Values.redpanda.persistence.storageClass | quote }}
+      {{- end }}
+      {{- else }}
+      storageClassName: {{ .Values.global.storageClass | quote }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.redpanda.persistence.size }}
+  {{- end }}
+{{- end }}

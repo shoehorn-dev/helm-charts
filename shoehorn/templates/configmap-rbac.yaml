@@ -1,0 +1,45 @@
+{{- if .Values.rbac.enabled }}
+{{- range .Values.rbac.tenants }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "shoehorn.fullname" $ }}-rbac-{{ .slug }}
+  labels:
+    {{- include "shoehorn.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: rbac
+    shoehorn.io/tenant: {{ .slug }}
+  annotations:
+    shoehorn.io/rbac-version: {{ .version | quote }}
+    shoehorn.io/sync-mode: {{ $.Values.rbac.sync.mode | quote }}
+data:
+  {{ .slug }}.yaml: |
+    # RBAC Configuration for {{ .name }}
+    # This file is auto-generated from Helm values
+    # DO NOT EDIT MANUALLY - changes will be overwritten
+
+    tenant:
+      slug: {{ .slug }}
+      name: {{ .name | quote }}
+
+    version: {{ .version | quote }}
+
+    oauth_mappings:
+{{- range $provider, $config := .oauthMappings }}
+      {{ $provider }}:
+        enabled: {{ $config.enabled }}
+{{- if $config.enabled }}
+        mappings:
+{{- range $config.mappings }}
+          - oauth_group: {{ .oauthGroup | quote }}
+            role: {{ .role | quote }}
+{{- if .description }}
+            description: {{ .description | quote }}
+{{- end }}
+{{- end }}
+{{- else }}
+        mappings: []
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

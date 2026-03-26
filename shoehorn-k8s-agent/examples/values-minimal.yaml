@@ -1,0 +1,29 @@
+# Minimal configuration for Shoehorn K8s Agent
+# Quick start - just set the required values
+#
+# Usage:
+#   helm install shoehorn-k8s-agent oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn-k8s-agent \
+#     -f values-minimal.yaml \
+#     --set shoehorn.apiToken=sha_your_token_here
+
+# REQUIRED: Shoehorn API configuration
+shoehorn:
+  # Your Shoehorn instance URL
+  apiURL: "https://shoehorn.example.com"
+
+  # API token - set via --set flag for security
+  # Generate at: Settings > Kubernetes Clusters > Register New Cluster
+  apiToken: ""
+
+  # Cluster identification
+  cluster:
+    # Unique identifier for this cluster (lowercase, hyphens only)
+    id: "my-cluster"
+    # Human-readable name (optional)
+    name: "My Kubernetes Cluster"
+
+# Everything else uses sensible defaults:
+# - Watches ALL namespaces
+# - Watches ALL resource kinds (Deployment, StatefulSet, DaemonSet, etc.)
+# - Single replica with leader election
+# - Reasonable resource limits (100m CPU, 150Mi memory)

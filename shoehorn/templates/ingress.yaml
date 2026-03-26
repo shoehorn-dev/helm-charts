@@ -1,0 +1,57 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "shoehorn.fullname" . }}
+  namespace: {{ include "shoehorn.namespace.frontend" . }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- mustToYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      {{- if .secretName }}
+      secretName: {{ .secretName }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "shoehorn.fullname" $ }}-{{ .backend.service.name | default "web" }}
+                port:
+                  number: {{ .backend.service.port | default 4173 }}
+          {{- end }}
+          {{- if or $.Values.kroki.enabled $.Values.kroki.external.enabled }}
+          - path: /kroki
+            pathType: Prefix
+            backend:
+              service:
+                {{- if $.Values.kroki.external.enabled }}
+                name: {{ include "shoehorn.fullname" $ }}-kroki-external
+                {{- else }}
+                name: {{ include "shoehorn.fullname" $ }}-kroki
+                {{- end }}
+                port:
+                  number: 8000
+          {{- end }}
+    {{- end }}
+{{- end }}

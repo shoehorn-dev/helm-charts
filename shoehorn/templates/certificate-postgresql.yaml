@@ -1,0 +1,35 @@
+{{- if and .Values.postgresql.enabled (not .Values.postgresql.external.enabled) .Values.postgresql.tls.enabled .Values.postgresql.tls.createCertificate }}
+---
+# PostgreSQL Server TLS Certificate
+# Used for encrypted client-server connections on port 5432
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-postgresql-tls
+  namespace: {{ include "shoehorn.namespace.data" . }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgresql
+spec:
+  secretName: {{ include "shoehorn.fullname" . }}-postgresql-tls-cert
+  duration: 2160h  # 90 days
+  renewBefore: 360h  # Renew 15 days before expiry
+
+  commonName: {{ include "shoehorn.fullname" . }}-postgresql
+
+  dnsNames:
+    # Headless service DNS
+    - {{ include "shoehorn.fullname" . }}-postgresql
+    - {{ include "shoehorn.fullname" . }}-postgresql.{{ include "shoehorn.namespace.data" . }}.svc
+    - {{ include "shoehorn.fullname" . }}-postgresql.{{ include "shoehorn.namespace.data" . }}.svc.cluster.local
+    # StatefulSet pod DNS
+    - {{ include "shoehorn.fullname" . }}-postgresql-0.{{ include "shoehorn.fullname" . }}-postgresql.{{ include "shoehorn.namespace.data" . }}.svc.cluster.local
+
+  issuerRef:
+    name: {{ .Values.postgresql.tls.issuerName | default "shoehorn-ca-issuer" }}
+    kind: {{ .Values.postgresql.tls.issuerKind | default "ClusterIssuer" }}
+    group: cert-manager.io
+
+  usages:
+    - server auth
+{{- end }}

@@ -1,0 +1,157 @@
+{{- if and .Values.rbac.enabled .Values.rbac.sync.enabled (eq .Values.rbac.sync.mode "automatic") }}
+{{- range .Values.rbac.tenants }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "shoehorn.fullname" $ }}-rbac-sync-{{ .slug }}-{{ now | date "20060102-150405" }}
+  labels:
+    {{- include "shoehorn.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: rbac-sync
+    shoehorn.io/tenant: {{ .slug }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    shoehorn.io/rbac-version: {{ .version | quote }}
+spec:
+  ttlSecondsAfterFinished: 300  # Clean up job after 5 minutes
+  backoffLimit: {{ $.Values.rbac.sync.healthCheck.maxRetries | default 3 }}
+  template:
+    metadata:
+      labels:
+        {{- include "shoehorn.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: rbac-sync
+        shoehorn.io/tenant: {{ .slug }}
+    spec:
+      restartPolicy: OnFailure
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- mustToYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "shoehorn.serviceAccountName" $ }}
+      securityContext:
+        {{- mustToYaml $.Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        # Wait for database to be ready
+        - name: wait-for-db
+          image: postgres:18
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h {{ include "shoehorn.postgresql.host" $ }} -p {{ include "shoehorn.postgresql.port" $ }} -U {{ include "shoehorn.postgresql.user" $ }}; do
+                echo "Waiting for PostgreSQL..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.secret.existingSecret }}
+                  key: {{ $.Values.secret.mappings.DB_PASSWORD }}
+
+        # Wait for Valkey to be ready (for distributed locking)
+        - name: wait-for-valkey
+          image: valkey/valkey:9.0.0
+          command:
+            - sh
+            - -c
+            - |
+              until valkey-cli -h {{ include "shoehorn.valkey.host" $ }} -p {{ include "shoehorn.valkey.port" $ }} ping; do
+                echo "Waiting for Valkey..."
+                sleep 2
+              done
+              echo "Valkey is ready!"
+
+      containers:
+        - name: rbac-sync
+          image: "{{ $.Values.image.registry }}/{{ $.Values.image.repository }}:{{ $.Values.image.tag | default $.Chart.AppVersion }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          command:
+            - /app/shoehorn
+            - rbac
+            - sync
+            - --tenant={{ .slug }}
+            - --config=/etc/rbac/config/{{ .slug }}.yaml
+{{- if $.Values.rbac.sync.lock.ttl }}
+            - --lock-ttl={{ $.Values.rbac.sync.lock.ttl }}
+{{- end }}
+{{- if $.Values.rbac.sync.lock.retries }}
+            - --lock-retries={{ $.Values.rbac.sync.lock.retries }}
+{{- end }}
+          env:
+            # Database configuration
+            - name: DB_HOST
+              value: {{ include "shoehorn.postgresql.host" $ }}
+            - name: DB_PORT
+              value: {{ include "shoehorn.postgresql.port" $ | quote }}
+            - name: DB_NAME
+              value: {{ include "shoehorn.postgresql.database" $ }}
+            - name: DB_USER
+              value: {{ include "shoehorn.postgresql.user" $ }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.secret.existingSecret }}
+                  key: {{ $.Values.secret.mappings.DB_PASSWORD }}
+            - name: DB_SSL_MODE
+              value: {{ $.Values.postgresql.sslMode | default "disable" }}
+
+            # Valkey/Redis configuration (for distributed locking)
+            - name: VALKEY_HOST
+              value: {{ include "shoehorn.valkey.host" $ }}
+            - name: VALKEY_PORT
+              value: {{ include "shoehorn.valkey.port" $ | quote }}
+            - name: VALKEY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.secret.existingSecret }}
+                  key: {{ $.Values.secret.mappings.VALKEY_PASSWORD }}
+                  optional: true
+
+            # RBAC configuration
+            - name: RBAC_ENABLED
+              value: "true"
+            - name: RBAC_STRICT_VALIDATION
+              value: {{ $.Values.rbac.validation.strict | quote }}
+            - name: RBAC_DATABASE_VALIDATION
+              value: {{ $.Values.rbac.validation.database | quote }}
+            - name: RBAC_DEFAULT_ROLE
+              value: {{ $.Values.rbac.defaultRole | quote }}
+
+            # Audit logging
+            - name: RBAC_AUDIT_ENABLED
+              value: {{ $.Values.rbac.audit.enabled | quote }}
+            - name: RBAC_AUDIT_LOG_LEVEL
+              value: {{ $.Values.rbac.audit.logLevel | quote }}
+
+            # Logging
+            - name: LOG_LEVEL
+              value: {{ $.Values.rbac.audit.logLevel | default "info" }}
+            - name: LOG_FORMAT
+              value: json
+
+          volumeMounts:
+            - name: rbac-config
+              mountPath: /etc/rbac/config
+              readOnly: true
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          securityContext:
+            {{- mustToYaml $.Values.securityContext | nindent 12 }}
+
+      volumes:
+        - name: rbac-config
+          configMap:
+            name: {{ include "shoehorn.fullname" $ }}-rbac-{{ .slug }}
+{{- end }}
+{{- end }}

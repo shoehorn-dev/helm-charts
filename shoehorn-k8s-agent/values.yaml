@@ -1,0 +1,299 @@
+# Default values for shoehorn-k8s-agent
+
+# Shoehorn API configuration
+shoehorn:
+  # URL of the Shoehorn API (REQUIRED)
+  apiURL: ""
+
+  # API token for authentication (REQUIRED)
+  # Generate at: Settings > Kubernetes Clusters > Register New Cluster
+  #
+  # Option 1: Set directly (chart creates the secret)
+  apiToken: ""
+  #
+  # Option 2: Use an existing secret (created by kubectl, ESO, Vault, etc.)
+  # When set, the chart does NOT create a secret — it references yours instead.
+  existingSecret: ""
+  # Maps env var names to keys in your secret. Defaults:
+  secretMappings:
+    SHOEHORN_API_TOKEN: api-token
+    # SHOEHORN_GITOPS_ARGOCD_TOKEN: argocd-token
+
+  # Cluster configuration
+  cluster:
+    # Unique cluster ID (REQUIRED)
+    id: ""
+    # Human-readable cluster name (optional, defaults to cluster.id)
+    name: ""
+    # Dashboard URL for cluster (K8s Dashboard, ArgoCD, FluxCD, etc.) - optional
+    dashboardURL: ""
+
+# Agent configuration
+agent:
+  # Log level: debug, info, warn, error
+  logLevel: info
+
+  # Log format: json or console
+  logFormat: json
+
+  # Health server configuration
+  healthPort: 8080
+
+  # Batch configuration
+  batchInterval: 30s
+  batchSize: 100
+
+  # Push configuration
+  pushRetries: 3
+  pushTimeout: 30s
+
+  # Heartbeat configuration
+  heartbeatInterval: 5m
+
+  # Probes
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /readyz
+      port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+
+  # Kubernetes configuration
+  kubernetes:
+    # Namespaces to watch (empty = all namespaces)
+    namespaces: []
+    # Namespaces to exclude from monitoring (empty = don't exclude any)
+    excludeNamespaces: []
+    # Label selector filter (optional)
+    # Example: "app.kubernetes.io/managed-by=shoehorn"
+    labelSelector: ""
+    # Resource kinds to watch (empty = all default kinds)
+    # Supported kinds: Deployment, StatefulSet, DaemonSet, CronJob, Job, Service, Pod
+    # Note: NetworkPolicy and CiliumNetworkPolicy informers are always-on (not configurable)
+    # Example: ["Deployment", "StatefulSet", "Service", "Pod"]
+    watchedKinds: []
+
+  # Resource usage metrics collection
+  # Samples metrics-server to provide resource optimization insights
+  # (over-provisioned / under-provisioned alerts in the workload drawer)
+  # Requires metrics-server to be deployed; gracefully degrades if unavailable
+  metrics:
+    # How often to sample metrics-server
+    sampleInterval: 5m
+    # Rolling window size in hours (168 = 7 days)
+    windowHours: 168
+
+  # GitOps integration configuration
+  gitops:
+    # GitOps tool to use: "argocd", "fluxcd", or "" (disabled)
+    tool: ""
+
+    # Watch all namespaces for GitOps CRDs
+    # false (default): Only watch the configured namespace (namespace-scoped RBAC, least privilege)
+    # true: Watch all namespaces (adds ClusterRole rules for CRD access)
+    watchAllNamespaces: false
+
+    # How often the agent polls for pending GitOps commands (sync/refresh) from the UI
+    commandPollInterval: 30s
+
+    # ArgoCD configuration (used when tool: argocd)
+    argocd:
+      # Namespace where ArgoCD is installed
+      namespace: argocd
+      # ArgoCD API server URL for sync/refresh commands (optional)
+      # Required to enable Sync/Refresh buttons in the Shoehorn UI
+      # Example: https://argocd.example.com
+      serverURL: ""
+      # ArgoCD API token for sync commands (optional, stored as a Kubernetes Secret)
+      # Generate with: argocd account generate-token --account shoehorn
+      token: ""
+
+    # FluxCD configuration (used when tool: fluxcd)
+    fluxcd:
+      # Namespace where FluxCD is installed
+      namespace: flux-system
+
+  # Annotation-based monitoring configuration
+  # Provides fine-grained control over which resources are monitored
+  annotations:
+    # Default behavior when resource has no shoehorn.dev/monitor annotation
+    # Options:
+    #   - "monitor-all": Monitor all resources unless explicitly disabled (default)
+    #   - "require-annotation": Only monitor resources with shoehorn.dev/monitor=true
+    #   - "monitor-none": Don't monitor anything (same as require-annotation)
+    defaultBehavior: monitor-all
+
+    # Default monitoring level for resources without shoehorn.dev/monitoring-level
+    # Options:
+    #   - "basic": Workload status, replica counts, image info (default, lowest overhead)
+    #   - "detailed": Basic + restart counts, container states, pod events (medium overhead)
+    #   - "full": Detailed + CPU/memory metrics, resource recommendations (highest overhead)
+    defaultLevel: basic
+
+# Image configuration
+image:
+  registry: ghcr.io
+  repository: shoehorn-dev/shoehorn-k8s-agent
+  tag: ""  # Defaults to .Chart.AppVersion
+  pullPolicy: IfNotPresent
+
+# Image pull secrets for private registries
+# Example: imagePullSecrets: [{ name: "ghcr-secret" }]
+imagePullSecrets: []
+
+# Service account
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# RBAC configuration
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+
+# Pod annotations
+podAnnotations: {}
+
+# Shoehorn ownership annotations
+annotations:
+  shoehorn:
+    team: ""  # Team responsible for this agent
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 100m
+    memory: 150Mi
+  requests:
+    cpu: 30m
+    memory: 80Mi
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# PodDisruptionBudget configuration
+podDisruptionBudget:
+  # Enable PodDisruptionBudget for high availability
+  enabled: true
+  # For single replica mode (replicas: 1):
+  #   maxUnavailable: 0  # Prevents disruption of only pod
+  #   minAvailable: null
+  # For HA mode (replicas: 3):
+  #   maxUnavailable: null
+  #   minAvailable: 2  # Ensures 2/3 pods always available
+  maxUnavailable: 0
+  minAvailable:
+
+# Leader election configuration
+leaderElection:
+  # Enable leader election for high availability
+  enabled: true
+  # Namespace for leader election lease (defaults to release namespace)
+  namespace: ""
+
+# Replica count
+# Single replica (replicaCount: 1):
+#   - Simple deployment, single point of failure
+#   - Set podDisruptionBudget.maxUnavailable: 0
+# High availability (replicaCount: 3):
+#   - Leader election ensures only 1 pod sends events
+#   - Set podDisruptionBudget.minAvailable: 2
+#   - Pod anti-affinity recommended (see affinity below)
+replicaCount: 1
+
+# Network Observer (optional eBPF DaemonSet)
+# Captures pod-to-pod TCP connections using eBPF fentry hooks and reports
+# network flow data to the Shoehorn API for service dependency mapping.
+#
+# Requirements:
+#   - Linux kernel >= 5.2 with BTF (CONFIG_DEBUG_INFO_BTF=y)
+#   - Node must support BPF and PERFMON capabilities
+#   - Gracefully degrades (no-op) if eBPF loading fails
+netobserver:
+  # Enable the network observer DaemonSet
+  enabled: false
+
+  # Image configuration (separate image from the main agent)
+  image:
+    registry: ghcr.io
+    repository: shoehorn-dev/shoehorn-netobserver
+    tag: ""  # Defaults to .Chart.AppVersion
+    pullPolicy: IfNotPresent
+
+  # Logging (independent of the main agent)
+  logLevel: info
+  logFormat: json
+
+  # Health server port
+  healthPort: 8082
+
+  # Aggregation settings
+  flushInterval: "60s"
+  maxFlowsPerInterval: "1000"
+
+  # Privacy controls
+  # Drop flows whose source or destination cannot be resolved to a catalog entity
+  dropUnresolvable: true
+  # Only capture intra-cluster flows (pod-to-pod)
+  intraClusterOnly: true
+  # TCP destination ports to exclude (comma-separated)
+  # Default: TLS(443), Postgres(5432), Redis(6379), MySQL(3306), MongoDB(27017)
+  excludePorts: "443,5432,6379,3306,27017"
+
+  # Namespace scope (empty = all namespaces)
+  namespaces: []
+  excludeNamespaces: []
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+  # Tolerations — by default run on all nodes to capture full mesh
+  tolerations:
+    - operator: Exists
+
+  # Node selector (empty = all nodes)
+  nodeSelector: {}

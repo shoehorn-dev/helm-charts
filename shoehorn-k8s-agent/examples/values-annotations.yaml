@@ -1,0 +1,139 @@
+# Example: Annotation-Based Monitoring Configuration
+#
+# This example shows how to use annotation-based monitoring for fine-grained
+# control over which resources are monitored and at what detail level.
+#
+# Usage:
+#   helm install shoehorn-k8s-agent oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn-k8s-agent \
+#     -f examples/values-annotations.yaml \
+#     --set shoehorn.apiToken=sha_your_token_here
+
+# Required Shoehorn configuration
+shoehorn:
+  apiURL: "https://shoehorn.example.com"
+  apiToken: ""  # Set via --set or env var
+  cluster:
+    id: "prod-cluster"
+    name: "Production Kubernetes"
+    dashboardURL: "https://k8s-dashboard.example.com"
+
+# Agent configuration with annotation-based monitoring
+agent:
+  logLevel: info
+
+  # Enable Pod watching (in addition to Deployments, StatefulSets, etc.)
+  kubernetes:
+    # Watch all namespaces
+    namespaces: []
+
+    # Optionally exclude system namespaces
+    excludeNamespaces:
+      - kube-system
+      - kube-public
+      - kube-node-lease
+
+    # Include Pod in watched kinds (optional - Pods watched by default)
+    watchedKinds:
+      - Deployment
+      - StatefulSet
+      - DaemonSet
+      - Service
+      - Pod
+
+  # Annotation-based monitoring configuration
+  annotations:
+    # Option 1: Monitor all resources by default (recommended for most use cases)
+    # Resources can opt-out with shoehorn.dev/monitor=false
+    defaultBehavior: monitor-all
+
+    # Option 2: Require explicit opt-in (strict mode)
+    # Only resources with shoehorn.dev/monitor=true are monitored
+    # defaultBehavior: require-annotation
+
+    # Option 3: Monitor nothing (same as require-annotation)
+    # defaultBehavior: monitor-none
+
+    # Default monitoring level for resources without shoehorn.dev/monitoring-level
+    # Options: basic (low overhead), detailed (medium), full (high, requires metrics-server)
+    defaultLevel: basic
+
+# Standard configuration
+resources:
+  limits:
+    cpu: 100m
+    memory: 150Mi
+  requests:
+    cpu: 30m
+    memory: 80Mi
+
+# ---
+# After deployment, annotate your resources:
+# ---
+#
+# Example 1: Monitor specific deployment with detailed level
+#
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: api-server
+#   annotations:
+#     shoehorn.dev/monitor: "true"
+#     shoehorn.dev/monitoring-level: "detailed"
+# spec:
+#   # ...
+#
+# Example 2: Full monitoring for critical workload (requires metrics-server)
+#
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: payment-service
+#   annotations:
+#     shoehorn.dev/monitoring-level: "full"
+#     shoehorn.dev/collect-pod-metrics: "true"
+#     shoehorn.dev/collect-events: "true"
+# spec:
+#   # ...
+#
+# Example 3: Exclude specific resource from monitoring
+#
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: test-app
+#   annotations:
+#     shoehorn.dev/monitor: "false"
+# spec:
+#   # ...
+#
+# Example 4: Namespace-level monitoring level
+#
+# kubectl annotate namespace production shoehorn.dev/monitoring-level=basic
+# kubectl annotate namespace staging shoehorn.dev/monitoring-level=detailed
+#
+# ---
+# Monitoring Levels Explained:
+# ---
+#
+# basic (default):
+#   - Pod status and phase
+#   - Ready condition
+#   - Owner references
+#   - Overhead: Low
+#   - Use for: Production monitoring
+#
+# detailed:
+#   - All basic fields
+#   - Container restart counts
+#   - Container states (waiting/running/terminated)
+#   - Pod conditions (Ready, PodScheduled, Initialized, ContainersReady)
+#   - Overhead: Medium
+#   - Use for: Troubleshooting unhealthy workloads
+#
+# full:
+#   - All detailed fields
+#   - CPU and memory requests/limits per container
+#   - QoS class (Guaranteed, Burstable, BestEffort)
+#   - Pod-level metrics (requires metrics-server)
+#   - Overhead: High
+#   - Use for: Performance optimization, capacity planning

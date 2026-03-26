@@ -1,0 +1,151 @@
+# API Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-api
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  labels:
+    {{- include "shoehorn.api.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "shoehorn.api.selectorLabels" . | nindent 4 }}
+
+# Web Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-web
+  namespace: {{ include "shoehorn.namespace.frontend" . }}
+  labels:
+    {{- include "shoehorn.web.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: 4173
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "shoehorn.web.selectorLabels" . | nindent 4 }}
+# EventBus Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-eventbus
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  labels:
+    {{- include "shoehorn.eventbus.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9083
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    - port: 8083
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "shoehorn.eventbus.selectorLabels" . | nindent 4 }}
+
+# Search Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-search
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  labels:
+    {{- include "shoehorn.search.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9084
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    - port: 8084
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "shoehorn.search.selectorLabels" . | nindent 4 }}
+
+# Worker Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-worker
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  labels:
+    {{- include "shoehorn.worker.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9085
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    - port: 8085
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "shoehorn.worker.selectorLabels" . | nindent 4 }}
+
+# Crawler Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-crawler
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  labels:
+    {{- include "shoehorn.crawler.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9086
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    - port: 8086
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "shoehorn.crawler.selectorLabels" . | nindent 4 }}
+
+# Forge Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-forge
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  labels:
+    {{- include "shoehorn.forge.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9087
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    - port: 8087
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "shoehorn.forge.selectorLabels" . | nindent 4 }}

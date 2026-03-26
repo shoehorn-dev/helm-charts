@@ -1,0 +1,141 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-backend
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+data:
+  # Application Configuration
+  ENVIRONMENT: {{ .Values.global.environment | quote }}
+  LOG_LEVEL: {{ .Values.global.logLevel | default "info" | quote }}
+  LOG_FORMAT: "json"
+
+  # Domain Configuration
+  DOMAIN: {{ .Values.global.domain | quote }}
+
+  # Database Configuration (non-sensitive)
+  DB_PORT: "5432"
+  DB_NAME: "shoehorn"
+  {{- if .Values.postgresql.rls.enabled }}
+  DB_USER: "app_user"
+  {{- else }}
+  DB_USER: "shoehorn_user"
+  {{- end }}
+  {{- if .Values.postgresql.tls.enabled }}
+  DB_SSLMODE: {{ .Values.postgresql.tls.sslMode | default "require" | quote }}
+  {{- else }}
+  DB_SSLMODE: "disable"
+  {{- end }}
+
+  # Database Connection Pool (global defaults - services can override via deployment env)
+  # Total connections across all services should stay below PostgreSQL max_connections (default: 100)
+  # Formula: sum(all services DB_MAX_OPEN_CONNS) + 20 (admin headroom) <= max_connections
+  DB_MAX_OPEN_CONNS: {{ .Values.postgresql.pool.maxOpenConns | default "25" | quote }}
+  DB_MAX_IDLE_CONNS: {{ .Values.postgresql.pool.maxIdleConns | default "5" | quote }}
+  DB_CONN_MAX_LIFETIME: {{ .Values.postgresql.pool.maxLifetime | default "5m" | quote }}
+  DB_CONN_MAX_IDLE_TIME: {{ .Values.postgresql.pool.maxIdleTime | default "90s" | quote }}
+
+  # Redis/Valkey Configuration
+  VALKEY_HOST: {{ include "shoehorn.valkey.host" . }}
+  VALKEY_PORT: {{ include "shoehorn.valkey.port" . | quote }}
+
+  # Meilisearch Configuration
+  MEILISEARCH_HOST: {{ include "shoehorn.meilisearch.host" . }}
+  MEILISEARCH_PORT: {{ include "shoehorn.meilisearch.port" . | quote }}
+  {{- if .Values.meilisearch.tls.enabled }}
+  MEILISEARCH_PROTOCOL: "https"
+  {{- else }}
+  MEILISEARCH_PROTOCOL: {{ include "shoehorn.meilisearch.protocol" . | quote }}
+  {{- end }}
+
+  # Redpanda/Kafka Configuration
+  KAFKA_BROKERS: {{ include "shoehorn.redpanda.brokers" . }}
+  REDPANDA_BROKERS: {{ include "shoehorn.redpanda.brokers" . }}
+
+  # Service Discovery (GRPC endpoints)
+  EVENTBUS_GRPC_ADDR: {{ include "shoehorn.eventbus.grpc" . }}
+  SEARCH_GRPC_ADDR: {{ include "shoehorn.search.grpc" . }}
+  WORKER_GRPC_ADDR: {{ include "shoehorn.worker.grpc" . }}
+  CRAWLER_GRPC_ADDR: {{ include "shoehorn.crawler.grpc" . }}
+  FORGE_GRPC_ADDR: {{ include "shoehorn.forge.grpc" . }}
+
+  # Session & CSRF
+  {{- if .Values.auth.session.maxAge }}
+  SESSION_MAX_AGE: {{ .Values.auth.session.maxAge | quote }}
+  {{- end }}
+  CSRF_ENABLED: {{ .Values.auth.csrf.enabled | quote }}
+
+  # Feature Flags
+  TELEMETRY_ENABLED: "true"
+  ENABLE_METRICS: "true"
+  METRICS_PORT: "9090"
+
+  # GitHub Integration
+  {{- if .Values.api.env.GITHUB_ORGANIZATIONS }}
+  GITHUB_ORGANIZATIONS: {{ .Values.api.env.GITHUB_ORGANIZATIONS | quote }}
+  {{- end }}
+  {{- if .Values.api.env.GITHUB_REPOSITORIES }}
+  GITHUB_REPOSITORIES: {{ .Values.api.env.GITHUB_REPOSITORIES | quote }}
+  {{- end }}
+  {{- if .Values.api.env.GITHUB_FORGE_ORGANIZATION }}
+  GITHUB_FORGE_ORGANIZATION: {{ .Values.api.env.GITHUB_FORGE_ORGANIZATION | quote }}
+  {{- end }}
+  {{- if .Values.api.env.GITHUB_MANIFEST_PATTERNS }}
+  GITHUB_MANIFEST_PATTERNS: {{ .Values.api.env.GITHUB_MANIFEST_PATTERNS | quote }}
+  {{- end }}
+  {{- if .Values.api.env.GITHUB_README_PATTERNS }}
+  GITHUB_README_PATTERNS: {{ .Values.api.env.GITHUB_README_PATTERNS | quote }}
+  {{- end }}
+  {{- if .Values.api.env.GITHUB_RATE_LIMIT_PER_HOUR }}
+  GITHUB_RATE_LIMIT_PER_HOUR: {{ .Values.api.env.GITHUB_RATE_LIMIT_PER_HOUR | quote }}
+  {{- end }}
+  {{- if .Values.api.env.GITHUB_CONCURRENT_REPOS }}
+  GITHUB_CONCURRENT_REPOS: {{ .Values.api.env.GITHUB_CONCURRENT_REPOS | quote }}
+  {{- end }}
+  {{- if .Values.api.env.GITHUB_CACHE_TTL_MINUTES }}
+  GITHUB_CACHE_TTL_MINUTES: {{ .Values.api.env.GITHUB_CACHE_TTL_MINUTES | quote }}
+  {{- end }}
+  {{- if .Values.api.env.DEBUG_GITHUB_API }}
+  DEBUG_GITHUB_API: {{ .Values.api.env.DEBUG_GITHUB_API | quote }}
+  {{- end }}
+
+  # GitHub Security Features
+  {{- if hasKey .Values.api.env "GITHUB_SECURITY_CODEQL_ENABLED" }}
+  GITHUB_SECURITY_CODEQL_ENABLED: {{ .Values.api.env.GITHUB_SECURITY_CODEQL_ENABLED | quote }}
+  {{- else }}
+  GITHUB_SECURITY_CODEQL_ENABLED: "true"
+  {{- end }}
+  {{- if hasKey .Values.api.env "GITHUB_SECURITY_SECRET_SCANNING_ENABLED" }}
+  GITHUB_SECURITY_SECRET_SCANNING_ENABLED: {{ .Values.api.env.GITHUB_SECURITY_SECRET_SCANNING_ENABLED | quote }}
+  {{- else }}
+  GITHUB_SECURITY_SECRET_SCANNING_ENABLED: "true"
+  {{- end }}
+  {{- if hasKey .Values.api.env "GITHUB_SECURITY_DEPENDABOT_ENABLED" }}
+  GITHUB_SECURITY_DEPENDABOT_ENABLED: {{ .Values.api.env.GITHUB_SECURITY_DEPENDABOT_ENABLED | quote }}
+  {{- else }}
+  GITHUB_SECURITY_DEPENDABOT_ENABLED: "true"
+  {{- end }}
+
+  # SMTP Configuration
+  {{- if .Values.smtp.enabled }}
+  SMTP_ENABLED: "true"
+  SMTP_HOST: {{ .Values.smtp.host | quote }}
+  SMTP_PORT: {{ .Values.smtp.port | quote }}
+  SMTP_USERNAME: {{ .Values.smtp.username | quote }}
+  SMTP_FROM: {{ .Values.smtp.from | quote }}
+  {{- if .Values.smtp.feedbackEmail }}
+  FEEDBACK_EMAIL: {{ .Values.smtp.feedbackEmail | quote }}
+  {{- end }}
+  {{- end }}
+
+  # Organization/Tenant Configuration
+  {{- if and .Values.global.organization .Values.global.organization.slug }}
+  ORGANIZATION_SLUG: {{ .Values.global.organization.slug | quote }}
+  {{- if .Values.global.organization.name }}
+  ORGANIZATION_NAME: {{ .Values.global.organization.name | quote }}
+  {{- end }}
+  {{- else if .Values.global.tenantId }}
+  TENANT_ID: {{ .Values.global.tenantId | quote }}
+  {{- end }}

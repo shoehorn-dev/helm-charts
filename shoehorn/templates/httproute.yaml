@@ -1,0 +1,50 @@
+{{- if .Values.httpRoute.enabled }}
+---
+# HTTPRoute for Envoy Gateway (Gateway API)
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "shoehorn.fullname" . }}
+  namespace: {{ include "shoehorn.namespace.frontend" . }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+  {{- with .Values.httpRoute.annotations }}
+  annotations:
+    {{- mustToYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    - name: {{ .Values.httpRoute.gatewayName | default "eg" }}
+      namespace: {{ .Values.httpRoute.gatewayNamespace | default "envoy-gateway-system" }}
+  hostnames:
+    - {{ .Values.global.domain | quote }}
+  rules:
+    # API routes - higher priority to ensure /api/v1 is matched before catch-all
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/v1
+      backendRefs:
+        - name: {{ include "shoehorn.fullname" . }}-api
+          namespace: {{ include "shoehorn.namespace.backend" . }}
+          port: 8080
+      {{- if .Values.httpRoute.filters.api }}
+      filters:
+        {{- mustToYaml .Values.httpRoute.filters.api | nindent 8 }}
+      {{- end }}
+
+    # Web frontend - serves the SvelteKit application (catch-all)
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: {{ include "shoehorn.fullname" . }}-web
+          namespace: {{ include "shoehorn.namespace.frontend" . }}
+          port: 4173
+      {{- if .Values.httpRoute.filters.web }}
+      filters:
+        {{- mustToYaml .Values.httpRoute.filters.web | nindent 8 }}
+      {{- end }}
+
+{{- end }}

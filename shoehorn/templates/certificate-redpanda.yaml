@@ -1,0 +1,39 @@
+{{- if and .Values.redpanda.enabled .Values.redpanda.tls.enabled .Values.redpanda.tls.createCertificate }}
+---
+# Redpanda Kafka TLS Certificate
+# Used for Kafka API (port 9093), Admin API (port 9644), Pandaproxy (port 8082), and Schema Registry (port 8081)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-redpanda-tls
+  namespace: {{ include "shoehorn.namespace.data" . }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redpanda
+spec:
+  secretName: {{ include "shoehorn.fullname" . }}-redpanda-tls-cert
+  duration: 2160h  # 90 days
+  renewBefore: 360h  # Renew 15 days before expiry
+
+  commonName: {{ include "shoehorn.fullname" . }}-redpanda
+
+  dnsNames:
+    # Headless service DNS
+    - {{ include "shoehorn.fullname" . }}-redpanda
+    - {{ include "shoehorn.fullname" . }}-redpanda.{{ include "shoehorn.namespace.data" . }}.svc
+    - {{ include "shoehorn.fullname" . }}-redpanda.{{ include "shoehorn.namespace.data" . }}.svc.cluster.local
+    # StatefulSet pod DNS (for cluster-internal replication)
+    - {{ include "shoehorn.fullname" . }}-redpanda-0.{{ include "shoehorn.fullname" . }}-redpanda.{{ include "shoehorn.namespace.data" . }}.svc.cluster.local
+    - {{ include "shoehorn.fullname" . }}-redpanda-1.{{ include "shoehorn.fullname" . }}-redpanda.{{ include "shoehorn.namespace.data" . }}.svc.cluster.local
+    - {{ include "shoehorn.fullname" . }}-redpanda-2.{{ include "shoehorn.fullname" . }}-redpanda.{{ include "shoehorn.namespace.data" . }}.svc.cluster.local
+    - "*.{{ include "shoehorn.fullname" . }}-redpanda.{{ include "shoehorn.namespace.data" . }}.svc.cluster.local"
+
+  issuerRef:
+    name: {{ .Values.redpanda.tls.issuerName | default "shoehorn-ca-issuer" }}
+    kind: {{ .Values.redpanda.tls.issuerKind | default "ClusterIssuer" }}
+    group: cert-manager.io
+
+  usages:
+    - server auth
+    - client auth  # Mutual TLS for inter-broker communication
+{{- end }}

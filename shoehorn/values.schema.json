@@ -1,0 +1,491 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shoehorn.dev/charts/shoehorn/values.schema.json",
+  "title": "Shoehorn Helm Chart Values",
+  "description": "Schema for Shoehorn Helm chart values.yaml",
+  "type": "object",
+  "properties": {
+    "global": {
+      "type": "object",
+      "description": "Global configuration applied to all components",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "description": "Domain for Shoehorn (e.g., shoehorn.example.com)",
+          "examples": ["shoehorn.example.com", "alpha.shoehorn.dev"]
+        },
+        "environment": {
+          "type": "string",
+          "description": "Environment name",
+          "enum": ["development", "staging", "production"],
+          "default": "production"
+        },
+        "logLevel": {
+          "type": "string",
+          "description": "Default log level for all services",
+          "enum": ["debug", "info", "warn", "error"],
+          "default": "info"
+        },
+        "storageClass": {
+          "type": "string",
+          "description": "Kubernetes storage class for persistent volumes"
+        },
+        "organization": {
+          "type": "object",
+          "description": "Organization/tenant configuration",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Display name shown in UI"
+            },
+            "slug": {
+              "type": "string",
+              "description": "URL-safe identifier (lowercase, hyphens, or empty)",
+              "pattern": "^[a-z0-9-]*$"
+            }
+          }
+        },
+        "tracing": {
+          "type": "object",
+          "description": "Distributed tracing (OpenTelemetry) configuration",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "otlpEndpoint": { "type": "string" },
+            "sampleRate": { "type": "number", "minimum": 0, "maximum": 1, "default": 1.0 }
+          }
+        },
+        "mtls": {
+          "type": "object",
+          "description": "gRPC mTLS configuration for inter-service communication",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "certFile": { "type": "string" },
+            "keyFile": { "type": "string" },
+            "caFile": { "type": "string" }
+          }
+        },
+        "imagePullSecrets": {
+          "type": "array",
+          "description": "Image pull secrets for private registries",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" }
+            },
+            "required": ["name"]
+          }
+        }
+      },
+      "required": ["domain"]
+    },
+    "secret": {
+      "type": "object",
+      "description": "Secret configuration (vendor-agnostic)",
+      "properties": {
+        "existingSecret": {
+          "type": "string",
+          "description": "Name of existing Kubernetes Secret containing all credentials (required)"
+        },
+        "mappings": {
+          "type": "object",
+          "description": "Maps environment variable names to keys in the secret",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "required": ["existingSecret"]
+    },
+    "extraVolumes": {
+      "type": "array",
+      "description": "Additional volumes for all backend pods (e.g., file-based secrets)",
+      "items": { "type": "object" }
+    },
+    "extraVolumeMounts": {
+      "type": "array",
+      "description": "Additional volume mounts for all backend pods",
+      "items": { "type": "object" }
+    },
+    "image": {
+      "type": "object",
+      "description": "Global image configuration",
+      "properties": {
+        "registry": { "type": "string", "default": "ghcr.io" },
+        "repository": { "type": "string" },
+        "tag": { "type": "string" },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "default": "IfNotPresent"
+        }
+      }
+    },
+    "ingressRoute": {
+      "type": "object",
+      "description": "Traefik IngressRoute configuration",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "tls": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "certResolver": { "type": "string" }
+          }
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "description": "Standard Kubernetes Ingress configuration",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "className": { "type": "string" },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "tls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "secretName": { "type": "string" },
+              "hosts": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "replicaCount": {
+      "type": "object",
+      "description": "Replica counts for each component",
+      "properties": {
+        "api": { "type": "integer", "minimum": 1, "default": 1 },
+        "web": { "type": "integer", "minimum": 1, "default": 1 },
+        "eventbus": { "type": "integer", "minimum": 1, "default": 1 },
+        "search": { "type": "integer", "minimum": 1, "default": 1 },
+        "worker": { "type": "integer", "minimum": 1, "default": 1 },
+        "crawler": { "type": "integer", "minimum": 1, "default": 1 },
+        "forge": { "type": "integer", "minimum": 1, "default": 1 }
+      }
+    },
+    "auth": {
+      "type": "object",
+      "description": "Authentication provider configuration",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["zitadel", "okta", "entra-id"],
+          "default": "zitadel"
+        },
+        "zitadel": {
+          "type": "object",
+          "properties": {
+            "projectId": { "type": "string" },
+            "clientId": { "type": "string" },
+            "externalUrl": { "type": "string", "format": "uri" },
+            "insecure": { "type": "boolean", "default": false }
+          }
+        },
+        "okta": {
+          "type": "object",
+          "properties": {
+            "domain": { "type": "string" },
+            "clientId": { "type": "string" },
+            "issuer": { "type": "string" }
+          }
+        },
+        "entraId": {
+          "type": "object",
+          "properties": {
+            "tenantId": { "type": "string" },
+            "clientId": { "type": "string" },
+            "authority": { "type": "string" }
+          }
+        },
+        "session": {
+          "type": "object",
+          "properties": {
+            "maxAge": { "type": "string", "default": "8h" }
+          }
+        },
+        "csrf": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true }
+          }
+        }
+      },
+      "required": ["provider"]
+    },
+    "rbac": {
+      "type": "object",
+      "description": "Role-Based Access Control configuration",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "roleAssignment": {
+          "type": "object",
+          "properties": {
+            "adminUiEnabled": { "type": "boolean", "default": true },
+            "tenantAdmin": {
+              "type": "object",
+              "properties": {
+                "user": { "type": "string", "description": "Bootstrap admin email" },
+                "group": { "type": "string", "description": "Bootstrap admin group" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "smtp": {
+      "type": "object",
+      "description": "SMTP email configuration",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "host": { "type": "string" },
+        "port": { "type": "integer", "default": 587 },
+        "username": { "type": "string" },
+        "from": { "type": "string" },
+        "feedbackEmail": { "type": "string" }
+      }
+    },
+    "api": { "$ref": "#/$defs/serviceConfig" },
+    "web": { "$ref": "#/$defs/serviceConfig" },
+    "eventbus": { "$ref": "#/$defs/serviceConfig" },
+    "search": { "$ref": "#/$defs/serviceConfig" },
+    "worker": { "$ref": "#/$defs/serviceConfig" },
+    "crawler": { "$ref": "#/$defs/serviceConfig" },
+    "forge": { "$ref": "#/$defs/serviceConfig" },
+    "postgresql": {
+      "type": "object",
+      "description": "PostgreSQL database configuration",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "external": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "host": { "type": "string" },
+            "port": { "type": "integer", "default": 5432 }
+          }
+        },
+        "rls": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true }
+          }
+        },
+        "image": { "$ref": "#/$defs/imageConfig" },
+        "resources": { "$ref": "#/$defs/resources" },
+        "persistence": { "$ref": "#/$defs/persistence" }
+      }
+    },
+    "meilisearch": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "external": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "host": { "type": "string" },
+            "port": { "type": "integer", "default": 7700 },
+            "protocol": { "type": "string", "enum": ["http", "https"], "default": "http" }
+          }
+        },
+        "resources": { "$ref": "#/$defs/resources" },
+        "persistence": { "$ref": "#/$defs/persistence" }
+      }
+    },
+    "valkey": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "external": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "host": { "type": "string" },
+            "port": { "type": "integer", "default": 6379 }
+          }
+        },
+        "resources": { "$ref": "#/$defs/resources" },
+        "persistence": { "$ref": "#/$defs/persistence" }
+      }
+    },
+    "redpanda": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "external": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "brokers": { "type": "string" }
+          }
+        },
+        "resources": { "$ref": "#/$defs/resources" },
+        "persistence": { "$ref": "#/$defs/persistence" },
+        "config": {
+          "type": "object",
+          "properties": {
+            "smp": { "type": "integer", "default": 1 },
+            "memory": { "type": "string", "default": "512M" }
+          }
+        }
+      }
+    },
+    "cerbos": {
+      "type": "object",
+      "description": "Cerbos authorization engine (always deployed)",
+      "properties": {
+        "image": { "$ref": "#/$defs/imageConfig" },
+        "replicas": { "type": "integer", "minimum": 1, "default": 1 },
+        "resources": { "$ref": "#/$defs/resources" },
+        "audit": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "retentionPeriod": { "type": "string", "default": "168h" }
+          }
+        }
+      }
+    },
+    "monitoring": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "serviceMonitor": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "interval": { "type": "string", "default": "30s" },
+            "scrapeTimeout": { "type": "string", "default": "10s" }
+          }
+        },
+        "prometheusRule": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false }
+          }
+        }
+      }
+    },
+    "podSecurityContext": {
+      "type": "object",
+      "properties": {
+        "fsGroup": { "type": "integer" },
+        "runAsNonRoot": { "type": "boolean" },
+        "runAsUser": { "type": "integer" }
+      }
+    },
+    "securityContext": {
+      "type": "object",
+      "properties": {
+        "allowPrivilegeEscalation": { "type": "boolean" },
+        "capabilities": {
+          "type": "object",
+          "properties": {
+            "drop": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "readOnlyRootFilesystem": { "type": "boolean" },
+        "runAsNonRoot": { "type": "boolean" },
+        "runAsUser": { "type": "integer" }
+      }
+    },
+    "serviceAccount": {
+      "type": "object",
+      "properties": {
+        "create": { "type": "boolean", "default": true },
+        "annotations": { "type": "object", "additionalProperties": { "type": "string" } },
+        "name": { "type": "string" }
+      }
+    },
+    "nodeSelector": { "type": "object", "additionalProperties": { "type": "string" } },
+    "tolerations": { "type": "array", "items": { "type": "object" } },
+    "affinity": { "type": "object" },
+    "podDisruptionBudget": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "minAvailable": { "type": "integer" },
+        "maxUnavailable": { "type": "integer" }
+      }
+    }
+  },
+  "required": ["global", "secret"],
+  "$defs": {
+    "imageConfig": {
+      "type": "object",
+      "properties": {
+        "repository": { "type": "string" },
+        "tag": { "type": "string" },
+        "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "requests": {
+          "type": "object",
+          "properties": {
+            "cpu": { "type": "string" },
+            "memory": { "type": "string" }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "cpu": { "type": "string" },
+            "memory": { "type": "string" }
+          }
+        }
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "size": { "type": "string" },
+        "storageClass": { "type": "string" },
+        "accessModes": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany"] },
+          "default": ["ReadWriteOnce"]
+        }
+      }
+    },
+    "serviceConfig": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "annotations": {
+          "type": "object",
+          "properties": {
+            "team": { "type": "string" },
+            "repositoryUrl": { "type": "string" },
+            "slackChannel": { "type": "string" },
+            "tier": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Platinum"] },
+            "tags": { "type": "string" },
+            "definitionUrl": { "type": "string" }
+          }
+        },
+        "image": { "$ref": "#/$defs/imageConfig" },
+        "resources": { "$ref": "#/$defs/resources" },
+        "env": { "type": "object", "additionalProperties": { "type": "string" } },
+        "livenessProbe": { "type": "object" },
+        "readinessProbe": { "type": "object" },
+        "autoscaling": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "minReplicas": { "type": "integer", "minimum": 1 },
+            "maxReplicas": { "type": "integer", "minimum": 1 },
+            "targetCPUUtilizationPercentage": { "type": "integer", "minimum": 1, "maximum": 100 },
+            "targetMemoryUtilizationPercentage": { "type": "integer", "minimum": 1, "maximum": 100 }
+          }
+        }
+      }
+    }
+  }
+}

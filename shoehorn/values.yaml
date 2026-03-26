@@ -1,0 +1,1041 @@
+# Default values for shoehorn
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Global settings
+global:
+  domain: shoehorn.example.com
+  storageClass: ""
+  # Environment name: "production", "staging", or "development"
+  # Controls: security defaults, gRPC reflection, auth validation, CORS origins
+  # Empty or unset = production behavior (fail-closed)
+  environment: "production"
+  # Log level for all backend services (debug, info, warn, error)
+  logLevel: "info"
+
+  # ═══════════════════════════════════════════════════════════════
+  # Distributed Tracing (OpenTelemetry)
+  # ═══════════════════════════════════════════════════════════════
+  tracing:
+    enabled: false  # Set to true to enable distributed tracing
+    # OTLP endpoint for trace collection (e.g., Jaeger, Tempo, etc.)
+    # Example: "jaeger-collector.observability:4317"
+    otlpEndpoint: ""
+    # Sample rate: 1.0 = trace everything, 0.5 = 50%, 0.0 = nothing
+    sampleRate: 1.0
+
+  # gRPC mTLS Configuration (applies to ALL gRPC services)
+  # ═══════════════════════════════════════════════════════════════
+  # When enabled, all internal gRPC services use TLS with mutual authentication
+  # Includes: API, Forge, Worker, Crawler, Search, Eventbus, and Cerbos
+  mtls:
+    enabled: false  # Enable mTLS for all inter-service gRPC communication
+    createCertificates: true  # Let chart create certificates via cert-manager (set false to manage externally)
+    issuerName: shoehorn-ca-issuer  # cert-manager issuer name
+    issuerKind: ClusterIssuer  # ClusterIssuer or Issuer
+    # Certificate file paths (mounted in all services)
+    certFile: "/etc/shoehorn/certs/tls.crt"
+    keyFile: "/etc/shoehorn/certs/tls.key"
+    caFile: "/etc/shoehorn/certs/ca.crt"
+
+  # Organization Configuration
+  # IMPORTANT: slug is REQUIRED when using organization config.
+  organization:
+    slug: ""       # URL-safe identifier (e.g., "acme-corp") - REQUIRED
+    name: ""       # Display name (e.g., "Acme Corporation") - optional, defaults to slug
+
+  # Image pull secrets for private registries
+  # Option 1: Reference existing secrets (created externally)
+  imagePullSecrets: []
+  # Example:
+  # imagePullSecrets:
+  #   - name: ghcr-secret
+  #   - name: dockerhub-secret
+
+# ═══════════════════════════════════════════════════════════════
+# cert-manager Configuration
+# ═══════════════════════════════════════════════════════════════
+# cert-manager is required for TLS certificate management.
+# Two deployment modes:
+#
+# Mode 1: Bundled cert-manager (install: true)
+#   - Chart installs cert-manager as a sub-chart
+#   - Creates ClusterIssuer automatically
+#   - Best for: New clusters, development, all-in-one deployments
+#
+# Mode 2: External cert-manager (install: false)
+#   - Use existing cert-manager installation in cluster
+#   - You must create ClusterIssuer/Issuer manually
+#   - Best for: Shared clusters, enterprise with existing cert-manager
+certManager:
+  install: false  # Set to true to bundle cert-manager with this chart
+
+  # Create ClusterIssuer for certificate generation
+  # Only applies when TLS is enabled (global.mtls, postgresql.tls, etc.)
+  createClusterIssuer: true  # Set false if using external issuer
+
+  # cert-manager sub-chart configuration (only used when install: true)
+  # Full configuration: https://artifacthub.io/packages/helm/cert-manager/cert-manager
+  installCRDs: true  # Install cert-manager CRDs
+  global:
+    leaderElection:
+      namespace: cert-manager
+
+  # Issuer configuration (used by all TLS certificates)
+  issuer:
+    name: shoehorn-ca-issuer     # Name of issuer to use/create
+    kind: ClusterIssuer           # ClusterIssuer (cluster-wide) or Issuer (namespace-scoped)
+
+    # CA configuration (when createClusterIssuer: true)
+    # Creates self-signed CA for internal certificates
+    ca:
+      organizationName: Shoehorn Platform
+      duration: 87600h  # 10 years
+      renewBefore: 8760h  # 1 year
+
+# Image settings
+image:
+  registry: ghcr.io
+  repository: shoehorn-dev/helm-charts/shoehorn
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: ""
+
+# ═══════════════════════════════════════════════════════════════
+# Shoehorn Annotations for Service Catalog Integration
+# ═══════════════════════════════════════════════════════════════
+# Annotations are configured per-service (api, web, eventbus, etc.)
+# All annotation keys are prefixed with "shoehorn.dev/" when applied.
+#
+# Supported annotation values:
+#   team: Team slug responsible for this service
+#   repositoryUrl: Git repository URL for ViewSource header
+#   slackChannel: Slack channel for notifications (e.g., "#platform-alerts")
+#   tier: Service tier for TierBadge (e.g., "tier1", "tier2", "tier3")
+#   tags: Comma-separated tags for AboutCard
+#   links: JSON array of external links for LinksCard
+#   runbooks: JSON array of runbook links for RunbooksCard
+#   licenses: JSON array of license information for LicensesCard
+#   definitionUrl: URL to entity definition (OpenAPI spec, etc.)
+#   changelog-path: Path to changelog file for Changelog tab
+#   relations: JSON array of entity relations for ServiceTopology
+#
+# See per-service sections below (api.annotations, web.annotations, etc.)
+
+# Registry authentication (create docker-registry secrets from values)
+registryCredentials:
+  enabled: false
+  registries: []
+  # Example:
+  # - name: ghcr
+  #   registry: ghcr.io
+  #   username: ""
+  #   password: ""
+  #   email: ""
+  existingDockerConfigJson: ""
+
+# Replica counts for application services
+replicaCount:
+  api: 1
+  web: 1
+  eventbus: 1
+  search: 1
+  worker: 1
+  crawler: 1
+  forge: 1
+
+# ═══════════════════════════════════════════════════════════════
+# Secret Configuration
+# ═══════════════════════════════════════════════════════════════
+# Point the chart at an existing Kubernetes Secret containing all credentials.
+# Create the secret however you prefer: kubectl, External Secrets Operator,
+# Vault, Sealed Secrets, or any other tool.
+#
+# The chart never creates secrets — it only references them.
+secret:
+  # Name of the existing Kubernetes Secret (required)
+  existingSecret: ""
+
+  # Maps environment variable names to keys in your secret.
+  # Override if your secret uses different key names.
+  mappings:
+    # Database
+    POSTGRES_PASSWORD: postgres_password
+    DB_PASSWORD: db_password
+    # Services
+    VALKEY_PASSWORD: valkey_password
+    MEILISEARCH_MASTER_KEY: meilisearch_master_key
+    JWT_SECRET: jwt_secret
+    AUTH_ENCRYPTION_KEY: auth_encryption_key
+    # GitHub Integration
+    GITHUB_APP_ID: github_app_id
+    GITHUB_APP_INSTALLATION_ID: github_app_installation_id
+    GITHUB_WEBHOOK_SECRET: github_webhook_secret
+    # GitHub Forge (optional — remove if not using Forge)
+    GITHUB_FORGE_APP_ID: github_forge_app_id
+    GITHUB_FORGE_INSTALLATION_ID: github_forge_installation_id
+    # Auth — add keys based on your auth provider:
+    #   Zitadel:  ZITADEL_SERVICE_USER_PAT: service_user_pat
+    #   Okta:     OKTA_CLIENT_SECRET: okta_client_secret
+    #             OKTA_API_TOKEN: okta_api_token
+    #   Entra ID: ENTRA_CLIENT_SECRET: entra_client_secret
+    # Session encryption (required for all providers):
+    SESSION_ENCRYPTION_KEY: session_encryption_key
+    # SMTP (optional):
+    #   SMTP_PASSWORD: smtp_password
+    # ArgoCD (optional):
+    #   ARGOCD_TOKEN: argocd_token
+    # UpCloud (optional):
+    #   UPCLOUD_TOKEN: upcloud_token
+
+# Additional volumes to mount on all backend pods.
+# Use for file-based secrets (e.g., GitHub private keys, TLS certs).
+extraVolumes: []
+# - name: github-private-key
+#   secret:
+#     secretName: my-github-secret
+#     items:
+#     - key: github_app_private_key
+#       path: private-key
+# - name: github-forge-private-key
+#   secret:
+#     secretName: my-github-secret
+#     optional: true
+#     items:
+#     - key: github_forge_private_key
+#       path: private-key
+
+extraVolumeMounts: []
+# - name: github-private-key
+#   mountPath: /var/secrets/github
+#   readOnly: true
+# - name: github-forge-private-key
+#   mountPath: /var/secrets/github-forge
+#   readOnly: true
+
+# ═══════════════════════════════════════════════════════════════
+# Ingress Configuration
+# ═══════════════════════════════════════════════════════════════
+# Choose your ingress strategy:
+# - ingressRoute: Traefik IngressRoute CRDs (recommended for Traefik)
+# - httpRoute: Gateway API HTTPRoute (recommended for Envoy Gateway)
+# - ingress: Standard Kubernetes Ingress (works with any ingress controller)
+
+# Traefik IngressRoute (CRDs)
+# Use when Traefik is your ingress controller and you want native CRD support
+ingressRoute:
+  enabled: true
+  tls:
+    enabled: true
+    certResolver: letsencrypt
+
+# Envoy Gateway HTTPRoute (Gateway API)
+# Use when Envoy Gateway is your ingress controller
+httpRoute:
+  enabled: false
+  gatewayName: eg  # Name of the Gateway resource
+  gatewayNamespace: envoy-gateway-system  # Namespace where Gateway is deployed
+  annotations: {}
+  # Optional filters for request/response modification
+  filters:
+    api: []
+    # Example:
+    # - type: RequestHeaderModifier
+    #   requestHeaderModifier:
+    #     add:
+    #       - name: X-Custom-Header
+    #         value: "custom-value"
+    web: []
+
+# Standard Kubernetes Ingress
+# Use for generic ingress controller compatibility (envoy, traefik, etc.)
+ingress:
+  enabled: false
+  className: ""  # e.g., "traefik", "envoy"
+  annotations: {}
+  tls: []
+  hosts: []
+
+# Service configuration
+service:
+  type: ClusterIP
+  annotations: {}
+
+# ═══════════════════════════════════════════════════════════════
+# SMTP Configuration
+# ═══════════════════════════════════════════════════════════════
+# Configure SMTP to enable email delivery (notifications, alerts, etc.).
+smtp:
+  enabled: false
+  host: ""           # e.g., "mail.smtp2go.com"
+  port: 587
+  username: ""       # SMTP username
+  from: ""           # e.g., "noreply@shoehorn.dev"
+  feedbackEmail: ""  # Recipient for user feedback (e.g., "feedback@shoehorn.dev")
+
+# API Gateway
+api:
+  name: api
+  # Shoehorn service catalog annotations (prefixed with shoehorn.dev/)
+  annotations: {}
+    # team: "platform-team"
+    # repositoryUrl: "https://github.com/org/shoehorn-api"
+    # slackChannel: "#api-alerts"
+    # tier: "tier1"
+  image:
+    repository: ghcr.io/shoehorn-dev/shoehorn-api
+    tag: dev-agent-routes
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  env:
+    LOG_LEVEL: info
+    LOG_FORMAT: json
+    HTTP_PORT: "8080"
+    # GitHub Integration - Repository Discovery
+    # Configure which organizations/repositories to crawl for catalog entities
+    # GITHUB_ORGANIZATIONS: "my-org,another-org"  # Comma-separated org names
+    # GITHUB_REPOSITORIES: "my-org/repo1,my-org/repo2"  # Specific repos to include
+    # GITHUB_FORGE_ORGANIZATION: "my-org"  # Organization for Forge workflows
+    # GITHUB_MANIFEST_PATTERNS: ".shoehorn/**/*.yaml,catalog-info.yaml"  # Glob patterns for entity manifests
+    # GITHUB_README_PATTERNS: "README.md,docs/README.md"  # Glob patterns for README files
+    # GITHUB_RATE_LIMIT_PER_HOUR: "1000"  # GitHub API rate limit budget
+    # GITHUB_CONCURRENT_REPOS: "5"  # Max concurrent repository crawls
+    # GITHUB_CACHE_TTL_MINUTES: "15"  # Cache TTL for GitHub API responses
+    # DEBUG_GITHUB_API: "false"  # Enable debug logging for GitHub API calls
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readinessProbe:
+    httpGet:
+      path: /healthz
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 5
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+# Web Frontend
+web:
+  name: web
+  annotations: {}
+    # team: "platform-team"
+    # repositoryUrl: "https://github.com/org/shoehorn-web"
+  image:
+    repository: shoehorn-web
+    tag: latest
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    VITE_ENVIRONMENT: production
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 4173
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 4173
+    initialDelaySeconds: 5
+    periodSeconds: 5
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+# EventBus Microservice
+eventbus:
+  name: eventbus
+  annotations: {}
+  image:
+    repository: shoehorn-eventbus
+    tag: latest
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    GRPC_PORT: "9083"
+    HTTP_PORT: "8083"
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8083
+    initialDelaySeconds: 20
+    periodSeconds: 10
+  readinessProbe:
+    httpGet:
+      path: /healthz
+      port: 8083
+    initialDelaySeconds: 10
+    periodSeconds: 5
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+# Search Microservice
+search:
+  name: search
+  annotations: {}
+  image:
+    repository: shoehorn-search
+    tag: latest
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    GRPC_PORT: "9084"
+    HTTP_PORT: "8084"
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8084
+    initialDelaySeconds: 20
+    periodSeconds: 10
+  readinessProbe:
+    httpGet:
+      path: /healthz
+      port: 8084
+    initialDelaySeconds: 10
+    periodSeconds: 5
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+# Worker Microservice
+worker:
+  name: worker
+  annotations: {}
+  image:
+    repository: shoehorn-worker
+    tag: latest
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    GRPC_PORT: "9085"
+    HTTP_PORT: "8085"
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8085
+    initialDelaySeconds: 20
+    periodSeconds: 10
+  readinessProbe:
+    httpGet:
+      path: /healthz
+      port: 8085
+    initialDelaySeconds: 10
+    periodSeconds: 5
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+# Crawler Microservice
+crawler:
+  name: crawler
+  annotations: {}
+  image:
+    repository: shoehorn-crawler
+    tag: latest
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    GRPC_PORT: "9086"
+    HTTP_PORT: "8086"
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8086
+    initialDelaySeconds: 20
+    periodSeconds: 10
+  readinessProbe:
+    httpGet:
+      path: /healthz
+      port: 8086
+    initialDelaySeconds: 10
+    periodSeconds: 5
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+
+# Cloud Provider Resource Discovery (runs in crawler service)
+# Discovers cloud resources (servers, databases, storages) and catalogs them as entities.
+cloudProviders:
+  syncInterval: "15m"   # Global default sync interval for all providers
+
+  upcloud:
+    enabled: false
+    syncInterval: ""    # Per-provider override (empty = use cloudProviders.syncInterval)
+    apiBaseUrl: ""      # Empty = default https://api.upcloud.com/1.3
+    # Token is read from secret.existingSecret (key: upcloud_token)
+
+# Forge Microservice (Workflow engine & scaffolding)
+forge:
+  name: forge
+  annotations: {}
+  image:
+    repository: shoehorn-forge
+    tag: latest
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    GRPC_PORT: "9087"
+    HTTP_PORT: "8087"
+    # Forge environment mode (controls ShellAdapter security)
+    # - production: Containers required, direct execution blocked (SECURE - default)
+    # - development: Direct execution allowed (INSECURE - dev/test only)
+    FORGE_ENVIRONMENT: "production"
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8087
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /readiness
+      port: 8087
+    initialDelaySeconds: 20
+    periodSeconds: 5
+    failureThreshold: 3
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+# Authentication (OIDC)
+# Providers: zitadel, okta, entra-id
+auth:
+  provider: zitadel
+
+  # Zitadel (deployed separately)
+  zitadel:
+    projectId: ""
+    clientId: ""
+    externalUrl: "https://auth.example.com"
+    insecure: false
+
+  # Okta (customer's existing org)
+  okta:
+    domain: ""
+    clientId: ""
+    issuer: ""
+    authorizationServer: default
+
+  # Microsoft Entra ID
+  entraId:
+    tenantId: ""
+    clientId: ""
+    authority: ""
+
+  # Session settings
+  session:
+    # Max age for session cookies (Go duration format: 8h, 24h, 720h)
+    # Minimum: 5m, Maximum: 720h (30 days)
+    maxAge: "8h"
+
+  # CSRF protection (double-submit cookie pattern)
+  csrf:
+    enabled: true
+
+  # Admin auto-assignment
+  adminAssignment:
+    adminUsers: ""
+    adminGroups: ""
+
+  # Multi-Provider OrgData Sync
+  # Sync users and teams from multiple identity providers
+  # Users deduplicated by email, teams deduplicated by name
+  orgdata:
+    enabled: false  # Enable multi-provider orgdata sync
+    providers: []  # List of providers: ["okta", "zitadel"]
+    primaryProvider: ""  # Primary provider for conflict resolution (e.g., "zitadel")
+    # Okta API token key is read from secret.existingSecret via secret.mappings
+
+
+# Cerbos (policy-based authorization — always deployed, required by Shoehorn)
+cerbos:
+  image:
+    repository: ghcr.io/cerbos/cerbos
+    tag: "0.51.0"
+    pullPolicy: IfNotPresent
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  audit:
+    enabled: true
+    retentionPeriod: "168h"
+  # NOTE: Cerbos TLS is controlled by global.mtls.enabled (same as other gRPC services)
+
+# PostgreSQL 18
+# Set enabled: false and configure external to use managed PostgreSQL (RDS, Cloud SQL, etc.)
+postgresql:
+  name: postgresql
+  enabled: true  # Deploy PostgreSQL StatefulSet in cluster
+  image:
+    repository: ghcr.io/shoehorn-dev/shoehorn-postgres
+    tag: "latest"
+    # This is our custom PostgreSQL 18 image with pgaudit extension pre-installed
+    # Built from docker/Dockerfile.postgres in this repo
+    # For managed services (RDS, Cloud SQL, etc.), set enabled: false and configure external below
+  replicas: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: ""
+  # PostgreSQL-specific security context (overrides global)
+  podSecurityContext:
+    fsGroup: 999
+    fsGroupChangePolicy: OnRootMismatch
+    runAsNonRoot: true
+    runAsUser: 999
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 999
+  env:
+    POSTGRES_USER: shoehorn_user
+    POSTGRES_DB: shoehorn
+  # Connection Pool Configuration (shared defaults for all backend services)
+  # Each service reads DB_MAX_OPEN_CONNS, DB_MAX_IDLE_CONNS, DB_CONN_MAX_LIFETIME, DB_CONN_MAX_IDLE_TIME
+  # Total across all services should stay below PostgreSQL max_connections (default: 100)
+  # Small deployment (1-10 users): maxOpenConns=10, maxIdleConns=3
+  # Medium deployment (10-100 users): maxOpenConns=25, maxIdleConns=5 (default)
+  # Large deployment (100+ users): maxOpenConns=40+, maxIdleConns=10, consider PgBouncer
+  pool:
+    maxOpenConns: 25      # Max open connections per service (default)
+    maxIdleConns: 5       # Max idle connections per service
+    maxLifetime: "5m"     # Connection max lifetime (Go duration format)
+    maxIdleTime: "90s"    # Connection max idle time
+  # RLS (Row-Level Security) Configuration
+  # Two-user mode: separate admin (migrations) and runtime (RLS-enforced) database users
+  # - shoehorn_user: Migration user with BYPASSRLS (schema changes, creates app_user)
+  # - app_user: Runtime user with NOBYPASSRLS (all queries filtered by tenant_id via RLS policies)
+  # Your secret (secret.existingSecret) must contain:
+  #   postgres_password: password for shoehorn_user (migration/admin)
+  #   db_password: password for app_user (runtime, RLS-enforced)
+  rls:
+    enabled: true  # Enable two-user mode with RLS enforcement. Set to false for single-tenant deployments.
+  livenessProbe:
+    exec:
+      command:
+        - sh
+        - -c
+        - pg_isready -U shoehorn_user -d shoehorn
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readinessProbe:
+    exec:
+      command:
+        - sh
+        - -c
+        - pg_isready -U shoehorn_user -d shoehorn
+    initialDelaySeconds: 10
+    periodSeconds: 5
+  # External PostgreSQL configuration (use instead of StatefulSet)
+  external:
+    enabled: false
+    host: ""  # e.g., "postgres.example.com" or RDS endpoint
+    port: 5432
+    database: shoehorn
+    user: shoehorn_user
+  # pgaudit - PostgreSQL Audit Extension
+  # Provides detailed session audit logging for compliance (SOC 2, HIPAA)
+  # See: https://github.com/pgaudit/pgaudit
+  #
+  # IMPORTANT: pgaudit extension is ALWAYS preloaded (required for migration 091)
+  # The 'enabled' flag controls whether audit LOGGING is active or not:
+  #   - enabled: true  → Audit logging active (logs write/ddl/role operations)
+  #   - enabled: false → Extension loaded but logging disabled (pgaudit.log='none')
+  pgaudit:
+    enabled: true  # Enable audit LOGGING (extension is always available)
+    log: "write,ddl,role"  # What to audit: write (DML), ddl (DDL), role (GRANT/REVOKE)
+    logCatalog: false  # Exclude system catalog queries (reduces noise)
+    logRelation: true  # Include table/relation names in logs
+    logParameter: true  # Include statement parameters in logs
+
+  # PostgreSQL TLS Configuration
+  tls:
+    enabled: false  # Enable server-side TLS for production
+    createCertificate: true  # Let cert-manager create certificate
+    issuerName: shoehorn-ca-issuer
+    issuerKind: ClusterIssuer
+    certFile: "/etc/postgresql/certs/tls.crt"
+    keyFile: "/etc/postgresql/certs/tls.key"
+    caFile: "/etc/postgresql/certs/ca.crt"
+    sslMode: "require"  # SSL mode for clients: disable, allow, prefer, require, verify-ca, verify-full
+
+# Meilisearch
+# Set enabled: false and configure external to use Meilisearch Cloud or external instance
+meilisearch:
+  name: meilisearch
+  enabled: true  # Deploy Meilisearch StatefulSet in cluster
+  image:
+    repository: getmeili/meilisearch
+    tag: "v1.39.0"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+  # Meilisearch-specific security context (overrides global)
+  podSecurityContext:
+    fsGroup: 1000
+    runAsNonRoot: true
+    runAsUser: 1000
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 1000
+  env:
+    MEILI_DB_PATH: /meili_data
+    MEILI_ENV: production
+    MEILI_NO_ANALYTICS: "true"
+  startupProbe:
+    httpGet:
+      path: /health
+      port: 7700
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 30
+    timeoutSeconds: 3
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 7700
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 7700
+    initialDelaySeconds: 10
+    periodSeconds: 5
+  # External Meilisearch configuration (use instead of StatefulSet)
+  external:
+    enabled: false
+    host: ""  # e.g., "xxx.meilisearch.com" for Meilisearch Cloud
+    port: 7700
+    protocol: "https"
+
+  # Meilisearch HTTPS Configuration
+  tls:
+    enabled: false  # Enable HTTPS for production
+    createCertificate: true  # Let cert-manager create certificate
+    issuerName: shoehorn-ca-issuer
+    issuerKind: ClusterIssuer
+    certFile: "/etc/meilisearch/certs/tls.crt"
+    keyFile: "/etc/meilisearch/certs/tls.key"
+
+# Valkey 9.0.2 (Redis-compatible)
+# Set enabled: false and configure external to use ElastiCache, Redis Cloud, etc.
+valkey:
+  name: valkey
+  enabled: true  # Deploy Valkey StatefulSet in cluster
+  image:
+    repository: valkey/valkey
+    tag: "9.0.3"
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: ""
+  # Valkey-specific security context (overrides global)
+  podSecurityContext:
+    fsGroup: 999
+    runAsNonRoot: true
+    runAsUser: 999
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 999
+  command:
+    - valkey-server
+    - --appendonly
+    - "yes"
+    - --maxmemory
+    - "512mb"
+    - --maxmemory-policy
+    - "allkeys-lru"
+  livenessProbe:
+    exec:
+      command:
+        - sh
+        - -c
+        - valkey-cli ping
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readinessProbe:
+    exec:
+      command:
+        - sh
+        - -c
+        - valkey-cli ping
+    initialDelaySeconds: 5
+    periodSeconds: 5
+  # External Valkey/Redis configuration (use instead of StatefulSet)
+  external:
+    enabled: false
+    host: ""  # e.g., "redis.example.com" or ElastiCache endpoint
+    port: 6379
+
+# Redpanda (Kafka-compatible)
+# Set enabled: false and configure external to use Confluent Cloud, MSK, Redpanda Cloud, etc.
+redpanda:
+  name: redpanda
+  enabled: true  # Deploy Redpanda StatefulSet in cluster
+  image:
+    repository: redpandadata/redpanda
+    tag: v25.3.10
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: ""
+  replicas: 3
+  # Redpanda-specific security context (overrides global)
+  podSecurityContext:
+    fsGroup: 101
+    runAsNonRoot: true
+    runAsUser: 101
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 101
+  config:
+    smp: 1
+    memory: 512M
+  livenessProbe:
+    exec:
+      command:
+        - /bin/sh
+        - -c
+        - rpk cluster health | grep -E 'Healthy:.+true'
+    initialDelaySeconds: 60
+    periodSeconds: 30
+  readinessProbe:
+    exec:
+      command:
+        - /bin/sh
+        - -c
+        - rpk cluster health | grep -E 'Healthy:.+true'
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  # External Redpanda/Kafka configuration (use instead of StatefulSet)
+  external:
+    enabled: false
+    brokers: ""  # e.g., "broker-1.example.com:9092,broker-2.example.com:9092"
+
+  # Redpanda Kafka TLS Configuration
+  tls:
+    enabled: false  # Enable TLS for production
+    createCertificate: true  # Let cert-manager create certificate
+    issuerName: shoehorn-ca-issuer
+    issuerKind: ClusterIssuer
+    certFile: "/etc/redpanda/certs/tls.crt"
+    keyFile: "/etc/redpanda/certs/tls.key"
+    caFile: "/etc/redpanda/certs/ca.crt"
+    requireClientAuth: false  # Enable mTLS for Kafka clients (requires client certificates)
+
+# Kroki - Diagram rendering server (PlantUML, C4, BlockDiag, BPMN, etc.)
+# Self-hosted, no third-party dependency. Enables diagram rendering in TechDocs.
+# Client-side diagrams (Mermaid, Nomnoml, GraphViz) work without Kroki.
+kroki:
+  enabled: false  # Set to true to enable PlantUML and 15+ other diagram types
+  image:
+    repository: yuzutech/kroki
+    tag: "0.26.0"
+    pullPolicy: IfNotPresent
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  # External Kroki instance (use instead of deploying in cluster)
+  external:
+    enabled: false
+    url: ""  # e.g., "https://kroki.internal.company.com"
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod Security Context
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Security Context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+  prometheusRule:
+    enabled: true
+
+# RBAC Configuration
+# Role assignment uses environment variables at runtime:
+#   TENANT_ADMIN_USERS, TENANT_ADMIN_GROUPS
+#   TENANT_VIEWER_USERS, TENANT_VIEWER_GROUPS
+rbac:
+  enabled: true
+
+  # Role assignment (sets environment variables for fallback role mapping)
+  # Bootstrap admin gets tenant:admin role on first login (if no roles in database)
+  roleAssignment:
+    tenantAdmin:
+      user: ""   # Single bootstrap admin email address (e.g., 'admin@company.com')
+      group: ""  # Single bootstrap admin IdP group name (e.g., 'admins')
+
+  # Sync job configuration (for Helm-based RBAC sync)
+  sync:
+    enabled: false
+    mode: "manual"
+    lock:
+      ttl: "90s"
+      retries: 3
+    healthCheck:
+      maxRetries: 10
+
+  # Used by sync job templates
+  validation:
+    strict: true
+    database: true
+  audit:
+    enabled: true
+    logLevel: "info"
+
+  # OAuth group mappings per tenant (used by sync job)
+  tenants: []
+
+
