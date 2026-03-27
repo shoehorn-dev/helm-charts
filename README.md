@@ -1,6 +1,7 @@
 # Shoehorn Helm Charts
 
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/shoehorn)](https://artifacthub.io/packages/search?repo=shoehorn)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/shoehorn-k8s-agent)](https://artifacthub.io/packages/search?repo=shoehorn-k8s-agent)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 Official Helm charts for [Shoehorn](https://shoehorn.dev), the Intelligent Platform for Engineering.
