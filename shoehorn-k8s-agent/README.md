@@ -5,7 +5,7 @@ This Helm chart deploys the Shoehorn K8s Agent to your Kubernetes cluster.
 ## Prerequisites
 
 - Kubernetes 1.24+
-- Helm 3.8+
+- Helm 4.0+
 - A Shoehorn API token (generated in your Shoehorn Portal)
 - (Optional) ArgoCD or FluxCD installed in the cluster for GitOps integration
 - (Optional) metrics-server deployed for resource usage insights
