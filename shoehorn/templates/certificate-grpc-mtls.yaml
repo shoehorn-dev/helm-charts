@@ -1,7 +1,7 @@
 {{- if and .Values.global.mtls.enabled .Values.global.mtls.createCertificates }}
 ---
 # Shared gRPC mTLS Certificate for all internal services
-# This certificate is used by API, Forge, Worker, Crawler, Search, Eventbus, and Cerbos
+# This certificate is used by API, Forge, Worker, Crawler, Eventbus, and Cerbos
 # All services share the same certificate for simplified management
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -43,8 +43,6 @@ spec:
     - {{ include "shoehorn.fullname" . }}-worker.{{ include "shoehorn.namespace.backend" . }}.svc.cluster.local
     - {{ include "shoehorn.fullname" . }}-crawler
     - {{ include "shoehorn.fullname" . }}-crawler.{{ include "shoehorn.namespace.backend" . }}.svc.cluster.local
-    - {{ include "shoehorn.fullname" . }}-search
-    - {{ include "shoehorn.fullname" . }}-search.{{ include "shoehorn.namespace.backend" . }}.svc.cluster.local
     - {{ include "shoehorn.fullname" . }}-eventbus
     - {{ include "shoehorn.fullname" . }}-eventbus.{{ include "shoehorn.namespace.backend" . }}.svc.cluster.local
     - {{ include "shoehorn.fullname" . }}-cerbos

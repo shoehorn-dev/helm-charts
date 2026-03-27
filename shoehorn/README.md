@@ -32,8 +32,8 @@ Official Helm chart for deploying Shoehorn, an Internal Developer Portal, on Kub
                    +--------+---------+---------+--------+
                    |        |         |         |        |
                    v        v         v         v        v
-              EventBus   Search    Worker   Crawler    Forge
-               gRPC      gRPC      gRPC     gRPC      gRPC
+              EventBus   Worker   Crawler    Forge
+               gRPC      gRPC     gRPC      gRPC
                    |        |         |         |        |
                    +--------+---------+---------+--------+
                                       |
@@ -55,7 +55,6 @@ Official Helm chart for deploying Shoehorn, an Internal Developer Portal, on Kub
 | **Web** | Deployment | 4173 | SvelteKit frontend |
 | **API** | Deployment | 8080 | REST API Gateway (Go/Chi) |
 | **EventBus** | Deployment | 8083/9083 | Event streaming service (gRPC) |
-| **Search** | Deployment | 8084/9084 | Search indexing service (gRPC) |
 | **Worker** | Deployment | 8085/9085 | Background job processor (gRPC) |
 | **Crawler** | Deployment | 8086/9086 | Repository discovery & GitHub integration (gRPC) |
 | **Forge** | Deployment | 8087/9087 | Workflow engine & scaffolding (gRPC) |
@@ -308,13 +307,12 @@ auth:
     clientId: "YOUR_CLIENT_ID"
     externalUrl: "https://auth.yourdomain.xyz"
 
-# High availability
+# Redundancy and zero-downtime rolling updates
 replicaCount:
-  api: 3
+  api: 2
   web: 2
   eventbus: 2
-  search: 2
-  worker: 3
+  worker: 2
   crawler: 2
   forge: 2
 

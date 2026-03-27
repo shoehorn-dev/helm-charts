@@ -63,17 +63,16 @@ ingressRoute:
     enabled: true
     certResolver: letsencrypt
 
-# High availability replica counts
+# Replica counts - 2 for redundancy and zero-downtime rolling updates
 replicaCount:
-  api: 3
+  api: 2
   web: 2
   eventbus: 2
-  search: 2
-  worker: 3
+  worker: 2
   crawler: 2
   forge: 2
   postgresql: 1   # Use external DB for HA
-  meilisearch: 1    # Use external Meilisearch for HA
+  meilisearch: 1  # Use external Meilisearch for HA
   redpanda: 1     # Use external Kafka for HA
   valkey: 1       # Use external Redis for HA
   cerbos: 2
@@ -147,10 +146,9 @@ api:
     TELEMETRY_ENABLED: "true"
   autoscaling:
     enabled: true
-    minReplicas: 3
-    maxReplicas: 10
+    minReplicas: 2
+    maxReplicas: 4
     targetCPUUtilizationPercentage: 70
-    targetMemoryUtilizationPercentage: 80
   livenessProbe:
     httpGet:
       path: /healthz
@@ -189,7 +187,7 @@ web:
   autoscaling:
     enabled: true
     minReplicas: 2
-    maxReplicas: 5
+    maxReplicas: 4
     targetCPUUtilizationPercentage: 70
 
 eventbus:
@@ -203,20 +201,7 @@ eventbus:
   autoscaling:
     enabled: true
     minReplicas: 2
-    maxReplicas: 8
-
-search:
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      cpu: 500m
-      memory: 512Mi
-  autoscaling:
-    enabled: true
-    minReplicas: 2
-    maxReplicas: 6
+    maxReplicas: 4
 
 worker:
   resources:
@@ -228,8 +213,8 @@ worker:
       memory: 512Mi
   autoscaling:
     enabled: true
-    minReplicas: 3
-    maxReplicas: 15
+    minReplicas: 2
+    maxReplicas: 4
 
 crawler:
   resources:
@@ -242,7 +227,7 @@ crawler:
   autoscaling:
     enabled: true
     minReplicas: 2
-    maxReplicas: 8
+    maxReplicas: 4
 
 forge:
   env:
@@ -257,7 +242,7 @@ forge:
   autoscaling:
     enabled: true
     minReplicas: 2
-    maxReplicas: 10
+    maxReplicas: 4
 
 # ============================================================================
 # Data Layer - Enable Persistence
