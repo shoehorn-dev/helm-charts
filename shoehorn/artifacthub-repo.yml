@@ -1,0 +1,9 @@
+# Artifact Hub repository metadata file
+#
+# Some settings like the verified publisher flag or the ignored packages won't
+# be applied until the next time the repository is processed. Please keep in
+# mind that the repository won't be processed if it has not changed since the
+# last time it was processed. For git based repositories, it does when the hash
+# of the last commit in the branch you set up changes.
+#
+repositoryID: e47a148e-cec9-4e56-bcc4-fb3f74fd7ffa

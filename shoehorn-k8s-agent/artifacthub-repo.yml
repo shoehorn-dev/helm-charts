@@ -6,7 +6,4 @@
 # last time it was processed. For git based repositories, it does when the hash
 # of the last commit in the branch you set up changes.
 #
-# repositoryID:  # (optional, set after registering on ArtifactHub to enable verified publisher)
-owners:
-  - name: Shoehorn Team
-    email: support@shoehorn.dev
+repositoryID: 680b3ddf-18f6-4def-980d-5c68ed65d718
