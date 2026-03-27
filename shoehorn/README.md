@@ -6,7 +6,7 @@ Official Helm chart for deploying Shoehorn, an Internal Developer Portal, on Kub
 
 **Minimum Requirements:**
 - Kubernetes 1.24+
-- Helm 3.8+
+- Helm 4.0+
 - Ingress Controller (Traefik recommended, Envoy supported)
 
 **Optional:**
@@ -151,8 +151,6 @@ kubectl get ingressroute -n shoehorn
 ```
 
 ## Secret Management
-
-Shoehorn takes a **vendor-agnostic** approach to secrets. The chart never creates secrets -- it only references an existing Kubernetes Secret by name.
 
 ### How It Works
 
