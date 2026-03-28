@@ -27,7 +27,7 @@ global:
   # gRPC mTLS Configuration (applies to ALL gRPC services)
   # ═══════════════════════════════════════════════════════════════
   # When enabled, all internal gRPC services use TLS with mutual authentication
-  # Includes: API, Forge, Worker, Crawler, Search, Eventbus, and Cerbos
+  # Includes: API, Forge, Worker, Crawler, Eventbus, and Cerbos
   mtls:
     enabled: false  # Enable mTLS for all inter-service gRPC communication
     createCertificates: true  # Let chart create certificates via cert-manager (set false to manage externally)
@@ -139,7 +139,6 @@ replicaCount:
   api: 1
   web: 1
   eventbus: 1
-  search: 1
   worker: 1
   crawler: 1
   forge: 1
@@ -320,11 +319,10 @@ api:
     initialDelaySeconds: 10
     periodSeconds: 5
   autoscaling:
-    enabled: true
+    enabled: false
     minReplicas: 2
-    maxReplicas: 10
+    maxReplicas: 4
     targetCPUUtilizationPercentage: 70
-    targetMemoryUtilizationPercentage: 80
 
 # Web Frontend
 web:
@@ -357,9 +355,9 @@ web:
     initialDelaySeconds: 5
     periodSeconds: 5
   autoscaling:
-    enabled: true
+    enabled: false
     minReplicas: 2
-    maxReplicas: 5
+    maxReplicas: 4
     targetCPUUtilizationPercentage: 70
 
 # EventBus Microservice
@@ -394,42 +392,7 @@ eventbus:
   autoscaling:
     enabled: false
     minReplicas: 2
-    maxReplicas: 5
-    targetCPUUtilizationPercentage: 70
-
-# Search Microservice
-search:
-  name: search
-  annotations: {}
-  image:
-    repository: shoehorn-search
-    tag: latest
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      cpu: 500m
-      memory: 512Mi
-  env:
-    GRPC_PORT: "9084"
-    HTTP_PORT: "8084"
-  livenessProbe:
-    httpGet:
-      path: /healthz
-      port: 8084
-    initialDelaySeconds: 20
-    periodSeconds: 10
-  readinessProbe:
-    httpGet:
-      path: /healthz
-      port: 8084
-    initialDelaySeconds: 10
-    periodSeconds: 5
-  autoscaling:
-    enabled: false
-    minReplicas: 2
-    maxReplicas: 5
+    maxReplicas: 4
     targetCPUUtilizationPercentage: 70
 
 # Worker Microservice
@@ -464,7 +427,7 @@ worker:
   autoscaling:
     enabled: false
     minReplicas: 2
-    maxReplicas: 5
+    maxReplicas: 4
     targetCPUUtilizationPercentage: 70
 
 # Crawler Microservice
@@ -498,8 +461,8 @@ crawler:
     periodSeconds: 5
   autoscaling:
     enabled: false
-    minReplicas: 1
-    maxReplicas: 3
+    minReplicas: 2
+    maxReplicas: 4
     targetCPUUtilizationPercentage: 70
 
 # Cloud Provider Resource Discovery (runs in crawler service)
@@ -551,7 +514,7 @@ forge:
   autoscaling:
     enabled: false
     minReplicas: 2
-    maxReplicas: 5
+    maxReplicas: 4
     targetCPUUtilizationPercentage: 70
 
 # Authentication (OIDC)

@@ -59,13 +59,12 @@ ingressRoute:
     enabled: true
     certResolver: letsencrypt
 
-# Replica counts (no data layer - external services)
+# Replica counts - 2 for redundancy and zero-downtime rolling updates
 replicaCount:
-  api: 3
+  api: 2
   web: 2
   eventbus: 2
-  search: 2
-  worker: 3
+  worker: 2
   crawler: 2
   forge: 2
   cerbos: 2
@@ -178,8 +177,8 @@ api:
     TELEMETRY_ENABLED: "true"
   autoscaling:
     enabled: true
-    minReplicas: 3
-    maxReplicas: 10
+    minReplicas: 2
+    maxReplicas: 4
     targetCPUUtilizationPercentage: 70
 
 web:
@@ -193,7 +192,7 @@ web:
   autoscaling:
     enabled: true
     minReplicas: 2
-    maxReplicas: 5
+    maxReplicas: 4
 
 forge:
   env:
