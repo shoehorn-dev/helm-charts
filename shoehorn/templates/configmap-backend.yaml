@@ -56,7 +56,6 @@ data:
 
   # Service Discovery (GRPC endpoints)
   EVENTBUS_GRPC_ADDR: {{ include "shoehorn.eventbus.grpc" . }}
-  SEARCH_GRPC_ADDR: {{ include "shoehorn.search.grpc" . }}
   WORKER_GRPC_ADDR: {{ include "shoehorn.worker.grpc" . }}
   CRAWLER_GRPC_ADDR: {{ include "shoehorn.crawler.grpc" . }}
   FORGE_GRPC_ADDR: {{ include "shoehorn.forge.grpc" . }}

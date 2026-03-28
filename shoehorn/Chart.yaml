@@ -74,7 +74,7 @@ annotations:
     - kind: added
       description: Initial release of Shoehorn Helm chart
     - kind: added
-      description: Event-driven microservice architecture (API, Web, EventBus, Search, Worker, Crawler, Forge)
+      description: Event-driven microservice architecture (API, Web, EventBus, Worker, Crawler, Forge)
     - kind: added
       description: Multi-tenant PostgreSQL Row-Level Security (RLS) with two-user mode
     - kind: added

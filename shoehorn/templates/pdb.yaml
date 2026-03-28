@@ -42,20 +42,6 @@ spec:
     matchLabels:
       {{- include "shoehorn.eventbus.selectorLabels" . | nindent 6 }}
 ---
-# Search Pod Disruption Budget
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: {{ include "shoehorn.fullname" . }}-search
-  namespace: {{ include "shoehorn.namespace.backend" . }}
-  labels:
-    {{- include "shoehorn.search.labels" . | nindent 4 }}
-spec:
-  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
-  selector:
-    matchLabels:
-      {{- include "shoehorn.search.selectorLabels" . | nindent 6 }}
----
 # Worker Pod Disruption Budget
 apiVersion: policy/v1
 kind: PodDisruptionBudget

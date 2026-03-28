@@ -131,22 +131,6 @@ EventBus selector labels
 {{- end }}
 
 {{/*
-Search labels
-*/}}
-{{- define "shoehorn.search.labels" -}}
-{{ include "shoehorn.labels" . }}
-{{ include "shoehorn.componentLabels" "search" }}
-{{- end }}
-
-{{/*
-Search selector labels
-*/}}
-{{- define "shoehorn.search.selectorLabels" -}}
-{{ include "shoehorn.selectorLabels" . }}
-{{ include "shoehorn.componentLabels" "search" }}
-{{- end }}
-
-{{/*
 Worker labels
 */}}
 {{- define "shoehorn.worker.labels" -}}
@@ -387,13 +371,6 @@ EventBus GRPC address
 */}}
 {{- define "shoehorn.eventbus.grpc" -}}
 {{- include "shoehorn.fullname" . }}-eventbus.{{ .Release.Namespace }}.svc.cluster.local:9083
-{{- end }}
-
-{{/*
-Search GRPC address
-*/}}
-{{- define "shoehorn.search.grpc" -}}
-{{- include "shoehorn.fullname" . }}-search.{{ .Release.Namespace }}.svc.cluster.local:9084
 {{- end }}
 
 {{/*
