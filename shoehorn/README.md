@@ -325,8 +325,6 @@ api:
 
 # Persistence
 postgresql:
-  rls:
-    enabled: true
   persistence:
     enabled: true
     size: 50Gi
@@ -428,7 +426,6 @@ GitHub App credentials (IDs, private keys) are configured via the secret and `ex
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `postgresql.enabled` | Deploy PostgreSQL StatefulSet | `true` |
-| `postgresql.rls.enabled` | Enable two-user RLS mode | `true` |
 | `postgresql.persistence.enabled` | Enable persistent storage | `true` |
 | `postgresql.persistence.size` | PVC size | `20Gi` |
 | `postgresql.external.enabled` | Use external PostgreSQL | `false` |
@@ -461,30 +458,29 @@ GitHub App credentials (IDs, private keys) are configured via the secret and `ex
 | `redpanda.persistence.size` | PVC size | `20Gi` |
 | `redpanda.external.enabled` | Use external Kafka/Redpanda | `false` |
 
-## Multi-Tenant Setup
+## Multi-Tenant Architecture
 
-Shoehorn supports multi-tenancy with PostgreSQL Row-Level Security (RLS).
+Shoehorn uses PostgreSQL Row-Level Security (RLS) for database-level tenant isolation. This is always enabled -- there is no toggle.
 
 ### How It Works
 
-All database tables have RLS policies that filter data by `tenant_id`. When RLS is enabled (default), runtime services connect as `app_user` (NOBYPASSRLS) so PostgreSQL enforces tenant isolation at the database level. Migrations run as `shoehorn_user` (BYPASSRLS) to manage schema.
+All database tables have RLS policies that filter data by `tenant_id`. Runtime services connect as `app_user` (NOBYPASSRLS) so PostgreSQL enforces tenant isolation automatically. Migrations run as `shoehorn_user` (BYPASSRLS) to manage schema.
 
-### Configuration
+### Database Users
 
-```yaml
-postgresql:
-  rls:
-    enabled: true  # Default: two-user mode with RLS enforcement
-```
+| User | RLS | Purpose |
+|------|-----|---------|
+| `shoehorn_user` | BYPASSRLS | Schema migrations, admin operations |
+| `app_user` | NOBYPASSRLS | All runtime queries -- RLS enforced by PostgreSQL |
 
-When `rls.enabled: true`:
-- The API deployment includes a migration init container that runs with `shoehorn_user`
-- All runtime services use `app_user` in their `DATABASE_URL`
-- Your secret must contain both `postgres_password` (admin) and `db_password` (app user)
+### Required Secret Keys
 
-When `rls.enabled: false` (single-tenant mode):
-- All services use `shoehorn_user` (no RLS enforcement)
-- Only recommended for single-organization deployments
+Your secret must contain both database passwords:
+
+- `postgres_password`: used by `shoehorn_user` for migrations
+- `db_password`: used by `app_user` for runtime queries
+
+For single-tenant deployments, RLS still runs but the middleware auto-injects a fixed tenant ID via the `global.organization.slug` configuration.
 
 ## Validation
 
@@ -593,7 +589,6 @@ kubectl get ingressroute -n shoehorn
 - [ ] Replica counts increased for HA
 
 ### Security
-- [ ] `postgresql.rls.enabled: true` (default)
 - [ ] Secret contains separate `postgres_password` and `db_password`
 - [ ] Network policies configured (optional)
 - [ ] gRPC mTLS enabled (optional)

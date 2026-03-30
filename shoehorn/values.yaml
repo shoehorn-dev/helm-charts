@@ -637,15 +637,13 @@ postgresql:
     maxIdleConns: 5       # Max idle connections per service
     maxLifetime: "5m"     # Connection max lifetime (Go duration format)
     maxIdleTime: "90s"    # Connection max idle time
-  # RLS (Row-Level Security) Configuration
-  # Two-user mode: separate admin (migrations) and runtime (RLS-enforced) database users
+  # RLS (Row-Level Security) - Always Enabled
+  # Shoehorn uses a two-user model for database security:
   # - shoehorn_user: Migration user with BYPASSRLS (schema changes, creates app_user)
   # - app_user: Runtime user with NOBYPASSRLS (all queries filtered by tenant_id via RLS policies)
   # Your secret (secret.existingSecret) must contain:
   #   postgres_password: password for shoehorn_user (migration/admin)
   #   db_password: password for app_user (runtime, RLS-enforced)
-  rls:
-    enabled: true  # Enable two-user mode with RLS enforcement. Set to false for single-tenant deployments.
   livenessProbe:
     exec:
       command:

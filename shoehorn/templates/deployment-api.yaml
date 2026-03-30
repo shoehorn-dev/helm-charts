@@ -83,15 +83,11 @@ spec:
         # Database configuration (secrets and dynamic values)
         # IMPORTANT: DB_PASSWORD must be defined BEFORE DATABASE_URL for $(DB_PASSWORD) substitution to work
         {{- include "shoehorn.secretRef" (dict "env" "DB_PASSWORD" "root" .) | nindent 8 }}
-        {{- $dbUser := "shoehorn_user" }}
-        {{- if .Values.postgresql.rls.enabled }}
-        {{- $dbUser = "app_user" }}
-        {{- end }}
         - name: DATABASE_URL
           {{- if .Values.postgresql.tls.enabled }}
-          value: "postgresql://{{ $dbUser }}:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode={{ .Values.postgresql.tls.sslMode | default "require" }}"
+          value: "postgresql://app_user:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode={{ .Values.postgresql.tls.sslMode | default "require" }}"
           {{- else }}
-          value: "postgresql://{{ $dbUser }}:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode=disable"
+          value: "postgresql://app_user:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode=disable"
           {{- end }}
         # App user password for RLS migration init container
         - name: APP_USER_PASSWORD

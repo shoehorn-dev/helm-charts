@@ -61,10 +61,6 @@ postgresql:
     limits:
       cpu: 2000m
       memory: 4Gi
-  # Production RLS configuration
-  rls:
-    enabled: true  # Two-user mode for production
-    appUserPassword: "CHANGE_ME_IN_PRODUCTION"  # Override with secret
   # Audit logging
   pgaudit:
     enabled: true
