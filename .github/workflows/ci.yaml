@@ -12,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install Helm
-        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
         with:
           version: '4.1.1'
 
@@ -66,3 +66,237 @@ jobs:
             --set shoehorn.existingSecret=ci-test \
             --set shoehorn.cluster.id=ci-test \
             > /dev/null
+
+  validate-examples:
+    name: Validate Example Values
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - chart: shoehorn
+            values: examples/values-minimal.yaml
+            extra_sets: "--set secret.existingSecret=ci-test --set auth.zitadel.externalUrl=https://auth.example.com --set secret.mappings.ZITADEL_PROJECT_ID=test --set secret.mappings.ZITADEL_CLIENT_ID=test"
+          - chart: shoehorn
+            values: examples/values-production.yaml
+            extra_sets: "--set secret.existingSecret=ci-test --set auth.zitadel.externalUrl=https://auth.example.com --set secret.mappings.ZITADEL_PROJECT_ID=test --set secret.mappings.ZITADEL_CLIENT_ID=test"
+          - chart: shoehorn
+            values: examples/values-production-tls.yaml
+            extra_sets: "--set secret.existingSecret=ci-test --set auth.zitadel.externalUrl=https://auth.example.com --set secret.mappings.ZITADEL_PROJECT_ID=test --set secret.mappings.ZITADEL_CLIENT_ID=test"
+          - chart: shoehorn
+            values: examples/values-external-db.yaml
+            extra_sets: "--set secret.existingSecret=ci-test --set auth.zitadel.externalUrl=https://auth.example.com --set secret.mappings.ZITADEL_PROJECT_ID=test --set secret.mappings.ZITADEL_CLIENT_ID=test"
+          - chart: shoehorn-k8s-agent
+            values: examples/values-minimal.yaml
+            extra_sets: "--set shoehorn.apiURL=https://test.example.com --set shoehorn.apiToken=ci-test --set shoehorn.cluster.id=ci-test"
+          - chart: shoehorn-k8s-agent
+            values: examples/values-production.yaml
+            extra_sets: "--set shoehorn.apiURL=https://test.example.com --set shoehorn.apiToken=ci-test --set shoehorn.cluster.id=ci-test"
+          - chart: shoehorn-k8s-agent
+            values: examples/values-annotations.yaml
+            extra_sets: "--set shoehorn.apiURL=https://test.example.com --set shoehorn.apiToken=ci-test --set shoehorn.cluster.id=ci-test"
+          - chart: shoehorn-k8s-agent
+            values: examples/values-filtered.yaml
+            extra_sets: "--set shoehorn.apiURL=https://test.example.com --set shoehorn.apiToken=ci-test --set shoehorn.cluster.id=ci-test"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Helm
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+        with:
+          version: '4.1.1'
+
+      - name: Add Helm repositories
+        run: |
+          helm repo add jetstack https://charts.jetstack.io
+          helm repo update
+
+      - name: Build dependencies
+        run: helm dependency build ${{ matrix.chart }}/
+
+      - name: Lint with ${{ matrix.values }}
+        run: |
+          helm lint ${{ matrix.chart }}/ \
+            -f ${{ matrix.chart }}/${{ matrix.values }} \
+            ${{ matrix.extra_sets }}
+
+      - name: Template with ${{ matrix.values }}
+        run: |
+          helm template ci-test ${{ matrix.chart }}/ \
+            -f ${{ matrix.chart }}/${{ matrix.values }} \
+            ${{ matrix.extra_sets }} \
+            > /dev/null
+
+  kubeconform:
+    name: Validate Kubernetes Schemas
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Helm
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+        with:
+          version: '4.1.1'
+
+      - name: Install kubeconform
+        run: |
+          curl -fsSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+            | tar xz -C /usr/local/bin kubeconform
+
+      - name: Add Helm repositories
+        run: |
+          helm repo add jetstack https://charts.jetstack.io
+          helm repo update
+
+      - name: Build dependencies (shoehorn)
+        run: helm dependency build shoehorn/
+
+      - name: Validate shoehorn manifests
+        run: |
+          helm template ci-test shoehorn/ \
+            --set secret.existingSecret=ci-test \
+            --set auth.zitadel.externalUrl=https://auth.example.com \
+            --set secret.mappings.ZITADEL_PROJECT_ID=test \
+            --set secret.mappings.ZITADEL_CLIENT_ID=test \
+          | kubeconform \
+              -strict \
+              -summary \
+              -kubernetes-version 1.30.0 \
+              -ignore-missing-schemas \
+              -schema-location default \
+              -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+
+      - name: Validate shoehorn-k8s-agent manifests
+        run: |
+          helm template ci-test shoehorn-k8s-agent/ \
+            --set shoehorn.apiURL=https://test.example.com \
+            --set shoehorn.apiToken=ci-test \
+            --set shoehorn.cluster.id=ci-test \
+          | kubeconform \
+              -strict \
+              -summary \
+              -kubernetes-version 1.30.0 \
+              -ignore-missing-schemas \
+              -schema-location default \
+              -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+
+  schema-validation:
+    name: Validate values.schema.json
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+
+      - name: Install jsonschema
+        run: pip install jsonschema pyyaml
+
+      - name: Validate default values against schema
+        run: |
+          python - <<'EOF'
+          import json, yaml, sys
+          from jsonschema import validate, ValidationError
+
+          with open("shoehorn/values.schema.json") as f:
+              schema = json.load(f)
+
+          with open("shoehorn/values.yaml") as f:
+              values = yaml.safe_load(f)
+
+          try:
+              validate(instance=values, schema=schema)
+              print("Default values.yaml validates against schema")
+          except ValidationError as e:
+              print(f"Schema validation failed: {e.message}")
+              print(f"Path: {' -> '.join(str(p) for p in e.absolute_path)}")
+              sys.exit(1)
+          EOF
+
+      - name: Validate example values against schema
+        run: |
+          python - <<'EOF'
+          import json, yaml, sys, glob
+
+          from jsonschema import validate, ValidationError
+
+          with open("shoehorn/values.schema.json") as f:
+              schema = json.load(f)
+
+          failed = False
+          for example in sorted(glob.glob("shoehorn/examples/*.yaml")):
+              with open(example) as f:
+                  values = yaml.safe_load(f)
+              try:
+                  validate(instance=values, schema=schema)
+                  print(f"  {example}")
+              except ValidationError as e:
+                  print(f"  {example} - FAILED: {e.message}")
+                  failed = True
+
+          if failed:
+              sys.exit(1)
+          else:
+              print("All example values validate against schema")
+          EOF
+
+      - name: Validate schema is valid JSON Schema
+        run: |
+          python - <<'EOF'
+          import json, sys
+          from jsonschema import Draft7Validator
+
+          with open("shoehorn/values.schema.json") as f:
+              schema = json.load(f)
+
+          Draft7Validator.check_schema(schema)
+          print("values.schema.json is a valid JSON Schema")
+          EOF
+
+  chart-testing:
+    name: Chart Testing (ct)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+        with:
+          version: '4.1.1'
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+
+      - name: Setup chart-testing
+        uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f # v2.8.0
+
+      - name: Add Helm repositories
+        run: |
+          helm repo add jetstack https://charts.jetstack.io
+          helm repo update
+
+      - name: Detect changed charts
+        id: changed
+        run: |
+          ct list-changed --config ct.yaml 2>/dev/null || ct list-changed --target-branch main
+          CHANGED=$(ct list-changed --target-branch main 2>/dev/null || echo "")
+          if [ -n "$CHANGED" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Lint changed charts
+        if: steps.changed.outputs.changed == 'true'
+        run: ct lint --target-branch main --chart-repos jetstack=https://charts.jetstack.io
