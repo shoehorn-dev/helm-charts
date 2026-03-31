@@ -18,11 +18,7 @@ data:
   # Database Configuration (non-sensitive)
   DB_PORT: "5432"
   DB_NAME: "shoehorn"
-  {{- if .Values.postgresql.rls.enabled }}
   DB_USER: "app_user"
-  {{- else }}
-  DB_USER: "shoehorn_user"
-  {{- end }}
   {{- if .Values.postgresql.tls.enabled }}
   DB_SSLMODE: {{ .Values.postgresql.tls.sslMode | default "require" | quote }}
   {{- else }}

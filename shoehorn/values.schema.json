@@ -268,12 +268,6 @@
             "port": { "type": "integer", "default": 5432 }
           }
         },
-        "rls": {
-          "type": "object",
-          "properties": {
-            "enabled": { "type": "boolean", "default": true }
-          }
-        },
         "image": { "$ref": "#/$defs/imageConfig" },
         "resources": { "$ref": "#/$defs/resources" },
         "persistence": { "$ref": "#/$defs/persistence" }
