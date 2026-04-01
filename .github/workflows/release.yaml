@@ -11,6 +11,10 @@ on:
         description: 'Tag to release (e.g. shoehorn-v0.3.0 or shoehorn-k8s-agent-v0.3.0)'
         required: true
         type: string
+      app_version:
+        description: 'Application version for appVersion in Chart.yaml (fetched from shoehorn-platform if empty)'
+        required: false
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -30,6 +34,8 @@ jobs:
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: shoehorn-dev
+          repositories: helm-charts,shoehorn-platform
 
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -75,6 +81,23 @@ jobs:
           else
             git tag -a "$TAG" -m "Release $TAG"
             git push origin "$TAG"
+          fi
+
+      - name: Fetch application version
+        id: app-version
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          INPUT_APP_VERSION: ${{ inputs.app_version }}
+        run: |
+          if [ -n "$INPUT_APP_VERSION" ]; then
+            echo "version=$INPUT_APP_VERSION" >> "$GITHUB_OUTPUT"
+            echo "Using provided appVersion: $INPUT_APP_VERSION"
+          else
+            # Fetch version.json from shoehorn-platform main branch
+            APP_VERSION=$(gh api repos/shoehorn-dev/shoehorn-platform/contents/version.json \
+              --jq '.content' | base64 -d | jq -r '.version')
+            echo "version=$APP_VERSION" >> "$GITHUB_OUTPUT"
+            echo "Fetched appVersion from shoehorn-platform: $APP_VERSION"
           fi
 
       - name: Determine chart name from tag
@@ -172,12 +195,17 @@ jobs:
           echo "prev_tag=${PREV_TAG:-initial}" >> $GITHUB_OUTPUT
 
       - name: Update Chart.yaml version and changelog
+        env:
+          APP_VERSION: ${{ steps.app-version.outputs.version }}
         run: |
           CHART_FILE="${{ steps.chart.outputs.name }}/Chart.yaml"
 
-          # Update version and appVersion
+          # Update chart version (from tag) and appVersion (from shoehorn-platform)
           sed -i "s/^version:.*/version: ${{ steps.chart.outputs.version }}/" "$CHART_FILE"
-          sed -i "s/^appVersion:.*/appVersion: \"${{ steps.chart.outputs.version }}\"/" "$CHART_FILE"
+          sed -i "s/^appVersion:.*/appVersion: \"${APP_VERSION}\"/" "$CHART_FILE"
+
+          echo "Chart version: ${{ steps.chart.outputs.version }}"
+          echo "App version:   ${APP_VERSION}"
 
           # Replace the artifacthub.io/changes annotation block
           # Remove existing changes block (from the annotation line to the next annotation or end of annotations)
