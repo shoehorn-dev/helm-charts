@@ -5,6 +5,12 @@ on:
     tags:
       - 'shoehorn-v*'
       - 'shoehorn-k8s-agent-v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. shoehorn-v0.3.0 or shoehorn-k8s-agent-v0.3.0)'
+        required: true
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -18,15 +24,23 @@ jobs:
       packages: write
 
     steps:
+      - name: Generate release bot token
+        id: app-token
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          fetch-depth: 0  # Full history for changelog generation
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
 
-      - name: Configure Git
+      - name: Configure git as release bot
         run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git config user.name "shoehorn-release[bot]"
+          git config user.email "272929799+shoehorn-release[bot]@users.noreply.github.com"
 
       - name: Install Helm
         uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
@@ -38,10 +52,36 @@ jobs:
           helm repo add jetstack https://charts.jetstack.io
           helm repo update
 
+      - name: Determine tag
+        id: resolve-tag
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          GIT_REF: ${{ github.ref }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "tag=$INPUT_TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GIT_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create tag if workflow_dispatch
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          TAG: ${{ steps.resolve-tag.outputs.tag }}
+        run: |
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists"
+          else
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+          fi
+
       - name: Determine chart name from tag
         id: chart
+        env:
+          TAG: ${{ steps.resolve-tag.outputs.tag }}
         run: |
-          TAG="${GITHUB_REF#refs/tags/}"
           if [[ "$TAG" == shoehorn-k8s-agent-v* ]]; then
             echo "name=shoehorn-k8s-agent" >> $GITHUB_OUTPUT
             echo "version=${TAG#shoehorn-k8s-agent-v}" >> $GITHUB_OUTPUT
@@ -57,12 +97,11 @@ jobs:
 
       - name: Generate changelog from commits
         id: changelog
+        env:
+          CURRENT_TAG: ${{ steps.resolve-tag.outputs.tag }}
+          TAG_PREFIX: ${{ steps.chart.outputs.tag_prefix }}
+          CHART: ${{ steps.chart.outputs.name }}
         run: |
-          CHART="${{ steps.chart.outputs.name }}"
-          TAG_PREFIX="${{ steps.chart.outputs.tag_prefix }}"
-          CURRENT_TAG="${GITHUB_REF#refs/tags/}"
-
-          # Find the previous tag for this chart
           PREV_TAG=$(git tag --list "${TAG_PREFIX}*" --sort=-v:refname | grep -v "^${CURRENT_TAG}$" | head -1)
 
           if [ -z "$PREV_TAG" ]; then
@@ -172,17 +211,21 @@ jobs:
 
       - name: Log in to Container Registry for Helm
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ${{ env.REGISTRY }} --username ${{ github.actor }} --password-stdin
+          echo "${{ steps.app-token.outputs.token }}" | helm registry login ${{ env.REGISTRY }} --username shoehorn-release[bot] --password-stdin
 
       - name: Push Helm chart to OCI registry
         run: |
           helm push ${{ steps.chart.outputs.name }}-*.tgz oci://${{ env.REGISTRY }}/${{ github.repository }}
 
       - name: Create GitHub Release with changelog
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          CURRENT_TAG: ${{ steps.resolve-tag.outputs.tag }}
+          PREV_TAG: ${{ steps.changelog.outputs.prev_tag }}
+          CHANGELOG: ${{ steps.changelog.outputs.changelog }}
+          CHART_NAME: ${{ steps.chart.outputs.name }}
+          CHART_VERSION: ${{ steps.chart.outputs.version }}
         run: |
-          CURRENT_TAG="${GITHUB_REF#refs/tags/}"
-          PREV_TAG="${{ steps.changelog.outputs.prev_tag }}"
-
           BODY="## Changelog"$'\n\n'
 
           if [ "$PREV_TAG" != "initial" ]; then
@@ -191,19 +234,17 @@ jobs:
             BODY+="Initial release:"$'\n\n'
           fi
 
-          BODY+="${{ steps.changelog.outputs.changelog }}"
+          BODY+="${CHANGELOG}"
           BODY+=$'\n'"## Installation"$'\n\n'
           BODY+='```bash'$'\n'
-          BODY+="helm install shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/${{ steps.chart.outputs.name }} --version ${{ steps.chart.outputs.version }}"$'\n'
+          BODY+="helm install shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/${CHART_NAME} --version ${CHART_VERSION}"$'\n'
           BODY+='```'$'\n\n'
           BODY+="## Upgrade"$'\n\n'
           BODY+='```bash'$'\n'
-          BODY+="helm upgrade shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/${{ steps.chart.outputs.name }} --version ${{ steps.chart.outputs.version }}"$'\n'
+          BODY+="helm upgrade shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/${CHART_NAME} --version ${CHART_VERSION}"$'\n'
           BODY+='```'$'\n'
 
           gh release create "$CURRENT_TAG" \
-            ${{ steps.chart.outputs.name }}-*.tgz \
-            --title "${{ steps.chart.outputs.name }} ${{ steps.chart.outputs.version }}" \
+            ${CHART_NAME}-*.tgz \
+            --title "${CHART_NAME} ${CHART_VERSION}" \
             --notes "$BODY"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

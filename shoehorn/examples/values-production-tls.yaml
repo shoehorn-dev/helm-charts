@@ -32,8 +32,8 @@ secret:
 cerbos:
   replicas: 2  # High availability
   image:
-    repository: ghcr.io/cerbos/cerbos
-    tag: "0.39.0"
+    repository: ghcr.io/shoehorn-dev/shoehorn-cerbos
+    tag: "latest"
     pullPolicy: IfNotPresent
   resources:
     requests:
