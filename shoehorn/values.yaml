@@ -570,8 +570,8 @@ auth:
 # Cerbos (policy-based authorization — always deployed, required by Shoehorn)
 cerbos:
   image:
-    repository: ghcr.io/cerbos/cerbos
-    tag: "0.51.0"
+    repository: ghcr.io/shoehorn-dev/shoehorn-cerbos
+    tag: "latest"
     pullPolicy: IfNotPresent
   replicas: 1
   resources:

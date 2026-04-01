@@ -44,9 +44,6 @@ spec:
         - name: config
           mountPath: /config
           readOnly: true
-        - name: policies
-          mountPath: /policies
-          readOnly: true
         - name: audit
           mountPath: /tmp/cerbos-audit
         {{- include "shoehorn.grpcMtlsVolumeMounts" . | nindent 8 }}
@@ -74,9 +71,6 @@ spec:
       - name: config
         configMap:
           name: {{ include "shoehorn.fullname" . }}-cerbos-config
-      - name: policies
-        configMap:
-          name: {{ include "shoehorn.fullname" . }}-cerbos-policies
       - name: audit
         emptyDir: {}
       {{- include "shoehorn.grpcMtlsVolumes" . | nindent 6 }}
