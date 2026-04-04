@@ -28,8 +28,8 @@ spec:
       - name: cerbos
         securityContext:
           {{- toYaml .Values.securityContext | nindent 12 }}
-        image: "{{ .Values.cerbos.image.repository }}:{{ .Values.cerbos.image.tag }}"
-        imagePullPolicy: {{ .Values.cerbos.image.pullPolicy | default "IfNotPresent" }}
+        image: {{ include "shoehorn.componentImage" (dict "component" .Values.cerbos "Values" .Values) }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         args:
           - "server"
           - "--config=/config/config.yaml"

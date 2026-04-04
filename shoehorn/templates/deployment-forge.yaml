@@ -145,6 +145,7 @@ spec:
           value: {{ .Values.auth.okta.domain | quote }}
         - name: OKTA_CLIENT_ID
           value: {{ .Values.auth.okta.clientId | quote }}
+        {{- include "shoehorn.secretRef" (dict "env" "OKTA_CLIENT_SECRET" "root" .) | nindent 8 }}
         {{- if .Values.auth.okta.issuer }}
         - name: OKTA_ISSUER
           value: {{ .Values.auth.okta.issuer | quote }}
