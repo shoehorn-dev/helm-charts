@@ -470,7 +470,7 @@ Usage: {{- include "shoehorn.extraVolumes" . | nindent 6 }}
 */}}
 {{- define "shoehorn.extraVolumes" -}}
 {{- range .Values.extraVolumes }}
-- {{- mustToYaml . | nindent 2 }}
+- {{- toYaml . | nindent 2 }}
 {{- end }}
 {{- end -}}
 
@@ -480,6 +480,6 @@ Usage: {{- include "shoehorn.extraVolumeMounts" . | nindent 8 }}
 */}}
 {{- define "shoehorn.extraVolumeMounts" -}}
 {{- range .Values.extraVolumeMounts }}
-- {{- mustToYaml . | nindent 2 }}
+- {{- toYaml . | nindent 2 }}
 {{- end }}
 {{- end -}}

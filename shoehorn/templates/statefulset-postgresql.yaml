@@ -44,17 +44,17 @@ spec:
       serviceAccountName: {{ include "shoehorn.serviceAccountName" . }}
       securityContext:
         {{- if .Values.postgresql.podSecurityContext }}
-        {{- mustToYaml .Values.postgresql.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.postgresql.podSecurityContext | nindent 8 }}
         {{- else }}
-        {{- mustToYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
         {{- end }}
       containers:
       - name: postgresql
         securityContext:
           {{- if .Values.postgresql.securityContext }}
-          {{- mustToYaml .Values.postgresql.securityContext | nindent 12 }}
+          {{- toYaml .Values.postgresql.securityContext | nindent 12 }}
           {{- else }}
-          {{- mustToYaml .Values.securityContext | nindent 12 }}
+          {{- toYaml .Values.securityContext | nindent 12 }}
           {{- end }}
         image: {{ include "shoehorn.componentImage" (dict "component" .Values.postgresql "Values" .Values) }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -74,11 +74,11 @@ spec:
         - -c
         - config_file=/etc/postgresql/custom.conf
         livenessProbe:
-          {{- mustToYaml .Values.postgresql.livenessProbe | nindent 12 }}
+          {{- toYaml .Values.postgresql.livenessProbe | nindent 12 }}
         readinessProbe:
-          {{- mustToYaml .Values.postgresql.readinessProbe | nindent 12 }}
+          {{- toYaml .Values.postgresql.readinessProbe | nindent 12 }}
         resources:
-          {{- mustToYaml .Values.postgresql.resources | nindent 12 }}
+          {{- toYaml .Values.postgresql.resources | nindent 12 }}
         volumeMounts:
         - name: data
           mountPath: /var/lib/postgresql/data
@@ -107,15 +107,15 @@ spec:
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.affinity }}
       affinity:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
   {{- if .Values.postgresql.persistence.enabled }}
   volumeClaimTemplates:

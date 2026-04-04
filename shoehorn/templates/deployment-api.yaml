@@ -26,7 +26,7 @@ spec:
       {{- include "shoehorn.imagePullSecrets" . | nindent 6 }}
       serviceAccountName: {{ include "shoehorn.serviceAccountName" . }}
       securityContext:
-        {{- mustToYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
       # Wait for infrastructure services to be ready
       - name: wait-for-postgresql
@@ -63,7 +63,7 @@ spec:
       containers:
       - name: api
         securityContext:
-          {{- mustToYaml .Values.securityContext | nindent 12 }}
+          {{- toYaml .Values.securityContext | nindent 12 }}
         image: {{ include "shoehorn.componentImage" (dict "component" .Values.api "Values" .Values) }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
@@ -258,23 +258,23 @@ spec:
         {{- include "shoehorn.grpcMtlsVolumeMounts" . | nindent 8 }}
 
         livenessProbe:
-          {{- mustToYaml .Values.api.livenessProbe | nindent 12 }}
+          {{- toYaml .Values.api.livenessProbe | nindent 12 }}
         readinessProbe:
-          {{- mustToYaml .Values.api.readinessProbe | nindent 12 }}
+          {{- toYaml .Values.api.readinessProbe | nindent 12 }}
         resources:
-          {{- mustToYaml .Values.api.resources | nindent 12 }}
+          {{- toYaml .Values.api.resources | nindent 12 }}
       volumes:
       {{- include "shoehorn.extraVolumes" . | nindent 6 }}
       {{- include "shoehorn.grpcMtlsVolumes" . | nindent 6 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.affinity }}
       affinity:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}

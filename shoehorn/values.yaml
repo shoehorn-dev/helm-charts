@@ -96,7 +96,7 @@ certManager:
 # Image settings
 image:
   registry: ghcr.io
-  repository: shoehorn-dev/helm-charts/shoehorn
+  repository: shoehorn-dev/shoehorn
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion
   tag: ""

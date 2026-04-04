@@ -18,22 +18,22 @@ spec:
         checksum/config: {{ include "shoehorn-agent.configmap" . | sha256sum }}
         checksum/secret: {{ include "shoehorn-agent.secret" . | sha256sum }}
         {{- with .Values.podAnnotations }}
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
       labels:
         {{- include "shoehorn-agent.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "shoehorn-agent.serviceAccountName" . }}
       securityContext:
-        {{- mustToYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: agent
           securityContext:
-            {{- mustToYaml .Values.securityContext | nindent 12 }}
+            {{- toYaml .Values.securityContext | nindent 12 }}
           image: {{ include "shoehorn-agent.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
@@ -61,14 +61,14 @@ spec:
             {{- end }}
           {{- with .Values.agent.livenessProbe }}
           livenessProbe:
-            {{- mustToYaml . | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- with .Values.agent.readinessProbe }}
           readinessProbe:
-            {{- mustToYaml . | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           resources:
-            {{- mustToYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: tmp
               mountPath: /tmp
@@ -77,13 +77,13 @@ spec:
           emptyDir: {}
       {{- with .Values.nodeSelector }}
       nodeSelector:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.affinity }}
       affinity:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}

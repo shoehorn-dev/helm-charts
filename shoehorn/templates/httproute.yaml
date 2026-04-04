@@ -10,7 +10,7 @@ metadata:
     {{- include "shoehorn.labels" . | nindent 4 }}
   {{- with .Values.httpRoute.annotations }}
   annotations:
-    {{- mustToYaml . | nindent 4 }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
   parentRefs:
@@ -30,7 +30,7 @@ spec:
           port: 8080
       {{- if .Values.httpRoute.filters.api }}
       filters:
-        {{- mustToYaml .Values.httpRoute.filters.api | nindent 8 }}
+        {{- toYaml .Values.httpRoute.filters.api | nindent 8 }}
       {{- end }}
 
     # Web frontend - serves the SvelteKit application (catch-all)
@@ -44,7 +44,7 @@ spec:
           port: 4173
       {{- if .Values.httpRoute.filters.web }}
       filters:
-        {{- mustToYaml .Values.httpRoute.filters.web | nindent 8 }}
+        {{- toYaml .Values.httpRoute.filters.web | nindent 8 }}
       {{- end }}
 
 {{- end }}

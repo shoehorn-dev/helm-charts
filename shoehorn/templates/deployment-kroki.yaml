@@ -41,11 +41,11 @@ spec:
       {{- include "shoehorn.imagePullSecrets" . | nindent 6 }}
       serviceAccountName: {{ include "shoehorn.serviceAccountName" . }}
       securityContext:
-        {{- mustToYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
       - name: kroki
         securityContext:
-          {{- mustToYaml .Values.securityContext | nindent 12 }}
+          {{- toYaml .Values.securityContext | nindent 12 }}
         image: "{{ .Values.kroki.image.repository }}:{{ .Values.kroki.image.tag }}"
         imagePullPolicy: {{ .Values.kroki.image.pullPolicy | default "IfNotPresent" }}
         ports:
@@ -65,17 +65,17 @@ spec:
           initialDelaySeconds: 10
           periodSeconds: 5
         resources:
-          {{- mustToYaml .Values.kroki.resources | nindent 12 }}
+          {{- toYaml .Values.kroki.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.affinity }}
       affinity:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
 {{- end }}
