@@ -38,7 +38,6 @@
             "dashboardURL": {
               "type": "string",
               "description": "Dashboard URL for cluster (K8s Dashboard, ArgoCD, FluxCD, etc.)",
-              "format": "uri",
               "examples": ["https://k8s-dashboard.example.com"]
             }
           }
