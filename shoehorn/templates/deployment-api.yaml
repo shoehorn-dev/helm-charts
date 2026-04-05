@@ -154,6 +154,9 @@ spec:
         {{- end }}
         {{- end }}
 
+        - name: APP_DOMAIN
+          value: {{ .Values.global.domain | quote }}
+
         {{- if eq .Values.auth.provider "zitadel" }}
         # Zitadel Provider
         - name: ZITADEL_URL
@@ -172,8 +175,6 @@ spec:
         {{- end }}
         - name: ZITADEL_INSECURE
           value: {{ .Values.auth.zitadel.insecure | default false | quote }}
-        - name: APP_DOMAIN
-          value: {{ .Values.global.domain | quote }}
         - name: APP_SCHEME
           value: "https"
         {{- include "shoehorn.secretRef" (dict "env" "ZITADEL_SERVICE_USER_PAT" "root" .) | nindent 8 }}
