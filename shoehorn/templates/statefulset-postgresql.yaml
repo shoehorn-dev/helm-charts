@@ -43,19 +43,22 @@ spec:
       {{- include "shoehorn.imagePullSecrets" . | nindent 6 }}
       serviceAccountName: {{ include "shoehorn.serviceAccountName" . }}
       securityContext:
-        {{- if .Values.postgresql.podSecurityContext }}
-        {{- toYaml .Values.postgresql.podSecurityContext | nindent 8 }}
-        {{- else }}
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
-        {{- end }}
+        fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch
+        runAsNonRoot: true
+        runAsUser: 999
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: postgresql
         securityContext:
-          {{- if .Values.postgresql.securityContext }}
-          {{- toYaml .Values.postgresql.securityContext | nindent 12 }}
-          {{- else }}
-          {{- toYaml .Values.securityContext | nindent 12 }}
-          {{- end }}
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 999
         image: {{ include "shoehorn.componentImage" (dict "component" .Values.postgresql "Values" .Values) }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
@@ -86,6 +89,10 @@ spec:
           mountPath: /etc/postgresql/custom.conf
           subPath: custom.conf
           readOnly: true
+        - name: pg-run
+          mountPath: /var/run/postgresql
+        - name: pg-tmp
+          mountPath: /tmp
         {{- if .Values.postgresql.tls.enabled }}
         - name: postgresql-certs
           mountPath: /etc/postgresql/certs
@@ -99,6 +106,12 @@ spec:
       - name: postgresql-config
         configMap:
           name: {{ include "shoehorn.fullname" . }}-postgresql-config
+      - name: pg-run
+        emptyDir:
+          sizeLimit: 1Mi
+      - name: pg-tmp
+        emptyDir:
+          sizeLimit: 100Mi
       {{- if .Values.postgresql.tls.enabled }}
       - name: postgresql-certs
         secret:

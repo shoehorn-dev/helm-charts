@@ -1,0 +1,31 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "labels": ["dependencies", "renovate"],
+  "helm-values": {
+    "fileMatch": ["shoehorn/values\\.yaml$"]
+  },
+  "kubernetes": {
+    "fileMatch": ["shoehorn/templates/.+\\.yaml$"]
+  },
+  "packageRules": [
+    {
+      "description": "Block major version bumps (review manually)",
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Group data layer image updates",
+      "matchDatasources": ["docker"],
+      "matchPackagePatterns": ["meilisearch", "valkey", "redpanda"],
+      "groupName": "data-layer images",
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "description": "Skip our own images (tagged by CI, not upstream)",
+      "matchPackagePatterns": ["shoehorn-"],
+      "enabled": false
+    }
+  ]
+}

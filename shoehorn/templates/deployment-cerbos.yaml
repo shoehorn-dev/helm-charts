@@ -23,11 +23,21 @@ spec:
       {{- include "shoehorn.imagePullSecrets" . | nindent 6 }}
       serviceAccountName: {{ include "shoehorn.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        fsGroup: 65534
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: cerbos
         securityContext:
-          {{- toYaml .Values.securityContext | nindent 12 }}
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65534
         image: {{ include "shoehorn.componentImage" (dict "component" .Values.cerbos "Values" .Values) }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         args:
@@ -46,6 +56,8 @@ spec:
           readOnly: true
         - name: audit
           mountPath: /tmp/cerbos-audit
+        - name: cache
+          mountPath: /.cache
         {{- include "shoehorn.grpcMtlsVolumeMounts" . | nindent 8 }}
         livenessProbe:
           httpGet:
@@ -72,7 +84,11 @@ spec:
         configMap:
           name: {{ include "shoehorn.fullname" . }}-cerbos-config
       - name: audit
-        emptyDir: {}
+        emptyDir:
+          sizeLimit: 50Mi
+      - name: cache
+        emptyDir:
+          sizeLimit: 10Mi
       {{- include "shoehorn.grpcMtlsVolumes" . | nindent 6 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
