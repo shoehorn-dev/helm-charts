@@ -250,14 +250,13 @@ Return the proper image name
 
 {{/*
 Return the proper component image name
+Each component specifies its full image repository (e.g., ghcr.io/shoehorn-dev/shoehorn-api).
 Tag precedence: component.image.tag > global image.tag > "latest"
 */}}
 {{- define "shoehorn.componentImage" -}}
-{{- $registry := .Values.image.registry -}}
-{{- $globalRepo := .Values.image.repository -}}
 {{- $componentRepo := .component.image.repository -}}
 {{- $tag := .component.image.tag | default .Values.image.tag | default "latest" -}}
-{{- printf "%s/%s/%s:%s" $registry $globalRepo $componentRepo $tag -}}
+{{- printf "%s:%s" $componentRepo $tag -}}
 {{- end }}
 
 {{/*
@@ -470,7 +469,7 @@ Usage: {{- include "shoehorn.extraVolumes" . | nindent 6 }}
 */}}
 {{- define "shoehorn.extraVolumes" -}}
 {{- range .Values.extraVolumes }}
-- {{- mustToYaml . | nindent 2 }}
+- {{- toYaml . | nindent 2 }}
 {{- end }}
 {{- end -}}
 
@@ -480,6 +479,6 @@ Usage: {{- include "shoehorn.extraVolumeMounts" . | nindent 8 }}
 */}}
 {{- define "shoehorn.extraVolumeMounts" -}}
 {{- range .Values.extraVolumeMounts }}
-- {{- mustToYaml . | nindent 2 }}
+- {{- toYaml . | nindent 2 }}
 {{- end }}
 {{- end -}}

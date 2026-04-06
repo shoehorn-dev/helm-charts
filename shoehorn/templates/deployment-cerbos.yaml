@@ -23,13 +23,13 @@ spec:
       {{- include "shoehorn.imagePullSecrets" . | nindent 6 }}
       serviceAccountName: {{ include "shoehorn.serviceAccountName" . }}
       securityContext:
-        {{- mustToYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
       - name: cerbos
         securityContext:
-          {{- mustToYaml .Values.securityContext | nindent 12 }}
-        image: "{{ .Values.cerbos.image.repository }}:{{ .Values.cerbos.image.tag }}"
-        imagePullPolicy: {{ .Values.cerbos.image.pullPolicy | default "IfNotPresent" }}
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: {{ include "shoehorn.componentImage" (dict "component" .Values.cerbos "Values" .Values) }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         args:
           - "server"
           - "--config=/config/config.yaml"
@@ -66,7 +66,7 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
         resources:
-          {{- mustToYaml .Values.cerbos.resources | nindent 12 }}
+          {{- toYaml .Values.cerbos.resources | nindent 12 }}
       volumes:
       - name: config
         configMap:
@@ -76,13 +76,13 @@ spec:
       {{- include "shoehorn.grpcMtlsVolumes" . | nindent 6 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.affinity }}
       affinity:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}

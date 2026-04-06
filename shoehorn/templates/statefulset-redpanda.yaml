@@ -63,9 +63,9 @@ spec:
       serviceAccountName: {{ include "shoehorn.serviceAccountName" . }}
       securityContext:
         {{- if .Values.redpanda.podSecurityContext }}
-        {{- mustToYaml .Values.redpanda.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.redpanda.podSecurityContext | nindent 8 }}
         {{- else }}
-        {{- mustToYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
         {{- end }}
       initContainers:
       - name: copy-config
@@ -83,9 +83,9 @@ spec:
       - name: redpanda
         securityContext:
           {{- if .Values.redpanda.securityContext }}
-          {{- mustToYaml .Values.redpanda.securityContext | nindent 12 }}
+          {{- toYaml .Values.redpanda.securityContext | nindent 12 }}
           {{- else }}
-          {{- mustToYaml .Values.securityContext | nindent 12 }}
+          {{- toYaml .Values.securityContext | nindent 12 }}
           {{- end }}
         image: "{{ .Values.redpanda.image.repository }}:{{ .Values.redpanda.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -109,11 +109,11 @@ spec:
           containerPort: 9644
           protocol: TCP
         livenessProbe:
-          {{- mustToYaml .Values.redpanda.livenessProbe | nindent 12 }}
+          {{- toYaml .Values.redpanda.livenessProbe | nindent 12 }}
         readinessProbe:
-          {{- mustToYaml .Values.redpanda.readinessProbe | nindent 12 }}
+          {{- toYaml .Values.redpanda.readinessProbe | nindent 12 }}
         resources:
-          {{- mustToYaml .Values.redpanda.resources | nindent 12 }}
+          {{- toYaml .Values.redpanda.resources | nindent 12 }}
         volumeMounts:
         - name: data
           mountPath: /var/lib/redpanda/data
@@ -142,15 +142,15 @@ spec:
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.affinity }}
       affinity:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
   {{- if .Values.redpanda.persistence.enabled }}
   volumeClaimTemplates:

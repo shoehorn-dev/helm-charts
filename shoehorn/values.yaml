@@ -96,10 +96,10 @@ certManager:
 # Image settings
 image:
   registry: ghcr.io
-  repository: shoehorn-dev/helm-charts/shoehorn
-  pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion
-  tag: ""
+  repository: shoehorn-dev/shoehorn
+  pullPolicy: Always
+  # Global tag for all Shoehorn components (overridden by per-component tag if set)
+  tag: "v0.4.1"
 
 # ═══════════════════════════════════════════════════════════════
 # Shoehorn Annotations for Service Catalog Integration
@@ -283,7 +283,7 @@ api:
     # tier: "tier1"
   image:
     repository: ghcr.io/shoehorn-dev/shoehorn-api
-    tag: dev-agent-routes
+    tag: ""
   resources:
     requests:
       cpu: 250m
@@ -331,8 +331,8 @@ web:
     # team: "platform-team"
     # repositoryUrl: "https://github.com/org/shoehorn-web"
   image:
-    repository: shoehorn-web
-    tag: latest
+    repository: ghcr.io/shoehorn-dev/shoehorn-web
+    tag: ""
   resources:
     requests:
       cpu: 100m
@@ -365,8 +365,8 @@ eventbus:
   name: eventbus
   annotations: {}
   image:
-    repository: shoehorn-eventbus
-    tag: latest
+    repository: ghcr.io/shoehorn-dev/shoehorn-eventbus
+    tag: ""
   resources:
     requests:
       cpu: 100m
@@ -400,8 +400,8 @@ worker:
   name: worker
   annotations: {}
   image:
-    repository: shoehorn-worker
-    tag: latest
+    repository: ghcr.io/shoehorn-dev/shoehorn-worker
+    tag: ""
   resources:
     requests:
       cpu: 100m
@@ -435,8 +435,8 @@ crawler:
   name: crawler
   annotations: {}
   image:
-    repository: shoehorn-crawler
-    tag: latest
+    repository: ghcr.io/shoehorn-dev/shoehorn-crawler
+    tag: ""
   resources:
     requests:
       cpu: 100m
@@ -481,8 +481,8 @@ forge:
   name: forge
   annotations: {}
   image:
-    repository: shoehorn-forge
-    tag: latest
+    repository: ghcr.io/shoehorn-dev/shoehorn-forge
+    tag: ""
   resources:
     requests:
       cpu: 100m
@@ -571,7 +571,7 @@ auth:
 cerbos:
   image:
     repository: ghcr.io/shoehorn-dev/shoehorn-cerbos
-    tag: "latest"
+    tag: ""
     pullPolicy: IfNotPresent
   replicas: 1
   resources:
@@ -593,7 +593,7 @@ postgresql:
   enabled: true  # Deploy PostgreSQL StatefulSet in cluster
   image:
     repository: ghcr.io/shoehorn-dev/shoehorn-postgres
-    tag: "latest"
+    tag: ""
     # This is our custom PostgreSQL 18 image with pgaudit extension pre-installed
     # Built from docker/Dockerfile.postgres in this repo
     # For managed services (RDS, Cloud SQL, etc.), set enabled: false and configure external below

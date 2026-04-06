@@ -8,7 +8,7 @@ metadata:
     {{- include "shoehorn.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
   annotations:
-    {{- mustToYaml . | nindent 4 }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
   {{- if .Values.ingress.className }}

@@ -27,11 +27,11 @@ spec:
       restartPolicy: OnFailure
       {{- with $.Values.imagePullSecrets }}
       imagePullSecrets:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "shoehorn.serviceAccountName" $ }}
       securityContext:
-        {{- mustToYaml $.Values.podSecurityContext | nindent 8 }}
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
       initContainers:
         # Wait for database to be ready
         - name: wait-for-db
@@ -147,7 +147,7 @@ spec:
               memory: 512Mi
 
           securityContext:
-            {{- mustToYaml $.Values.securityContext | nindent 12 }}
+            {{- toYaml $.Values.securityContext | nindent 12 }}
 
       volumes:
         - name: rbac-config

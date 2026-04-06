@@ -44,17 +44,17 @@ spec:
       serviceAccountName: {{ include "shoehorn.serviceAccountName" . }}
       securityContext:
         {{- if .Values.valkey.podSecurityContext }}
-        {{- mustToYaml .Values.valkey.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.valkey.podSecurityContext | nindent 8 }}
         {{- else }}
-        {{- mustToYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
         {{- end }}
       containers:
       - name: valkey
         securityContext:
           {{- if .Values.valkey.securityContext }}
-          {{- mustToYaml .Values.valkey.securityContext | nindent 12 }}
+          {{- toYaml .Values.valkey.securityContext | nindent 12 }}
           {{- else }}
-          {{- mustToYaml .Values.securityContext | nindent 12 }}
+          {{- toYaml .Values.securityContext | nindent 12 }}
           {{- end }}
         image: "{{ .Values.valkey.image.repository }}:{{ .Values.valkey.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -65,13 +65,13 @@ spec:
         env:
         {{- include "shoehorn.secretRef" (dict "env" "VALKEY_PASSWORD" "root" .) | nindent 8 }}
         command:
-          {{- mustToYaml .Values.valkey.command | nindent 12 }}
+          {{- toYaml .Values.valkey.command | nindent 12 }}
         livenessProbe:
-          {{- mustToYaml .Values.valkey.livenessProbe | nindent 12 }}
+          {{- toYaml .Values.valkey.livenessProbe | nindent 12 }}
         readinessProbe:
-          {{- mustToYaml .Values.valkey.readinessProbe | nindent 12 }}
+          {{- toYaml .Values.valkey.readinessProbe | nindent 12 }}
         resources:
-          {{- mustToYaml .Values.valkey.resources | nindent 12 }}
+          {{- toYaml .Values.valkey.resources | nindent 12 }}
         volumeMounts:
         - name: data
           mountPath: /data
@@ -82,15 +82,15 @@ spec:
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.affinity }}
       affinity:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
   {{- if .Values.valkey.persistence.enabled }}
   volumeClaimTemplates:

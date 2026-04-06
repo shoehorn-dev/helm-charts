@@ -84,13 +84,13 @@ spec:
           value: {{ .Values.meilisearch.tls.keyFile | quote }}
         {{- end }}
         startupProbe:
-          {{- mustToYaml .Values.meilisearch.startupProbe | nindent 12 }}
+          {{- toYaml .Values.meilisearch.startupProbe | nindent 12 }}
         livenessProbe:
-          {{- mustToYaml .Values.meilisearch.livenessProbe | nindent 12 }}
+          {{- toYaml .Values.meilisearch.livenessProbe | nindent 12 }}
         readinessProbe:
-          {{- mustToYaml .Values.meilisearch.readinessProbe | nindent 12 }}
+          {{- toYaml .Values.meilisearch.readinessProbe | nindent 12 }}
         resources:
-          {{- mustToYaml .Values.meilisearch.resources | nindent 12 }}
+          {{- toYaml .Values.meilisearch.resources | nindent 12 }}
         volumeMounts:
         - name: tmp
           mountPath: /tmp
@@ -116,15 +116,15 @@ spec:
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.affinity }}
       affinity:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
-        {{- mustToYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
   {{- if .Values.meilisearch.persistence.enabled }}
   volumeClaimTemplates:

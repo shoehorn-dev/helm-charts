@@ -1,0 +1,18 @@
+# CODEOWNERS for shoehorn-dev/helm-charts
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @shoehorn-dev/maintainers
+
+# CI/CD workflows - require review for all changes
+.github/** @shoehorn-dev/maintainers
+
+# Chart definitions and default values
+**/Chart.yaml @shoehorn-dev/maintainers
+**/values.yaml @shoehorn-dev/maintainers
+
+# Helm templates - critical for deployment correctness
+**/templates/** @shoehorn-dev/maintainers
+
+# Package configuration
+package.json @shoehorn-dev/maintainers
