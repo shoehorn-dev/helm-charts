@@ -24,11 +24,21 @@ spec:
       {{- include "shoehorn.imagePullSecrets" . | nindent 6 }}
       serviceAccountName: {{ include "shoehorn.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        fsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: web
         securityContext:
-          {{- toYaml .Values.securityContext | nindent 12 }}
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65532
         image: {{ include "shoehorn.componentImage" (dict "component" .Values.web "Values" .Values) }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
@@ -48,6 +58,13 @@ spec:
           {{- toYaml .Values.web.readinessProbe | nindent 12 }}
         resources:
           {{- toYaml .Values.web.resources | nindent 12 }}
+        volumeMounts:
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+        - name: nginx-run
+          mountPath: /var/run
+        - name: nginx-tmp
+          mountPath: /tmp
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -60,3 +77,13 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+      - name: nginx-cache
+        emptyDir:
+          sizeLimit: 10Mi
+      - name: nginx-run
+        emptyDir:
+          sizeLimit: 1Mi
+      - name: nginx-tmp
+        emptyDir:
+          sizeLimit: 1Mi
