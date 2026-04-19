@@ -13,6 +13,21 @@ global:
   # Log level for all backend services (debug, info, warn, error)
   logLevel: "info"
 
+  # Trusted reverse proxies for forwarded identity/protocol headers
+  # ═══════════════════════════════════════════════════════════════
+  # Comma-separated list of IPs or CIDR ranges that are allowed to send
+  # X-Forwarded-* headers (X-Forwarded-Email, X-Forwarded-Proto,
+  # X-Auth-Request-*). In production environments, if this is empty, all
+  # forwarded identity headers are ignored (fail-closed).
+  #
+  # Typical values:
+  #   - Pod network CIDR (e.g. "10.244.0.0/16" for kubeadm default)
+  #   - Ingress controller subnet (e.g. "10.0.0.0/8")
+  #   - Combined: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+  #
+  # Leave empty only in development/dev/local ENVIRONMENT modes.
+  trustedProxies: ""
+
   # ═══════════════════════════════════════════════════════════════
   # Distributed Tracing (OpenTelemetry)
   # ═══════════════════════════════════════════════════════════════
