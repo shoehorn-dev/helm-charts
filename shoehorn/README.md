@@ -378,6 +378,18 @@ valkey:
 | `auth.zitadel.projectId` | Zitadel project ID | `""` |
 | `auth.zitadel.clientId` | Zitadel OIDC client ID | `""` |
 | `auth.zitadel.externalUrl` | Zitadel instance URL | `""` |
+| `auth.okta.domain` | Okta org domain (e.g. `your-org.okta.com`). Required when `auth.provider=okta`. | `""` |
+| `auth.okta.clientId` | Okta OIDC client ID. Required when `auth.provider=okta`. | `""` |
+| `auth.okta.issuer` | Optional issuer override. Leave empty for the default. | `""` |
+| `auth.orgdata.enabled` | Enable user/team sync from an identity provider. | `false` |
+| `auth.orgdata.providers` | List of orgdata providers (`["okta"]`, `["zitadel"]`, or mixed). | `[]` |
+| `auth.orgdata.primaryProvider` | Primary provider for conflict resolution. | `""` |
+
+When `auth.provider=okta`, `values.schema.json` enforces that both `auth.okta.domain` and `auth.okta.clientId` are set — Helm will refuse to install otherwise.
+
+#### Okta
+
+See the [Okta integration guide](https://docs.shoehorn.dev/integrations/okta) for the full Okta app configuration (sign-in redirect URIs, groups claim, API token). A working Helm example lives in [`examples/values-okta.yaml`](examples/values-okta.yaml).
 
 ### RBAC
 

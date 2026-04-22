@@ -15,6 +15,13 @@ data:
   # Domain Configuration
   DOMAIN: {{ .Values.global.domain | quote }}
 
+  # Trusted Reverse Proxies
+  # Comma-separated IPs/CIDRs allowed to send X-Forwarded-* identity headers.
+  # Empty in production = forwarded headers ignored (fail-closed).
+  {{- if .Values.global.trustedProxies }}
+  TRUSTED_PROXIES: {{ .Values.global.trustedProxies | quote }}
+  {{- end }}
+
   # Database Configuration (non-sensitive)
   DB_PORT: "5432"
   DB_NAME: "shoehorn"

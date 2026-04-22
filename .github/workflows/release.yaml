@@ -19,6 +19,10 @@ on:
 env:
   REGISTRY: ghcr.io
 
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
   release-helm:
     name: Release Helm Chart
@@ -26,6 +30,8 @@ jobs:
     permissions:
       contents: write
       packages: write
+      pages: write
+      id-token: write
 
     steps:
       - name: Generate release bot token
@@ -276,3 +282,106 @@ jobs:
             ${CHART_NAME}-*.tgz \
             --title "${CHART_NAME} ${CHART_VERSION}" \
             --notes "$BODY"
+
+      - name: Build GitHub Pages artifact
+        env:
+          CHART_NAME: ${{ steps.chart.outputs.name }}
+          CHART_VERSION: ${{ steps.chart.outputs.version }}
+          PAGES_URL: https://charts.shoehorn.dev
+        run: |
+          PACKAGE_FILE="${CHART_NAME}-${CHART_VERSION}.tgz"
+          PAGES_DIR="$RUNNER_TEMP/pages-site"
+          mkdir -p "$PAGES_DIR"
+
+          if curl -fsSL "$PAGES_URL/index.yaml" -o "$PAGES_DIR/previous-index.yaml"; then
+            echo "Fetched existing Pages index"
+          else
+            echo "No existing Pages index found"
+          fi
+
+          cp "$PACKAGE_FILE" "$PAGES_DIR/"
+          cat > "$PAGES_DIR/index.html" <<'EOF'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Shoehorn Helm Charts</title>
+            <style>
+              :root {
+                color-scheme: light;
+                font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                background: #f5f7fb;
+                color: #10213a;
+              }
+              body {
+                margin: 0;
+                padding: 3rem 1.5rem;
+              }
+              main {
+                max-width: 48rem;
+                margin: 0 auto;
+                background: #ffffff;
+                border: 1px solid #d9e2f0;
+                border-radius: 16px;
+                padding: 2rem;
+                box-shadow: 0 20px 60px rgba(16, 33, 58, 0.08);
+              }
+              code {
+                background: #eef3fb;
+                padding: 0.2rem 0.4rem;
+                border-radius: 6px;
+              }
+              pre {
+                background: #10213a;
+                color: #f5f7fb;
+                padding: 1rem;
+                border-radius: 12px;
+                overflow-x: auto;
+              }
+              a {
+                color: #0057d8;
+              }
+            </style>
+          </head>
+          <body>
+            <main>
+              <h1>Shoehorn Helm Charts</h1>
+              <p>This repository is served from GitHub Pages for classic Helm repository support.</p>
+              <p>Repository URL: <a href="https://charts.shoehorn.dev">https://charts.shoehorn.dev</a></p>
+              <pre><code>helm repo add shoehorn https://charts.shoehorn.dev
+helm repo update
+helm search repo shoehorn</code></pre>
+              <p>The canonical OCI packages remain available at <code>ghcr.io/shoehorn-dev/helm-charts</code>.</p>
+            </main>
+          </body>
+          </html>
+          EOF
+          touch "$PAGES_DIR/.nojekyll"
+
+          if [ -f "$PAGES_DIR/previous-index.yaml" ]; then
+            helm repo index "$PAGES_DIR" --url "$PAGES_URL" --merge "$PAGES_DIR/previous-index.yaml"
+          else
+            helm repo index "$PAGES_DIR" --url "$PAGES_URL"
+          fi
+
+          rm -f "$PAGES_DIR/previous-index.yaml"
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
+        with:
+          path: ${{ runner.temp }}/pages-site
+
+  deploy-pages:
+    name: Deploy GitHub Pages
+    needs: release-helm
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0

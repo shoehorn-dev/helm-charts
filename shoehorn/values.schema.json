@@ -187,10 +187,20 @@
         },
         "okta": {
           "type": "object",
+          "description": "Okta OIDC configuration. Required fields become mandatory when auth.provider = \"okta\".",
           "properties": {
-            "domain": { "type": "string" },
-            "clientId": { "type": "string" },
-            "issuer": { "type": "string" }
+            "domain": {
+              "type": "string",
+              "description": "Okta organization domain (e.g. 'your-org.okta.com'). No scheme, no trailing slash."
+            },
+            "clientId": {
+              "type": "string",
+              "description": "OIDC client ID from the Okta app integration."
+            },
+            "issuer": {
+              "type": "string",
+              "description": "Optional. Override the derived issuer URL; usually leave empty."
+            }
           }
         },
         "entraId": {
@@ -214,7 +224,27 @@
           }
         }
       },
-      "required": ["provider"]
+      "required": ["provider"],
+      "allOf": [
+        {
+          "if": {
+            "properties": { "provider": { "const": "okta" } },
+            "required": ["provider"]
+          },
+          "then": {
+            "required": ["okta"],
+            "properties": {
+              "okta": {
+                "required": ["domain", "clientId"],
+                "properties": {
+                  "domain": { "minLength": 1 },
+                  "clientId": { "minLength": 1 }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "rbac": {
       "type": "object",

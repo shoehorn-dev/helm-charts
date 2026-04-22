@@ -1,0 +1,108 @@
+# Shoehorn with Okta — Reference Values
+# ======================================
+# Minimal working configuration for deploying Shoehorn against an existing
+# Okta organization, using Okta for both authentication (OIDC) and orgdata
+# sync (user/team directory).
+#
+# Before applying, complete the Okta setup steps at:
+#   https://docs.shoehorn.dev/integrations/okta
+# — create the OIDC app, enable the groups claim on the authorization
+# server, and mint an API token for orgdata sync.
+#
+# Usage:
+#   kubectl create secret generic shoehorn-auth-secrets \
+#     --from-literal=okta_client_secret='<client-secret>' \
+#     --from-literal=okta_api_token='<api-token>' \
+#     --from-literal=auth_encryption_key="$(openssl rand -base64 32)" \
+#     --from-literal=secrets_encryption_key="$(openssl rand -base64 32)" \
+#     --from-literal=jwt_secret="$(openssl rand -hex 32)" \
+#     --from-literal=postgres_password='<postgres-password>' \
+#     --from-literal=db_password='<app-user-password>' \
+#     --from-literal=valkey_password='<valkey-password>' \
+#     --from-literal=meilisearch_master_key="$(openssl rand -base64 32)"
+#
+#   helm install shoehorn ./shoehorn -n shoehorn --create-namespace \
+#     -f ./shoehorn/examples/values-okta.yaml
+#
+# CHANGE_ME: review every value marked below before deploying.
+
+global:
+  # CHANGE_ME: your Shoehorn domain (used for the callback allowlist)
+  domain: shoehorn.example.com
+
+  environment: production
+  logLevel: info
+
+  organization:
+    # CHANGE_ME
+    name: "Acme Corp"
+    slug: "acme-corp"
+
+# Authentication — Okta OIDC
+# ──────────────────────────
+# auth.provider = "okta" triggers values.schema.json's conditional
+# require on auth.okta.{domain,clientId}. Helm will refuse to install
+# if either is empty.
+auth:
+  provider: okta
+
+  okta:
+    # CHANGE_ME: your Okta organization domain. No scheme, no trailing slash.
+    domain: your-org.okta.com
+    # CHANGE_ME: the Client ID from your Okta app integration.
+    clientId: 0oaXXXXXXXXXXXXXX
+    # Leave blank unless you know you need a non-default authorization server.
+    issuer: ""
+    authorizationServer: default
+
+  # Org data sync — Okta Management API as the user/team source of truth.
+  # Requires OKTA_API_TOKEN in the referenced secret (mapping below).
+  orgdata:
+    enabled: true
+    providers: ["okta"]
+    primaryProvider: "okta"
+
+  # Bootstrap admin access before any UI-side role mappings exist.
+  # Set at minimum one of these so the first login has a role.
+  adminAssignment:
+    # CHANGE_ME: comma-separated Okta group names whose members get tenant:admin.
+    adminGroups: "shoehorn-admins"
+    # Alternatively: comma-separated emails (escape hatch; prefer groups).
+    adminUsers: ""
+
+  session:
+    maxAge: "8h"
+  csrf:
+    enabled: true
+
+# Point the chart at the Kubernetes Secret you created above.
+secret:
+  existingSecret: "shoehorn-auth-secrets"
+
+  # The chart never creates secrets — only references. Map env var names
+  # to keys in your secret. Override here if your secret uses different
+  # key names than the defaults.
+  mappings:
+    # Required for all auth providers
+    JWT_SECRET: jwt_secret
+    AUTH_ENCRYPTION_KEY: auth_encryption_key
+    SECRETS_ENCRYPTION_KEY: secrets_encryption_key
+
+    # Okta-specific
+    OKTA_CLIENT_SECRET: okta_client_secret
+    OKTA_API_TOKEN: okta_api_token
+
+    # Infrastructure (point at the same secret or a different one — the
+    # chart accepts a single secret name for simplicity).
+    POSTGRES_PASSWORD: postgres_password
+    DB_PASSWORD: db_password
+    VALKEY_PASSWORD: valkey_password
+    MEILISEARCH_MASTER_KEY: meilisearch_master_key
+
+# Image configuration
+image:
+  registry: ghcr.io
+  repository: shoehorn-dev
+  # CHANGE_ME: pin to a specific version in production
+  tag: ""
+  pullPolicy: IfNotPresent

@@ -13,6 +13,21 @@ global:
   # Log level for all backend services (debug, info, warn, error)
   logLevel: "info"
 
+  # Trusted reverse proxies for forwarded identity/protocol headers
+  # ═══════════════════════════════════════════════════════════════
+  # Comma-separated list of IPs or CIDR ranges that are allowed to send
+  # X-Forwarded-* headers (X-Forwarded-Email, X-Forwarded-Proto,
+  # X-Auth-Request-*). In production environments, if this is empty, all
+  # forwarded identity headers are ignored (fail-closed).
+  #
+  # Typical values:
+  #   - Pod network CIDR (e.g. "10.244.0.0/16" for kubeadm default)
+  #   - Ingress controller subnet (e.g. "10.0.0.0/8")
+  #   - Combined: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+  #
+  # Leave empty only in development/dev/local ENVIRONMENT modes.
+  trustedProxies: ""
+
   # ═══════════════════════════════════════════════════════════════
   # Distributed Tracing (OpenTelemetry)
   # ═══════════════════════════════════════════════════════════════
@@ -165,7 +180,6 @@ secret:
     VALKEY_PASSWORD: valkey_password
     MEILISEARCH_MASTER_KEY: meilisearch_master_key
     JWT_SECRET: jwt_secret
-    AUTH_ENCRYPTION_KEY: auth_encryption_key
     # GitHub Integration
     GITHUB_APP_ID: github_app_id
     GITHUB_APP_INSTALLATION_ID: github_app_installation_id
@@ -178,8 +192,10 @@ secret:
     #   Okta:     OKTA_CLIENT_SECRET: okta_client_secret
     #             OKTA_API_TOKEN: okta_api_token
     #   Entra ID: ENTRA_CLIENT_SECRET: entra_client_secret
-    # Session encryption (required for all providers):
-    SESSION_ENCRYPTION_KEY: session_encryption_key
+    # Shared app/session encryption (required for all providers)
+    AUTH_ENCRYPTION_KEY: auth_encryption_key
+    # Persisted secret encryption (required for addon, integration, and auth-provider secrets)
+    SECRETS_ENCRYPTION_KEY: secrets_encryption_key
     # SMTP (optional):
     #   SMTP_PASSWORD: smtp_password
     # ArgoCD (optional):
