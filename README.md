@@ -84,8 +84,8 @@ Or use an existing secret instead of passing the token directly — see [shoehor
 After this workflow is merged, enable GitHub Pages for the repository with:
 
 1. `Settings -> Pages -> Build and deployment`
-2. `Source: Deploy from a branch`
-3. `Branch: gh-pages` and `/ (root)`
+2. `Source: GitHub Actions`
+3. `Custom domain: charts.shoehorn.dev`
 
 Then add the DNS `CNAME` record for `charts.shoehorn.dev` pointing to `shoehorn-dev.github.io`.
 
