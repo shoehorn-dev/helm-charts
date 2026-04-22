@@ -349,9 +349,7 @@ jobs:
               <h1>Shoehorn Helm Charts</h1>
               <p>This repository is served from GitHub Pages for classic Helm repository support.</p>
               <p>Repository URL: <a href="https://charts.shoehorn.dev">https://charts.shoehorn.dev</a></p>
-              <pre><code>helm repo add shoehorn https://charts.shoehorn.dev
-helm repo update
-helm search repo shoehorn</code></pre>
+              <pre><code>helm repo add shoehorn https://charts.shoehorn.dev&#10;helm repo update&#10;helm search repo shoehorn</code></pre>
               <p>The canonical OCI packages remain available at <code>ghcr.io/shoehorn-dev/helm-charts</code>.</p>
             </main>
           </body>
