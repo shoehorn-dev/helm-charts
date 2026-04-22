@@ -19,7 +19,7 @@ Official Helm charts for [Shoehorn](https://shoehorn.dev), the Intelligent Platf
 
 | Chart | Description |
 |-------|-------------|
-| [shoehorn](./shoehorn) | Internal Developer Portal — full platform deployment |
+| [shoehorn](./shoehorn) | Intelligent Developer Platform — full platform deployment |
 | [shoehorn-k8s-agent](./shoehorn-k8s-agent) | Kubernetes agent — workload discovery, GitOps, and eBPF network observability |
 
 ## Quick Start
