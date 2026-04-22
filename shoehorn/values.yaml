@@ -180,7 +180,6 @@ secret:
     VALKEY_PASSWORD: valkey_password
     MEILISEARCH_MASTER_KEY: meilisearch_master_key
     JWT_SECRET: jwt_secret
-    AUTH_ENCRYPTION_KEY: auth_encryption_key
     # GitHub Integration
     GITHUB_APP_ID: github_app_id
     GITHUB_APP_INSTALLATION_ID: github_app_installation_id
@@ -193,8 +192,10 @@ secret:
     #   Okta:     OKTA_CLIENT_SECRET: okta_client_secret
     #             OKTA_API_TOKEN: okta_api_token
     #   Entra ID: ENTRA_CLIENT_SECRET: entra_client_secret
-    # Session encryption (required for all providers):
-    SESSION_ENCRYPTION_KEY: session_encryption_key
+    # Shared app/session encryption (required for all providers)
+    AUTH_ENCRYPTION_KEY: auth_encryption_key
+    # Persisted secret encryption (required for addon, integration, and auth-provider secrets)
+    SECRETS_ENCRYPTION_KEY: secrets_encryption_key
     # SMTP (optional):
     #   SMTP_PASSWORD: smtp_password
     # ArgoCD (optional):

@@ -13,9 +13,13 @@
 #   kubectl create secret generic shoehorn-auth-secrets \
 #     --from-literal=okta_client_secret='<client-secret>' \
 #     --from-literal=okta_api_token='<api-token>' \
-#     --from-literal=session_encryption_key="$(openssl rand -hex 32)" \
+#     --from-literal=auth_encryption_key="$(openssl rand -base64 32)" \
+#     --from-literal=secrets_encryption_key="$(openssl rand -base64 32)" \
 #     --from-literal=jwt_secret="$(openssl rand -hex 32)" \
-#     --from-literal=auth_encryption_key="$(openssl rand -hex 32)"
+#     --from-literal=postgres_password='<postgres-password>' \
+#     --from-literal=db_password='<app-user-password>' \
+#     --from-literal=valkey_password='<valkey-password>' \
+#     --from-literal=meilisearch_master_key="$(openssl rand -base64 32)"
 #
 #   helm install shoehorn ./shoehorn -n shoehorn --create-namespace \
 #     -f ./shoehorn/examples/values-okta.yaml
@@ -80,9 +84,9 @@ secret:
   # key names than the defaults.
   mappings:
     # Required for all auth providers
-    SESSION_ENCRYPTION_KEY: session_encryption_key
     JWT_SECRET: jwt_secret
     AUTH_ENCRYPTION_KEY: auth_encryption_key
+    SECRETS_ENCRYPTION_KEY: secrets_encryption_key
 
     # Okta-specific
     OKTA_CLIENT_SECRET: okta_client_secret

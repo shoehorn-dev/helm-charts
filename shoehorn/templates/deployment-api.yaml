@@ -179,8 +179,6 @@ spec:
           value: "https"
         {{- include "shoehorn.secretRef" (dict "env" "ZITADEL_SERVICE_USER_PAT" "root" .) | nindent 8 }}
         {{- end }}
-        {{- include "shoehorn.secretRef" (dict "env" "SESSION_ENCRYPTION_KEY" "root" .) | nindent 8 }}
-
         # Multi-Provider OrgData Sync
         {{- if .Values.auth.orgdata.enabled }}
         {{- if .Values.auth.orgdata.providers }}
@@ -246,8 +244,10 @@ spec:
         # JWT
         {{- include "shoehorn.secretRef" (dict "env" "JWT_SECRET" "root" .) | nindent 8 }}
 
-        # Auth Provider Encryption
+        # Shared app/session encryption
         {{- include "shoehorn.secretRef" (dict "env" "AUTH_ENCRYPTION_KEY" "root" .) | nindent 8 }}
+        # Persisted addon/integration/provider secret encryption
+        {{- include "shoehorn.secretRef" (dict "env" "SECRETS_ENCRYPTION_KEY" "root" .) | nindent 8 }}
 
         # SMTP
         {{- if .Values.smtp.enabled }}

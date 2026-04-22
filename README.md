@@ -6,6 +6,11 @@
 
 Official Helm charts for [Shoehorn](https://shoehorn.dev), the Intelligent Platform for Engineering.
 
+## Repositories
+
+- OCI registry: `oci://ghcr.io/shoehorn-dev/helm-charts`
+- GitHub Pages Helm repository: `https://charts.shoehorn.dev`
+
 ## Requirements
 
 - Kubernetes 1.24+
@@ -26,6 +31,18 @@ Official Helm charts for [Shoehorn](https://shoehorn.dev), the Intelligent Platf
 2. Install the chart:
 
 ```bash
+helm repo add shoehorn https://charts.shoehorn.dev
+helm repo update
+
+helm install shoehorn shoehorn/shoehorn \
+  --namespace shoehorn --create-namespace \
+  --values custom-values.yaml \
+  --wait
+```
+
+Or install directly from OCI:
+
+```bash
 helm install shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn \
   --namespace shoehorn --create-namespace \
   --values custom-values.yaml \
@@ -35,6 +52,16 @@ helm install shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn \
 See [shoehorn/README.md](./shoehorn/README.md) for secret setup and configuration.
 
 ### Kubernetes Agent
+
+```bash
+helm install shoehorn-k8s-agent shoehorn/shoehorn-k8s-agent \
+  --set shoehorn.apiURL=https://shoehorn.example.com \
+  --set shoehorn.apiToken=sha_your_token_here \
+  --set shoehorn.cluster.id=my-cluster \
+  --wait
+```
+
+Or install directly from OCI:
 
 ```bash
 helm install shoehorn-k8s-agent oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn-k8s-agent \
@@ -51,6 +78,16 @@ Or use an existing secret instead of passing the token directly — see [shoehor
 - [Shoehorn chart README](./shoehorn/README.md)
 - [K8s Agent chart README](./shoehorn-k8s-agent/README.md)
 - [Shoehorn Docs](https://docs.shoehorn.dev)
+
+## GitHub Pages Setup
+
+After this workflow is merged, enable GitHub Pages for the repository with:
+
+1. `Settings -> Pages -> Build and deployment`
+2. `Source: Deploy from a branch`
+3. `Branch: gh-pages` and `/ (root)`
+
+Then add the DNS `CNAME` record for `charts.shoehorn.dev` pointing to `shoehorn-dev.github.io`.
 
 ## License
 

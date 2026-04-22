@@ -276,3 +276,109 @@ jobs:
             ${CHART_NAME}-*.tgz \
             --title "${CHART_NAME} ${CHART_VERSION}" \
             --notes "$BODY"
+
+      - name: Publish Helm repository to GitHub Pages branch
+        env:
+          CHART_NAME: ${{ steps.chart.outputs.name }}
+          CHART_VERSION: ${{ steps.chart.outputs.version }}
+          PAGES_URL: https://charts.shoehorn.dev
+          PAGES_BRANCH: gh-pages
+        run: |
+          PACKAGE_FILE="${CHART_NAME}-${CHART_VERSION}.tgz"
+          PAGES_DIR="$(mktemp -d)"
+
+          if git ls-remote --exit-code --heads origin "$PAGES_BRANCH" >/dev/null 2>&1; then
+            git clone --branch "$PAGES_BRANCH" "https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/${{ github.repository }}.git" "$PAGES_DIR"
+          else
+            git init "$PAGES_DIR"
+            cd "$PAGES_DIR"
+            git checkout --orphan "$PAGES_BRANCH"
+            git remote add origin "https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/${{ github.repository }}.git"
+            git config user.name "shoehorn-release[bot]"
+            git config user.email "272929799+shoehorn-release[bot]@users.noreply.github.com"
+            echo "# Shoehorn Helm Repository" > README.md
+            git add README.md
+            git commit -m "chore: initialize gh-pages"
+            git push origin "$PAGES_BRANCH"
+            cd -
+          fi
+
+          cd "$PAGES_DIR"
+          git config user.name "shoehorn-release[bot]"
+          git config user.email "272929799+shoehorn-release[bot]@users.noreply.github.com"
+
+          cp "$GITHUB_WORKSPACE/$PACKAGE_FILE" .
+          cat > index.html <<'EOF'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Shoehorn Helm Charts</title>
+            <style>
+              :root {
+                color-scheme: light;
+                font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                background: #f5f7fb;
+                color: #10213a;
+              }
+              body {
+                margin: 0;
+                padding: 3rem 1.5rem;
+              }
+              main {
+                max-width: 48rem;
+                margin: 0 auto;
+                background: #ffffff;
+                border: 1px solid #d9e2f0;
+                border-radius: 16px;
+                padding: 2rem;
+                box-shadow: 0 20px 60px rgba(16, 33, 58, 0.08);
+              }
+              code {
+                background: #eef3fb;
+                padding: 0.2rem 0.4rem;
+                border-radius: 6px;
+              }
+              pre {
+                background: #10213a;
+                color: #f5f7fb;
+                padding: 1rem;
+                border-radius: 12px;
+                overflow-x: auto;
+              }
+              a {
+                color: #0057d8;
+              }
+            </style>
+          </head>
+          <body>
+            <main>
+              <h1>Shoehorn Helm Charts</h1>
+              <p>This repository is served from GitHub Pages for classic Helm repository support.</p>
+              <p>Repository URL: <a href="https://charts.shoehorn.dev">https://charts.shoehorn.dev</a></p>
+              <pre><code>helm repo add shoehorn https://charts.shoehorn.dev
+helm repo update
+helm search repo shoehorn</code></pre>
+              <p>The canonical OCI packages remain available at <code>ghcr.io/shoehorn-dev/helm-charts</code>.</p>
+            </main>
+          </body>
+          </html>
+          EOF
+          echo "charts.shoehorn.dev" > CNAME
+          touch .nojekyll
+
+          if [ -f index.yaml ]; then
+            helm repo index . --url "$PAGES_URL" --merge index.yaml
+          else
+            helm repo index . --url "$PAGES_URL"
+          fi
+
+          git add "$PACKAGE_FILE" index.yaml index.html CNAME .nojekyll
+          if git diff --cached --quiet; then
+            echo "No Pages changes to publish"
+            exit 0
+          fi
+
+          git commit -m "docs: publish ${CHART_NAME} ${CHART_VERSION}"
+          git push origin "$PAGES_BRANCH"
