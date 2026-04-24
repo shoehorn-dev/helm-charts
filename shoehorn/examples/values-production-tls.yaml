@@ -85,8 +85,9 @@ ingress:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
   tls:
-    enabled: true
-    certResolver: letsencrypt-prod
+    - secretName: shoehorn-tls
+      hosts:
+        - shoehorn.example.com
 
 # Security Context (Production hardening)
 podSecurityContext:
