@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "shoehorn.fullname" . }}-backend-overrides
+  namespace: {{ include "shoehorn.namespace.backend" . }}
+  labels:
+    {{- include "shoehorn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+    shoehorn.dev/operator-managed: "true"
+  annotations:
+    helm.sh/resource-policy: keep
+data: {}

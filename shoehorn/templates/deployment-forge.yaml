@@ -53,6 +53,9 @@ spec:
         envFrom:
         - configMapRef:
             name: {{ include "shoehorn.fullname" . }}-backend
+        - configMapRef:
+            name: {{ include "shoehorn.fullname" . }}-backend-overrides
+            optional: true
         env:
         # Service-specific configuration
         - name: SERVICE_NAME
@@ -63,7 +66,6 @@ spec:
           value: {{ .Values.forge.env.GRPC_PORT | quote }}
         # Forge-specific environment (controls ShellAdapter security mode)
         # - production: Containers required, direct execution blocked
-        # - development: Direct execution allowed (insecure - dev only)
         {{- if .Values.forge.env.FORGE_ENVIRONMENT }}
         - name: FORGE_ENVIRONMENT
           value: {{ .Values.forge.env.FORGE_ENVIRONMENT | quote }}

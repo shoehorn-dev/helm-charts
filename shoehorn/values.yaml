@@ -716,7 +716,7 @@ meilisearch:
   enabled: true  # Deploy Meilisearch StatefulSet in cluster
   image:
     repository: getmeili/meilisearch
-    tag: "v1.40.0"
+    tag: "v1.42.1"
   resources:
     requests:
       cpu: 250m
@@ -851,7 +851,7 @@ redpanda:
   enabled: true  # Deploy Redpanda StatefulSet in cluster
   image:
     repository: redpandadata/redpanda
-    tag: v25.3.10
+    tag: v26.1.6
   resources:
     requests:
       cpu: 500m

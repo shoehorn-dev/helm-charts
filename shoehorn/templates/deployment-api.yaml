@@ -39,7 +39,6 @@ spec:
         image: busybox:1.36
         command: ['sh', '-c', 'until nc -z {{ include "shoehorn.redpanda.host" . }} {{ include "shoehorn.redpanda.port" . }}; do echo waiting for redpanda; sleep 2; done;']
       # Run database migrations before starting the API
-      # Uses shoehorn_user (BYPASSRLS) to apply schema changes and create app_user
       - name: migrate
         image: {{ include "shoehorn.componentImage" (dict "component" .Values.api "Values" .Values) }}
         command: ["/api", "--migrate-only"]
@@ -73,6 +72,9 @@ spec:
         envFrom:
         - configMapRef:
             name: {{ include "shoehorn.fullname" . }}-backend
+        - configMapRef:
+            name: {{ include "shoehorn.fullname" . }}-backend-overrides
+            optional: true
         env:
         # Service-specific configuration
         - name: SERVICE_NAME
