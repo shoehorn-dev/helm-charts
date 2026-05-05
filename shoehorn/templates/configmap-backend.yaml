@@ -84,12 +84,6 @@ data:
   {{- if .Values.api.env.GITHUB_FORGE_ORGANIZATION }}
   GITHUB_FORGE_ORGANIZATION: {{ .Values.api.env.GITHUB_FORGE_ORGANIZATION | quote }}
   {{- end }}
-  {{- if .Values.api.env.GITHUB_MANIFEST_PATTERNS }}
-  GITHUB_MANIFEST_PATTERNS: {{ .Values.api.env.GITHUB_MANIFEST_PATTERNS | quote }}
-  {{- end }}
-  {{- if .Values.api.env.GITHUB_README_PATTERNS }}
-  GITHUB_README_PATTERNS: {{ .Values.api.env.GITHUB_README_PATTERNS | quote }}
-  {{- end }}
   {{- if .Values.api.env.GITHUB_RATE_LIMIT_PER_HOUR }}
   GITHUB_RATE_LIMIT_PER_HOUR: {{ .Values.api.env.GITHUB_RATE_LIMIT_PER_HOUR | quote }}
   {{- end }}
