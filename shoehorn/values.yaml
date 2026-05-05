@@ -316,8 +316,6 @@ api:
     # GITHUB_ORGANIZATIONS: "my-org,another-org"  # Comma-separated org names
     # GITHUB_REPOSITORIES: "my-org/repo1,my-org/repo2"  # Specific repos to include
     # GITHUB_FORGE_ORGANIZATION: "my-org"  # Organization for Forge workflows
-    # GITHUB_MANIFEST_PATTERNS: ".shoehorn/**/*.yaml,catalog-info.yaml"  # Glob patterns for entity manifests
-    # GITHUB_README_PATTERNS: "README.md,docs/README.md"  # Glob patterns for README files
     # GITHUB_RATE_LIMIT_PER_HOUR: "1000"  # GitHub API rate limit budget
     # GITHUB_CONCURRENT_REPOS: "5"  # Max concurrent repository crawls
     # GITHUB_CACHE_TTL_MINUTES: "15"  # Cache TTL for GitHub API responses
