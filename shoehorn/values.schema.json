@@ -220,10 +220,6 @@
           "properties": {
             "appId": { "type": "string" },
             "installationId": { "type": "string" },
-            "webhookSecretRef": {
-              "$ref": "#/$defs/secretKeyRef",
-              "description": "Shared webhook secret used to validate inbound GitHub webhooks."
-            },
             "forge": {
               "type": "object",
               "properties": {

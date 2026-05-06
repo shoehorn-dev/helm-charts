@@ -35,8 +35,6 @@ auth:
   github:
     appId: ""              # CHANGE_ME: GitHub App ID (numeric)
     installationId: ""     # CHANGE_ME: GitHub App installation ID
-    webhookSecretRef:
-      key: github_webhook_secret
 
 # Use single replica for everything (development)
 replicaCount:
@@ -72,7 +70,7 @@ web:
 secret:
   defaultName: shoehorn-credentials
 
-# Required credential refs — each one points at a key in shoehorn-credentials.
+# Required credential refs. Each one points at a key in shoehorn-credentials.
 postgresql:
   superuserPasswordSecretRef:
     key: postgres_password
@@ -114,6 +112,5 @@ extraVolumeMounts:
 #     --from-literal=jwt_secret=$(openssl rand -hex 32) \
 #     --from-literal=auth_encryption_key=$(openssl rand -hex 32) \
 #     --from-literal=secrets_encryption_key=$(openssl rand -hex 32) \
-#     --from-literal=github_webhook_secret=YOUR_WEBHOOK_SECRET \
 #     --from-file=github_app_private_key=/path/to/private-key.pem
 # ============================================================================

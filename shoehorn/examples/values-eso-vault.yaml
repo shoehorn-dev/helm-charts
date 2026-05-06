@@ -89,13 +89,13 @@ global:
     name: "Acme Corp"
     slug: "acme-corp"
 
-# No defaultName — each ref carries its own `name:` so it can point at
+# No defaultName. Each ref carries its own `name:` so it can point at
 # the per-path Secret synced by ESO.
 secret:
   defaultName: ""
 
 # ============================================================================
-# Authentication — Okta
+# Authentication: Okta
 # ============================================================================
 # Each credential domain gets its own K8s Secret.
 
@@ -131,12 +131,8 @@ auth:
   github:
     appId: ""              # CHANGE_ME: GitHub App ID (public)
     installationId: ""     # CHANGE_ME: installation ID (public)
-    # Synced from Vault path: secret/data/shoehorn/github
-    webhookSecretRef:
-      name: shoehorn-github-creds
-      key: webhook_secret
 
-  # Session/encryption keys — distinct Secret, distinct Vault path,
+  # Session/encryption keys. Distinct Secret, distinct Vault path,
   # distinct rotation cadence (rotating these forces a re-login wave).
   session:
     maxAge: "8h"
@@ -154,7 +150,7 @@ auth:
     enabled: true
 
 # ============================================================================
-# Database — its own Secret, synced from Vault's database secrets engine
+# Database. Its own Secret, synced from Vault's database secrets engine
 # ============================================================================
 postgresql:
   enabled: true
@@ -169,7 +165,7 @@ postgresql:
     size: 50Gi
 
 # ============================================================================
-# Cache — its own Secret
+# Cache. Its own Secret
 # ============================================================================
 valkey:
   enabled: true
@@ -178,7 +174,7 @@ valkey:
     key: valkey_password
 
 # ============================================================================
-# Search — its own Secret
+# Search. Its own Secret
 # ============================================================================
 meilisearch:
   enabled: true
@@ -187,7 +183,7 @@ meilisearch:
     key: master_key
 
 # ============================================================================
-# SMTP — optional, its own Secret
+# SMTP. Optional, its own Secret
 # ============================================================================
 smtp:
   enabled: false
@@ -200,7 +196,7 @@ smtp:
     key: password
 
 # ============================================================================
-# GitHub App private key file — mounted from the github creds Secret
+# GitHub App private key file. Mounted from the github creds Secret
 # ============================================================================
 extraVolumes:
   - name: github-private-key

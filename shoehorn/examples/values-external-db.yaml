@@ -1,7 +1,7 @@
-# External Database Values — Multi-Secret Pattern
+# External Database Values: Multi-Secret Pattern
 # =================================================
 # Configuration for using external managed services instead of in-cluster StatefulSets.
-# Ideal for production environments using:
+# Use this for production environments running:
 # - AWS RDS, Azure Database, Cloud SQL for PostgreSQL
 # - ElastiCache, MemoryDB, or managed Redis for Valkey
 # - Meilisearch Cloud or self-hosted cluster
@@ -23,14 +23,14 @@
 #
 # Each *SecretRef in this chart points at a Kubernetes Secret + key, so the
 # two sources stay separate. `secret.defaultName` provides the fallback for
-# every ref that doesn't override `name:` — here we point it at the app
+# every ref that doesn't override `name:`. Here we point it at the app
 # secrets Secret and explicitly override `name:` only on the postgres refs.
 #
 # Usage:
 #   helm install shoehorn ./charts/shoehorn -n shoehorn --create-namespace \
 #     -f ./charts/shoehorn/examples/values-external-db.yaml
 #
-# IMPORTANT: Update all "CHANGE_ME" values before deploying!
+# IMPORTANT: Update all "CHANGE_ME" values before deploying.
 
 global:
   # CHANGE_ME: Your domain
@@ -184,8 +184,6 @@ auth:
   github:
     appId: ""              # CHANGE_ME: GitHub App ID
     installationId: ""     # CHANGE_ME: installation ID
-    webhookSecretRef:
-      key: github_webhook_secret
 
   session:
     jwtSecretRef:

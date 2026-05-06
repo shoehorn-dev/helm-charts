@@ -87,7 +87,7 @@ replicaCount:
 
 # Each credential is referenced by `<thing>SecretRef: { name, key }`.
 # Set `secret.defaultName` once and per-credential refs can omit `name`.
-# The chart never creates these Secrets — provide them out of band.
+# The chart never creates these Secrets. Provide them out of band.
 secret:
   defaultName: ""
 
@@ -379,9 +379,6 @@ auth:
   github:
     appId: ""
     installationId: ""
-    webhookSecretRef:
-      name: ""
-      key: github_webhook_secret
     forge:
       appId: ""
       installationId: ""
@@ -686,7 +683,7 @@ redpanda:
     caFile: "/etc/redpanda/certs/ca.crt"
     requireClientAuth: false
 
-# Kroki — diagram rendering for TechDocs (PlantUML, C4, BlockDiag, BPMN, ...).
+# Kroki: diagram rendering for TechDocs (PlantUML, C4, BlockDiag, BPMN, ...).
 # Mermaid/Nomnoml/GraphViz render client-side and don't need this.
 kroki:
   enabled: false

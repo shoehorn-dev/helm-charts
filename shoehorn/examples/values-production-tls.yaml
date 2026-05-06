@@ -31,7 +31,7 @@ secret:
 
 # Authentication - Zitadel
 # CHANGE_ME: Helm template will FAIL without real values for projectId
-# and clientId — they are required when auth.provider is "zitadel".
+# and clientId. They are required when auth.provider is "zitadel".
 auth:
   provider: zitadel
   zitadel:
@@ -43,8 +43,6 @@ auth:
   github:
     appId: ""              # CHANGE_ME: GitHub App ID (public)
     installationId: ""     # CHANGE_ME: installation ID (public)
-    webhookSecretRef:
-      key: github_webhook_secret
 
   session:
     jwtSecretRef:
