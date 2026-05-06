@@ -33,18 +33,18 @@ jobs:
       - name: Lint shoehorn
         run: |
           helm lint shoehorn/ \
-            --set secret.existingSecret=ci-test \
-            --set auth.zitadel.externalUrl=https://auth.example.com \
-            --set secret.mappings.ZITADEL_PROJECT_ID=test \
-            --set secret.mappings.ZITADEL_CLIENT_ID=test
+            --set secret.defaultName=ci-test \
+            --set auth.zitadel.projectId=test \
+            --set auth.zitadel.clientId=test \
+            --set auth.zitadel.externalUrl=https://auth.example.com
 
       - name: Template shoehorn
         run: |
           helm template ci-test shoehorn/ \
-            --set secret.existingSecret=ci-test \
+            --set secret.defaultName=ci-test \
+            --set auth.zitadel.projectId=test \
+            --set auth.zitadel.clientId=test \
             --set auth.zitadel.externalUrl=https://auth.example.com \
-            --set secret.mappings.ZITADEL_PROJECT_ID=test \
-            --set secret.mappings.ZITADEL_CLIENT_ID=test \
             > /dev/null
 
       - name: Lint shoehorn-k8s-agent
@@ -79,16 +79,16 @@ jobs:
         include:
           - chart: shoehorn
             values: examples/values-minimal.yaml
-            extra_sets: "--set secret.existingSecret=ci-test --set auth.zitadel.externalUrl=https://auth.example.com --set secret.mappings.ZITADEL_PROJECT_ID=test --set secret.mappings.ZITADEL_CLIENT_ID=test"
+            extra_sets: ""
           - chart: shoehorn
             values: examples/values-production.yaml
-            extra_sets: "--set secret.existingSecret=ci-test --set auth.zitadel.externalUrl=https://auth.example.com --set secret.mappings.ZITADEL_PROJECT_ID=test --set secret.mappings.ZITADEL_CLIENT_ID=test"
+            extra_sets: ""
           - chart: shoehorn
             values: examples/values-production-tls.yaml
-            extra_sets: "--set secret.existingSecret=ci-test --set auth.zitadel.externalUrl=https://auth.example.com --set secret.mappings.ZITADEL_PROJECT_ID=test --set secret.mappings.ZITADEL_CLIENT_ID=test"
+            extra_sets: ""
           - chart: shoehorn
             values: examples/values-external-db.yaml
-            extra_sets: "--set secret.existingSecret=ci-test --set auth.zitadel.externalUrl=https://auth.example.com --set secret.mappings.ZITADEL_PROJECT_ID=test --set secret.mappings.ZITADEL_CLIENT_ID=test"
+            extra_sets: ""
           - chart: shoehorn-k8s-agent
             values: examples/values-minimal.yaml
             extra_sets: "--set shoehorn.apiURL=https://test.example.com --set shoehorn.apiToken=ci-test --set shoehorn.cluster.id=ci-test"
@@ -159,10 +159,10 @@ jobs:
       - name: Validate shoehorn manifests
         run: |
           helm template ci-test shoehorn/ \
-            --set secret.existingSecret=ci-test \
+            --set secret.defaultName=ci-test \
+            --set auth.zitadel.projectId=test \
+            --set auth.zitadel.clientId=test \
             --set auth.zitadel.externalUrl=https://auth.example.com \
-            --set secret.mappings.ZITADEL_PROJECT_ID=test \
-            --set secret.mappings.ZITADEL_CLIENT_ID=test \
           | kubeconform \
               -strict \
               -summary \
