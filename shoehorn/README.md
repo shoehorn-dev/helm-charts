@@ -420,9 +420,8 @@ api:
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `global.domain` | Main domain for the application | `shoehorn.example.com` |
-| `global.environment` | Environment name (`production`, `staging`, `development`) | `production` |
-| `global.logLevel` | Log level for all backend services | `info` |
 | `global.storageClass` | Default storage class for PVCs | `""` |
+| `<service>.logLevel` | Per-service log level (`debug`, `info`, `warn`, `error`). Set on `api`, `web`, `eventbus`, `worker`, `crawler`, `forge`. | `"info"` |
 | `global.organization.slug` | URL-safe organization identifier (required) | `""` |
 | `global.organization.name` | Display name for organization | `""` |
 | `global.imagePullSecrets` | List of registry secrets | `[]` |
@@ -452,8 +451,14 @@ See the [`*SecretRef` reference](#secretref-reference) above for the full list o
 | `auth.okta.domain` | Okta org domain (e.g. `your-org.okta.com`). Required when `auth.provider=okta`. | `""` |
 | `auth.okta.clientId` | Okta OIDC client ID. Required when `auth.provider=okta`. | `""` |
 | `auth.okta.issuer` | Optional issuer override. Leave empty for the default. | `""` |
-| `auth.orgdata.enabled` | Enable user/team sync from an identity provider. | `false` |
-| `auth.orgdata.providers` | List of orgdata providers (`["okta"]`, `["zitadel"]`, or mixed). | `[]` |
+| `auth.entraId.tenantId` / `clientId` / `authority` | Entra ID config. Required when `auth.provider=entra-id`. | `""` |
+| `auth.github.appId` / `installationId` | GitHub App for catalog discovery (api + crawler). Public identifiers. | `""` |
+| `auth.github.forge.appId` / `installationId` / `organization` | GitHub Forge App for workflow execution (api + forge). Separate App from the catalog one. | `""` |
+| `auth.argocd.tokenSecretRef` | ArgoCD API token for direct sync/refresh calls. Optional. | `{}` |
+| `auth.csrf.enabled` | Double-submit CSRF protection on state-changing requests. | `true` |
+| `auth.adminAssignment.adminUsers` / `adminGroups` | Comma-separated admin emails / IdP groups (env-var role mapping). | `""` |
+| `auth.orgdata.enabled` | Sync users and teams from one or more identity providers. Wired on api AND forge — forge needs it for group-based approvals. | `false` |
+| `auth.orgdata.providers` | Provider list, e.g. `["okta"]`, `["zitadel"]`, or mixed. | `[]` |
 | `auth.orgdata.primaryProvider` | Primary provider for conflict resolution. | `""` |
 
 When `auth.provider=okta`, `values.schema.json` enforces that both `auth.okta.domain` and `auth.okta.clientId` are set — Helm will refuse to install otherwise.
@@ -612,6 +617,58 @@ kubectl delete pvc -n shoehorn --all
 kubectl delete namespace shoehorn
 ```
 
+## Operational notes
+
+### cert-manager bundling is unsupported
+
+`certManager.install: true` exists in `values.yaml` but bundling cert-manager
+as a sub-chart of this chart isn't reliable: Helm validates the chart's
+`Certificate` and `ClusterIssuer` manifests against the API server before
+applying them, and the cert-manager CRDs from the same release aren't
+registered yet at validation time.
+
+Install cert-manager out-of-band, then deploy this chart with
+`certManager.install: false`:
+
+```bash
+helm install cert-manager jetstack/cert-manager \
+  --namespace cert-manager --create-namespace \
+  --version v1.20.0 --set crds.enabled=true --wait
+```
+
+### Use a namespaced `Issuer` on small clusters
+
+`certManager.issuer.kind: ClusterIssuer` (the default) looks for the CA
+secret in cert-manager's `clusterResourceNamespace` (default `cert-manager`),
+not the release namespace. The chart creates the CA secret in the release
+namespace, so the issuer will fail with `secrets "shoehorn-ca-secret" not found`.
+
+Either configure cert-manager with `--cluster-resource-namespace=<release-ns>`,
+or switch this chart to a namespaced Issuer:
+
+```yaml
+certManager:
+  issuer:
+    kind: Issuer
+global:
+  mtls:
+    issuerKind: Issuer
+```
+
+### Cerbos mTLS requires `caCert`
+
+When `global.mtls.enabled: true`, Cerbos requires a `caCert` path so it can
+verify client certs. The chart wires this from `global.mtls.caFile`
+automatically; no extra config needed. Note that this enables full mTLS — the
+api and forge clients must present a valid client cert (the chart mounts the
+shared `shoehorn-grpc-mtls-cert` secret).
+
+### `redpanda.replicas: 3` needs 3+ nodes
+
+The Redpanda StatefulSet uses pod anti-affinity, so each replica needs its
+own node. On 1- or 2-node clusters the third replica stays `Pending`. Set
+`redpanda.replicas: 1` for small clusters, or scale your node pool first.
+
 ## Troubleshooting
 
 ### Pods Not Starting
@@ -649,17 +706,17 @@ kubectl get ingressroute -n shoehorn
 ## Production Checklist
 
 ### Infrastructure
-- [ ] Kubernetes cluster provisioned (1.24+)
+- [ ] Kubernetes cluster provisioned (1.24+) with at least 3 nodes if you want `redpanda.replicas: 3`
 - [ ] Ingress controller installed (Traefik or Envoy)
 - [ ] Storage class configured for PVCs
 - [ ] DNS configured and pointing to ingress
-- [ ] TLS certificates configured
+- [ ] cert-manager installed in the cluster (out-of-band — see Operational notes)
 
 ### Secrets
 - [ ] Kubernetes Secrets created for every required credential
 - [ ] Every required `*SecretRef` resolves (per-ref `name:` or `secret.defaultName`)
-- [ ] GitHub private keys mounted via `extraVolumes`
-- [ ] Auth provider credentials referenced (Zitadel PAT / Okta client secret / Entra client secret)
+- [ ] GitHub private keys mounted via `extraVolumes` (one per App: catalog and Forge)
+- [ ] Auth provider credentials referenced (Zitadel PAT / Okta client secret + API token / Entra client secret)
 
 ### Configuration
 - [ ] `global.domain` set to production domain
@@ -667,13 +724,15 @@ kubectl get ingressroute -n shoehorn
 - [ ] `auth.provider` configured with correct values
 - [ ] RBAC role assignments configured
 - [ ] Persistence enabled for all StatefulSets
-- [ ] Resource limits set for production workload
+- [ ] Resource limits sized for production workload (Cerbos especially — every authz check goes through it)
 - [ ] Replica counts increased for HA
+- [ ] Per-service `logLevel` set if you need anything other than `info`
 
 ### Security
-- [ ] Secret contains separate `postgres_password` and `db_password`
+- [ ] Secret contains separate `postgres_password` (migration user, BYPASSRLS) and `db_password` (app user, NOBYPASSRLS)
+- [ ] `global.mtls.enabled: true` for inter-service gRPC (recommended)
+- [ ] `certManager.issuer.kind: Issuer` if cert-manager's `clusterResourceNamespace` is the default
 - [ ] Network policies configured (optional)
-- [ ] gRPC mTLS enabled (optional)
 
 ## Support
 

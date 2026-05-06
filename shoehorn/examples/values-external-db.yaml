@@ -36,9 +36,6 @@ global:
   # CHANGE_ME: Your domain
   domain: shoehorn.example.com
 
-  environment: production
-  logLevel: info
-
   organization:
     name: "Acme Corp"
     slug: "acme-corp"
@@ -164,11 +161,11 @@ cerbos:
   replicas: 2
   resources:
     requests:
-      cpu: 50m
-      memory: 64Mi
+      cpu: 200m
+      memory: 256Mi
     limits:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 1000m
+      memory: 512Mi
 
 # ============================================================================
 # Authentication

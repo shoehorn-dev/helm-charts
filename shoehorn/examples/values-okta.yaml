@@ -30,9 +30,6 @@ global:
   # CHANGE_ME: your Shoehorn domain (used for the callback allowlist)
   domain: shoehorn.example.com
 
-  environment: production
-  logLevel: info
-
   organization:
     # CHANGE_ME
     name: "Acme Corp"

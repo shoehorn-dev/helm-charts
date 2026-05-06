@@ -14,7 +14,6 @@ global:
   organization:
     name: "Your Company"
     slug: "your-company"
-  environment: production
 
   # Enable mTLS for ALL gRPC services (API, Forge, Worker, Crawler, Eventbus, Cerbos)
   mtls:
@@ -58,21 +57,21 @@ auth:
 # Cerbos Authorization
 # NOTE: Cerbos TLS is controlled by global.mtls.enabled
 cerbos:
-  replicas: 2  # High availability
+  replicas: 2  # HA
   image:
     repository: ghcr.io/shoehorn-dev/shoehorn-cerbos
     tag: "latest"
     pullPolicy: IfNotPresent
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 500m
+      cpu: 250m
       memory: 256Mi
+    limits:
+      cpu: 1500m
+      memory: 512Mi
   audit:
     enabled: true
-    retentionPeriod: "720h"  # 30 days for production
+    retentionPeriod: "720h"
 
 # PostgreSQL with RLS (Two-User Mode)
 postgresql:

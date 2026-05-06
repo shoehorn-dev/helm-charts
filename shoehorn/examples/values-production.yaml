@@ -24,9 +24,6 @@ global:
   # CHANGE_ME: Your production domain
   domain: shoehorn.example.com
 
-  environment: production
-  logLevel: info
-
   # CHANGE_ME: Your storage class (check: kubectl get storageclass)
   storageClass: ""
 
@@ -349,13 +346,14 @@ redpanda:
 
 cerbos:
   replicas: 2
+  # Cerbos handles every authz check, so the limits need headroom for sustained load.
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 200m
+      cpu: 250m
       memory: 256Mi
+    limits:
+      cpu: 1500m
+      memory: 512Mi
   audit:
     enabled: true
     retentionPeriod: "720h"  # 30 days

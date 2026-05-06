@@ -85,9 +85,6 @@ global:
   # CHANGE_ME: your domain
   domain: shoehorn.example.com
 
-  environment: production
-  logLevel: info
-
   organization:
     name: "Acme Corp"
     slug: "acme-corp"
