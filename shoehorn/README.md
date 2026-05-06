@@ -1,6 +1,6 @@
 # Shoehorn Helm Chart
 
-Official Helm chart for deploying Shoehorn, an Internal Developer Portal, on Kubernetes.
+Official Helm chart for deploying Shoehorn, the Intelligent Developer Platform, on Kubernetes.
 
 ## Prerequisites
 
@@ -60,7 +60,7 @@ Official Helm chart for deploying Shoehorn, an Internal Developer Portal, on Kub
 | **Forge** | Deployment | 8087/9087 | Workflow engine & scaffolding (gRPC) |
 | **Cerbos** | Deployment | 3592/3593 | Policy-based authorization (always deployed) |
 | **PostgreSQL** | StatefulSet | 5432 | Primary database with RLS for multi-tenancy |
-| **Meilisearch** | StatefulSet | 7700 | Fast search engine |
+| **Meilisearch** | StatefulSet | 7700 | Search engine |
 | **Valkey** | StatefulSet | 6379 | Redis-compatible cache |
 | **Redpanda** | StatefulSet | 9092 | Kafka-compatible event streaming |
 
@@ -96,8 +96,7 @@ kubectl create secret generic shoehorn-credentials -n shoehorn \
   --from-literal=meilisearch_master_key="$(openssl rand -hex 32)" \
   --from-literal=jwt_secret="$(openssl rand -hex 32)" \
   --from-literal=auth_encryption_key="$(openssl rand -base64 32)" \
-  --from-literal=secrets_encryption_key="$(openssl rand -hex 32)" \
-  --from-literal=github_webhook_secret="$(openssl rand -hex 32)"
+  --from-literal=secrets_encryption_key="$(openssl rand -hex 32)"
 ```
 
 ```yaml
@@ -140,7 +139,7 @@ auth:
 
 See [`examples/values-eso-vault.yaml`](examples/values-eso-vault.yaml) for a complete ExternalSecret + Vault setup.
 
-Public identifiers (`auth.github.appId`, `installationId`, `forge.organization`, `auth.zitadel.projectId`, `auth.zitadel.clientId`, etc.) are plain values — not Secret references.
+Public identifiers (`auth.github.appId`, `installationId`, `forge.organization`, `auth.zitadel.projectId`, `auth.zitadel.clientId`, etc.) are plain values, not Secret references.
 
 ### 3. Configure File-Based Secrets
 
@@ -210,7 +209,7 @@ The chart wires each ref into the matching environment variable (or downstream c
 
 ### Supported Secret Providers
 
-Any tool that creates a standard Kubernetes Secret works — kubectl, External Secrets Operator (Vault / AWS / Azure / GCP / 1Password / etc.), Sealed Secrets, Vault Agent Injector, CSI Secret Store, and so on. The chart only cares that a Secret object exists with the referenced `name` and `key` at install time.
+Any tool that creates a standard Kubernetes Secret works: kubectl, External Secrets Operator (Vault / AWS / Azure / GCP / 1Password / etc.), Sealed Secrets, Vault Agent Injector, CSI Secret Store, and so on. The chart only cares that a Secret object exists with the referenced `name` and `key` at install time.
 
 ### `*SecretRef` reference
 
@@ -229,14 +228,13 @@ Every credential the chart consumes, the values path that points at it, and the 
 | `OKTA_CLIENT_SECRET` | `auth.okta.clientSecretRef` | Required when `auth.provider=okta` |
 | `OKTA_API_TOKEN` | `auth.okta.apiTokenSecretRef` | Optional, for Okta orgdata sync |
 | `ENTRA_CLIENT_SECRET` | `auth.entraId.clientSecretRef` | Required when `auth.provider=entra-id` |
-| `GITHUB_WEBHOOK_SECRET` | `auth.github.webhookSecretRef` | |
 | `ARGOCD_TOKEN` | `auth.argocd.tokenSecretRef` | Optional, for ArgoCD sync |
 | `UPCLOUD_TOKEN` | `cloudProviders.upcloud.tokenSecretRef` | Required when `cloudProviders.upcloud.enabled` |
 | `SMTP_PASSWORD` | `smtp.passwordSecretRef` | Required when `smtp.enabled` |
 
 ### Public identifiers (not secrets)
 
-These moved out of the Secret and into plain values — they're not sensitive and shouldn't be wrapped in `*SecretRef`:
+These moved out of the Secret and into plain values. They're not sensitive and shouldn't be wrapped in `*SecretRef`:
 
 | Values path | Description |
 |---|---|
@@ -250,7 +248,7 @@ These moved out of the Secret and into plain values — they're not sensitive an
 
 ### File-based credentials
 
-Things that have to land on disk as files — GitHub App private keys, custom CA bundles — are mounted via `extraVolumes` / `extraVolumeMounts`, not via `*SecretRef`. See the GitHub private key example in the Quick Start above.
+Things that have to land on disk as files (GitHub App private keys, custom CA bundles) are mounted via `extraVolumes` / `extraVolumeMounts`, not via `*SecretRef`. See the GitHub private key example in the Quick Start above.
 
 ### Worked examples
 
@@ -337,7 +335,7 @@ ingressRoute:
     enabled: true
     certResolver: letsencrypt
 
-# Per-credential Secrets — name set explicitly on every ref.
+# Per-credential Secrets. Name set explicitly on every ref.
 postgresql:
   superuserPasswordSecretRef:
     name: shoehorn-postgres
@@ -392,9 +390,6 @@ auth:
   github:
     appId: "YOUR_APP_ID"
     installationId: "YOUR_INSTALLATION_ID"
-    webhookSecretRef:
-      name: shoehorn-github
-      key: webhook_secret
 
 # Redundancy and zero-downtime rolling updates
 replicaCount:
@@ -420,9 +415,8 @@ api:
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `global.domain` | Main domain for the application | `shoehorn.example.com` |
-| `global.environment` | Environment name (`production`, `staging`, `development`) | `production` |
-| `global.logLevel` | Log level for all backend services | `info` |
 | `global.storageClass` | Default storage class for PVCs | `""` |
+| `<service>.logLevel` | Per-service log level (`debug`, `info`, `warn`, `error`). Set on `api`, `web`, `eventbus`, `worker`, `crawler`, `forge`. | `"info"` |
 | `global.organization.slug` | URL-safe organization identifier (required) | `""` |
 | `global.organization.name` | Display name for organization | `""` |
 | `global.imagePullSecrets` | List of registry secrets | `[]` |
@@ -452,8 +446,14 @@ See the [`*SecretRef` reference](#secretref-reference) above for the full list o
 | `auth.okta.domain` | Okta org domain (e.g. `your-org.okta.com`). Required when `auth.provider=okta`. | `""` |
 | `auth.okta.clientId` | Okta OIDC client ID. Required when `auth.provider=okta`. | `""` |
 | `auth.okta.issuer` | Optional issuer override. Leave empty for the default. | `""` |
-| `auth.orgdata.enabled` | Enable user/team sync from an identity provider. | `false` |
-| `auth.orgdata.providers` | List of orgdata providers (`["okta"]`, `["zitadel"]`, or mixed). | `[]` |
+| `auth.entraId.tenantId` / `clientId` / `authority` | Entra ID config. Required when `auth.provider=entra-id`. | `""` |
+| `auth.github.appId` / `installationId` | GitHub App for catalog discovery (api + crawler). Public identifiers. | `""` |
+| `auth.github.forge.appId` / `installationId` / `organization` | GitHub Forge App for workflow execution (api + forge). Separate App from the catalog one. | `""` |
+| `auth.argocd.tokenSecretRef` | ArgoCD API token for direct sync/refresh calls. Optional. | `{}` |
+| `auth.csrf.enabled` | Double-submit CSRF protection on state-changing requests. | `true` |
+| `auth.adminAssignment.adminUsers` / `adminGroups` | Comma-separated admin emails / IdP groups (env-var role mapping). | `""` |
+| `auth.orgdata.enabled` | Sync users and teams from one or more identity providers. Wired on api AND forge — forge needs it for group-based approvals. | `false` |
+| `auth.orgdata.providers` | Provider list, e.g. `["okta"]`, `["zitadel"]`, or mixed. | `[]` |
 | `auth.orgdata.primaryProvider` | Primary provider for conflict resolution. | `""` |
 
 When `auth.provider=okta`, `values.schema.json` enforces that both `auth.okta.domain` and `auth.okta.clientId` are set — Helm will refuse to install otherwise.
@@ -502,7 +502,7 @@ Configure repository discovery via `api.env`:
 | `api.env.GITHUB_FORGE_ORGANIZATION` | Organization for Forge workflows | `""` |
 | `api.env.GITHUB_RATE_LIMIT_PER_HOUR` | GitHub API rate limit budget | `1000` |
 
-GitHub App IDs and installation IDs are plain values under `auth.github` (and `auth.github.forge` for the optional Forge App). The webhook secret uses `auth.github.webhookSecretRef`. Private keys are file-based credentials mounted via `extraVolumes` / `extraVolumeMounts`.
+GitHub App IDs and installation IDs are plain values under `auth.github` (and `auth.github.forge` for the optional Forge App). Private keys are file-based credentials mounted via `extraVolumes` / `extraVolumeMounts`.
 
 ### Database (PostgreSQL)
 
@@ -543,7 +543,7 @@ GitHub App IDs and installation IDs are plain values under `auth.github` (and `a
 
 ## Multi-Tenant Architecture
 
-Shoehorn uses PostgreSQL Row-Level Security (RLS) for database-level tenant isolation. This is always enabled -- there is no toggle.
+Shoehorn uses PostgreSQL Row-Level Security (RLS) for database-level tenant isolation. This is always enabled. There is no toggle.
 
 ### How It Works
 
@@ -554,7 +554,7 @@ All database tables have RLS policies that filter data by `tenant_id`. Runtime s
 | User | RLS | Purpose |
 |------|-----|---------|
 | `shoehorn_user` | BYPASSRLS | Schema migrations, admin operations |
-| `app_user` | NOBYPASSRLS | All runtime queries -- RLS enforced by PostgreSQL |
+| `app_user` | NOBYPASSRLS | All runtime queries. RLS enforced by PostgreSQL. |
 
 ### Required Secret Keys
 
@@ -612,6 +612,58 @@ kubectl delete pvc -n shoehorn --all
 kubectl delete namespace shoehorn
 ```
 
+## Operational notes
+
+### cert-manager bundling is unsupported
+
+`certManager.install: true` exists in `values.yaml` but bundling cert-manager
+as a sub-chart of this chart isn't reliable: Helm validates the chart's
+`Certificate` and `ClusterIssuer` manifests against the API server before
+applying them, and the cert-manager CRDs from the same release aren't
+registered yet at validation time.
+
+Install cert-manager out-of-band, then deploy this chart with
+`certManager.install: false`:
+
+```bash
+helm install cert-manager jetstack/cert-manager \
+  --namespace cert-manager --create-namespace \
+  --version v1.20.0 --set crds.enabled=true --wait
+```
+
+### Use a namespaced `Issuer` on small clusters
+
+`certManager.issuer.kind: ClusterIssuer` (the default) looks for the CA
+secret in cert-manager's `clusterResourceNamespace` (default `cert-manager`),
+not the release namespace. The chart creates the CA secret in the release
+namespace, so the issuer will fail with `secrets "shoehorn-ca-secret" not found`.
+
+Either configure cert-manager with `--cluster-resource-namespace=<release-ns>`,
+or switch this chart to a namespaced Issuer:
+
+```yaml
+certManager:
+  issuer:
+    kind: Issuer
+global:
+  mtls:
+    issuerKind: Issuer
+```
+
+### Cerbos mTLS requires `caCert`
+
+When `global.mtls.enabled: true`, Cerbos requires a `caCert` path so it can
+verify client certs. The chart wires this from `global.mtls.caFile`
+automatically; no extra config needed. Note that this enables full mTLS: the
+api and forge clients must present a valid client cert (the chart mounts the
+shared `shoehorn-grpc-mtls-cert` secret).
+
+### `redpanda.replicas: 3` needs 3+ nodes
+
+The Redpanda StatefulSet uses pod anti-affinity, so each replica needs its
+own node. On 1- or 2-node clusters the third replica stays `Pending`. Set
+`redpanda.replicas: 1` for small clusters, or scale your node pool first.
+
 ## Troubleshooting
 
 ### Pods Not Starting
@@ -649,17 +701,17 @@ kubectl get ingressroute -n shoehorn
 ## Production Checklist
 
 ### Infrastructure
-- [ ] Kubernetes cluster provisioned (1.24+)
+- [ ] Kubernetes cluster provisioned (1.24+) with at least 3 nodes if you want `redpanda.replicas: 3`
 - [ ] Ingress controller installed (Traefik or Envoy)
 - [ ] Storage class configured for PVCs
 - [ ] DNS configured and pointing to ingress
-- [ ] TLS certificates configured
+- [ ] cert-manager installed in the cluster (out-of-band, see Operational notes)
 
 ### Secrets
 - [ ] Kubernetes Secrets created for every required credential
 - [ ] Every required `*SecretRef` resolves (per-ref `name:` or `secret.defaultName`)
-- [ ] GitHub private keys mounted via `extraVolumes`
-- [ ] Auth provider credentials referenced (Zitadel PAT / Okta client secret / Entra client secret)
+- [ ] GitHub private keys mounted via `extraVolumes` (one per App: catalog and Forge)
+- [ ] Auth provider credentials referenced (Zitadel PAT / Okta client secret + API token / Entra client secret)
 
 ### Configuration
 - [ ] `global.domain` set to production domain
@@ -667,13 +719,15 @@ kubectl get ingressroute -n shoehorn
 - [ ] `auth.provider` configured with correct values
 - [ ] RBAC role assignments configured
 - [ ] Persistence enabled for all StatefulSets
-- [ ] Resource limits set for production workload
+- [ ] Resource limits sized for production workload (Cerbos especially, every authz check goes through it)
 - [ ] Replica counts increased for HA
+- [ ] Per-service `logLevel` set if you need anything other than `info`
 
 ### Security
-- [ ] Secret contains separate `postgres_password` and `db_password`
+- [ ] Secret contains separate `postgres_password` (migration user, BYPASSRLS) and `db_password` (app user, NOBYPASSRLS)
+- [ ] `global.mtls.enabled: true` for inter-service gRPC (recommended)
+- [ ] `certManager.issuer.kind: Issuer` if cert-manager's `clusterResourceNamespace` is the default
 - [ ] Network policies configured (optional)
-- [ ] gRPC mTLS enabled (optional)
 
 ## Support
 

@@ -11,15 +11,15 @@ metadata:
     app.kubernetes.io/component: cerbos
 data:
   config.yaml: |
-    # Cerbos Server Configuration
     server:
       httpListenAddr: ":3592"
       grpcListenAddr: ":3593"
       {{- if .Values.global.mtls.enabled }}
-      # TLS Configuration (uses shared gRPC mTLS certificate)
+      # mTLS — cert/key for server identity, caCert triggers client cert verification.
       tls:
         cert: {{ .Values.global.mtls.certFile }}
         key: {{ .Values.global.mtls.keyFile }}
+        caCert: {{ .Values.global.mtls.caFile }}
       {{- end }}
 
     storage:

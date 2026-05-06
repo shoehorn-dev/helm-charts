@@ -8,7 +8,7 @@
 # - Autoscaling configured (disabled by default)
 #
 # Secret style:
-#   This file uses the VERBOSE form of typed *SecretRef blocks — every ref
+#   This file uses the VERBOSE form of typed *SecretRef blocks. Every ref
 #   carries an explicit `name:` and `key:`. No `secret.defaultName` shortcut.
 #   For most teams the shortcut is preferable (see values-minimal.yaml);
 #   the explicit form is shown here so you can copy-paste a single ref into
@@ -18,14 +18,11 @@
 #   helm install shoehorn ./charts/shoehorn -n shoehorn --create-namespace \
 #     -f ./charts/shoehorn/examples/values-production.yaml
 #
-# IMPORTANT: Review and customize all values marked with "CHANGE_ME" before deploying!
+# IMPORTANT: Review and customize all values marked with "CHANGE_ME" before deploying.
 
 global:
   # CHANGE_ME: Your production domain
   domain: shoehorn.example.com
-
-  environment: production
-  logLevel: info
 
   # CHANGE_ME: Your storage class (check: kubectl get storageclass)
   storageClass: ""
@@ -59,7 +56,7 @@ image:
   tag: "1.0.0"
   pullPolicy: IfNotPresent
 
-# Secret references — explicit `name:` on every ref (no defaultName).
+# Secret references. Explicit `name:` on every ref (no defaultName).
 # All point at a single Kubernetes Secret named "shoehorn-credentials".
 secret:
   defaultName: ""
@@ -102,9 +99,6 @@ auth:
   github:
     appId: ""              # CHANGE_ME: GitHub App ID (public)
     installationId: ""     # CHANGE_ME: installation ID (public)
-    webhookSecretRef:
-      name: shoehorn-credentials
-      key: github_webhook_secret
 
   session:
     maxAge: "8h"           # 8 hours - covers a workday
@@ -349,13 +343,14 @@ redpanda:
 
 cerbos:
   replicas: 2
+  # Cerbos handles every authz check, so the limits need headroom for sustained load.
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 200m
+      cpu: 250m
       memory: 256Mi
+    limits:
+      cpu: 1500m
+      memory: 512Mi
   audit:
     enabled: true
     retentionPeriod: "720h"  # 30 days

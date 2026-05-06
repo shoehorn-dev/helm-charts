@@ -48,6 +48,8 @@ spec:
         - configMapRef:
             name: {{ include "shoehorn.fullname" . }}-backend
         env:
+        - name: LOG_LEVEL
+          value: {{ .Values.eventbus.logLevel | default "info" | quote }}
         # Service-specific configuration
         - name: SERVICE_NAME
           value: "eventbus"
@@ -81,7 +83,7 @@ spec:
           value: {{ .Values.global.tracing.otlpEndpoint | quote }}
         {{- end }}
 
-        # gRPC mTLS Configuration
+        # gRPC mTLS
         - name: GRPC_TLS_ENABLED
           value: {{ .Values.global.mtls.enabled | default false | quote }}
         {{- if .Values.global.mtls.enabled }}

@@ -57,6 +57,8 @@ spec:
         - configMapRef:
             name: {{ include "shoehorn.fullname" . }}-backend
         env:
+        - name: LOG_LEVEL
+          value: {{ .Values.crawler.logLevel | default "info" | quote }}
         # Service-specific configuration
         - name: SERVICE_NAME
           value: "crawler"
@@ -65,8 +67,7 @@ spec:
         - name: GRPC_PORT
           value: {{ .Values.crawler.env.GRPC_PORT | quote }}
 
-        # Database configuration (secrets and dynamic values)
-        # IMPORTANT: DB_PASSWORD must be defined BEFORE DATABASE_URL for $(DB_PASSWORD) substitution to work
+        # Database. DB_PASSWORD must come before DATABASE_URL so $(DB_PASSWORD) expands.
         {{- include "shoehorn.secretRef" (dict "env" "DB_PASSWORD" "ref" .Values.postgresql.passwordSecretRef "root" .) | nindent 8 }}
         - name: DATABASE_URL
           {{- if .Values.postgresql.tls.enabled }}
@@ -99,7 +100,7 @@ spec:
         - name: REDPANDA_BROKERS
           value: {{ include "shoehorn.redpanda.brokers" . }}
 
-        # Distributed Tracing (OpenTelemetry)
+        # Tracing
         - name: TRACING_ENABLED
           value: {{ .Values.global.tracing.enabled | default false | quote }}
         {{- if .Values.global.tracing.otlpEndpoint }}
@@ -107,7 +108,7 @@ spec:
           value: {{ .Values.global.tracing.otlpEndpoint | quote }}
         {{- end }}
 
-        # gRPC mTLS Configuration
+        # gRPC mTLS
         - name: GRPC_TLS_ENABLED
           value: {{ .Values.global.mtls.enabled | default false | quote }}
         {{- if .Values.global.mtls.enabled }}
@@ -132,12 +133,13 @@ spec:
         - name: GITHUB_INSTALLATION_ID
           value: {{ .Values.auth.github.installationId | quote }}
         {{- end }}
-        {{- include "shoehorn.secretRef" (dict "env" "GITHUB_WEBHOOK_SECRET" "ref" .Values.auth.github.webhookSecretRef "root" .) | nindent 8 }}
+        {{- if .Values.auth.github.appId }}
         - name: GITHUB_APP_PRIVATE_KEY_PATH
           value: /var/secrets/github/private-key
+        {{- end }}
 
         {{- if .Values.cloudProviders.upcloud.enabled }}
-        # UpCloud Cloud Provider Discovery
+        # UpCloud cloud provider discovery
         - name: CLOUD_PROVIDER_UPCLOUD_ENABLED
           value: "true"
         {{- include "shoehorn.secretRef" (dict "env" "UPCLOUD_TOKEN" "ref" .Values.cloudProviders.upcloud.tokenSecretRef "root" . "optional" true) | nindent 8 }}

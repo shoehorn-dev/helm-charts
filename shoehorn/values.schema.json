@@ -14,18 +14,6 @@
           "description": "Domain for Shoehorn (e.g., shoehorn.example.com)",
           "examples": ["shoehorn.example.com", "alpha.shoehorn.dev"]
         },
-        "environment": {
-          "type": "string",
-          "description": "Environment name",
-          "enum": ["development", "staging", "production"],
-          "default": "production"
-        },
-        "logLevel": {
-          "type": "string",
-          "description": "Default log level for all services",
-          "enum": ["debug", "info", "warn", "error"],
-          "default": "info"
-        },
         "storageClass": {
           "type": "string",
           "description": "Kubernetes storage class for persistent volumes"
@@ -232,10 +220,6 @@
           "properties": {
             "appId": { "type": "string" },
             "installationId": { "type": "string" },
-            "webhookSecretRef": {
-              "$ref": "#/$defs/secretKeyRef",
-              "description": "Shared webhook secret used to validate inbound GitHub webhooks."
-            },
             "forge": {
               "type": "object",
               "properties": {
@@ -609,6 +593,12 @@
       "type": "object",
       "properties": {
         "name": { "type": "string" },
+        "logLevel": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "default": "info",
+          "description": "Log level for this service. Overrides the chart default ('info')."
+        },
         "annotations": {
           "type": "object",
           "properties": {

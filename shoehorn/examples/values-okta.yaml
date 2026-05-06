@@ -1,4 +1,4 @@
-# Shoehorn with Okta — Reference Values
+# Shoehorn with Okta: Reference Values
 # ======================================
 # Minimal working configuration for deploying Shoehorn against an existing
 # Okta organization, using Okta for both authentication (OIDC) and orgdata
@@ -6,7 +6,7 @@
 #
 # Before applying, complete the Okta setup steps at:
 #   https://docs.shoehorn.dev/integrations/okta
-# — create the OIDC app, enable the groups claim on the authorization
+# Create the OIDC app, enable the groups claim on the authorization
 # server, and mint an API token for orgdata sync.
 #
 # Usage:
@@ -30,22 +30,19 @@ global:
   # CHANGE_ME: your Shoehorn domain (used for the callback allowlist)
   domain: shoehorn.example.com
 
-  environment: production
-  logLevel: info
-
   organization:
     # CHANGE_ME
     name: "Acme Corp"
     slug: "acme-corp"
 
 # Point the chart at the Kubernetes Secret you created above.
-# defaultName sets the fallback `name:` for every *SecretRef below — each
+# defaultName sets the fallback `name:` for every *SecretRef below. Each
 # ref then only needs to specify which `key:` inside this Secret holds the
 # credential.
 secret:
   defaultName: shoehorn-auth-secrets
 
-# Authentication — Okta OIDC
+# Authentication: Okta OIDC
 # ──────────────────────────
 # auth.provider = "okta" triggers values.schema.json's conditional
 # require on auth.okta.{domain,clientId}. Helm will refuse to install
@@ -63,16 +60,16 @@ auth:
     issuer: ""
     authorizationServer: default
 
-    # OIDC client secret — required for Okta auth.
+    # OIDC client secret. Required for Okta auth.
     clientSecretRef:
       key: okta_client_secret
 
-    # Okta Management API token — required when orgdata.providers includes "okta".
+    # Okta Management API token. Required when orgdata.providers includes "okta".
     # Leave key empty to silently omit the env var (orgdata sync will fail).
     apiTokenSecretRef:
       key: okta_api_token
 
-  # Org data sync — Okta Management API as the user/team source of truth.
+  # Org data sync. Okta Management API is the user/team source of truth.
   orgdata:
     enabled: true
     providers: ["okta"]
@@ -86,7 +83,7 @@ auth:
     # Alternatively: comma-separated emails (escape hatch; prefer groups).
     adminUsers: ""
 
-  # Required session keys — all three resolve against secret.defaultName.
+  # Required session keys. All three resolve against secret.defaultName.
   session:
     maxAge: "8h"
     jwtSecretRef:
@@ -99,7 +96,7 @@ auth:
   csrf:
     enabled: true
 
-# Infrastructure credentials — same shoehorn-auth-secrets Secret, different keys.
+# Infrastructure credentials. Same shoehorn-auth-secrets Secret, different keys.
 postgresql:
   superuserPasswordSecretRef:
     key: postgres_password

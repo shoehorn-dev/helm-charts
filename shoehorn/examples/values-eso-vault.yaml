@@ -8,8 +8,8 @@
 # ───────────────
 # When you let one Vault path rotate independently from another (database
 # password rotated by Vault's database secrets engine; OIDC client secret
-# rotated by your IdP team; GitHub webhook secret rotated by SecOps), you
-# do NOT want them all glued into a single Kubernetes Secret. Putting each
+# rotated by your IdP team), you do NOT want them all glued into a single
+# Kubernetes Secret. Putting each
 # credential in its own Secret means:
 #
 #   - Each Vault path becomes its own K8s Secret, rotated independently.
@@ -77,7 +77,7 @@
 #   shoehorn-session-keys  (jwt, auth_encryption_key, secrets_encryption_key)
 #   shoehorn-cache-creds   (valkey password)
 #   shoehorn-search-creds  (meilisearch master key)
-#   shoehorn-github-creds  (github webhook secret + private key file)
+#   shoehorn-github-creds  (github app private key file)
 #
 # ============================================================================
 
@@ -85,20 +85,17 @@ global:
   # CHANGE_ME: your domain
   domain: shoehorn.example.com
 
-  environment: production
-  logLevel: info
-
   organization:
     name: "Acme Corp"
     slug: "acme-corp"
 
-# No defaultName — each ref carries its own `name:` so it can point at
+# No defaultName. Each ref carries its own `name:` so it can point at
 # the per-path Secret synced by ESO.
 secret:
   defaultName: ""
 
 # ============================================================================
-# Authentication — Okta
+# Authentication: Okta
 # ============================================================================
 # Each credential domain gets its own K8s Secret.
 
@@ -134,12 +131,8 @@ auth:
   github:
     appId: ""              # CHANGE_ME: GitHub App ID (public)
     installationId: ""     # CHANGE_ME: installation ID (public)
-    # Synced from Vault path: secret/data/shoehorn/github
-    webhookSecretRef:
-      name: shoehorn-github-creds
-      key: webhook_secret
 
-  # Session/encryption keys — distinct Secret, distinct Vault path,
+  # Session/encryption keys. Distinct Secret, distinct Vault path,
   # distinct rotation cadence (rotating these forces a re-login wave).
   session:
     maxAge: "8h"
@@ -157,7 +150,7 @@ auth:
     enabled: true
 
 # ============================================================================
-# Database — its own Secret, synced from Vault's database secrets engine
+# Database. Its own Secret, synced from Vault's database secrets engine
 # ============================================================================
 postgresql:
   enabled: true
@@ -172,7 +165,7 @@ postgresql:
     size: 50Gi
 
 # ============================================================================
-# Cache — its own Secret
+# Cache. Its own Secret
 # ============================================================================
 valkey:
   enabled: true
@@ -181,7 +174,7 @@ valkey:
     key: valkey_password
 
 # ============================================================================
-# Search — its own Secret
+# Search. Its own Secret
 # ============================================================================
 meilisearch:
   enabled: true
@@ -190,7 +183,7 @@ meilisearch:
     key: master_key
 
 # ============================================================================
-# SMTP — optional, its own Secret
+# SMTP. Optional, its own Secret
 # ============================================================================
 smtp:
   enabled: false
@@ -203,7 +196,7 @@ smtp:
     key: password
 
 # ============================================================================
-# GitHub App private key file — mounted from the github creds Secret
+# GitHub App private key file. Mounted from the github creds Secret
 # ============================================================================
 extraVolumes:
   - name: github-private-key
