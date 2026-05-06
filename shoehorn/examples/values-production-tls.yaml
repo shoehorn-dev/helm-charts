@@ -1,9 +1,12 @@
 # Production Values with TLS Enabled
-# This is an example configuration for production deployments with full TLS security
-
-# Production Values with gRPC mTLS Enabled
-# ==========================================
-# This configuration enables mutual TLS for all internal gRPC communication
+# ====================================
+# Production deployment with full TLS security:
+#   - mTLS for all internal gRPC services
+#   - cert-manager-issued certificates
+#   - HTTPS ingress with Let's Encrypt
+#
+# Uses secret.defaultName shortcut: every *SecretRef below only needs `key:`
+# because they all resolve into the shoehorn-credentials Secret.
 
 # Global settings
 global:
@@ -23,9 +26,34 @@ global:
     keyFile: "/etc/shoehorn/certs/tls.key"
     caFile: "/etc/shoehorn/certs/ca.crt"
 
-# Single secret containing all credentials
+# Single Secret containing all credentials.
 secret:
-  existingSecret: "shoehorn-credentials"
+  defaultName: shoehorn-credentials
+
+# Authentication - Zitadel
+# CHANGE_ME: Helm template will FAIL without real values for projectId
+# and clientId — they are required when auth.provider is "zitadel".
+auth:
+  provider: zitadel
+  zitadel:
+    projectId: "CHANGE_ME_PROJECT_ID"   # CHANGE_ME: Zitadel project ID
+    clientId: "CHANGE_ME_CLIENT_ID"     # CHANGE_ME: OIDC client ID
+    externalUrl: "https://auth.example.com"  # CHANGE_ME: Zitadel external URL
+    insecure: false
+
+  github:
+    appId: ""              # CHANGE_ME: GitHub App ID (public)
+    installationId: ""     # CHANGE_ME: installation ID (public)
+    webhookSecretRef:
+      key: github_webhook_secret
+
+  session:
+    jwtSecretRef:
+      key: jwt_secret
+    encryptionKeyRef:
+      key: auth_encryption_key
+    secretsEncryptionKeyRef:
+      key: secrets_encryption_key
 
 # Cerbos Authorization
 # NOTE: Cerbos TLS is controlled by global.mtls.enabled
@@ -50,6 +78,10 @@ cerbos:
 postgresql:
   enabled: true
   replicas: 1
+  superuserPasswordSecretRef:
+    key: postgres_password
+  passwordSecretRef:
+    key: db_password
   persistence:
     enabled: true
     size: 100Gi
@@ -65,6 +97,16 @@ postgresql:
   pgaudit:
     enabled: true
     log: "write,ddl,role"
+
+valkey:
+  enabled: true
+  passwordSecretRef:
+    key: valkey_password
+
+meilisearch:
+  enabled: true
+  masterKeySecretRef:
+    key: meilisearch_master_key
 
 # API Service
 api:

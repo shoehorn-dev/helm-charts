@@ -22,6 +22,7 @@ global:
 
 # Authentication - Zitadel (default)
 # For quick testing, you can use the hosted demo: https://zitadel.cloud
+# projectId and clientId are public identifiers, not secrets.
 auth:
   provider: zitadel
   zitadel:
@@ -29,6 +30,13 @@ auth:
     clientId: "YOUR_CLIENT_ID"        # From OIDC app settings
     externalUrl: "https://YOUR_INSTANCE.zitadel.cloud"
     insecure: false
+
+  # GitHub App identifiers are also public (not secrets).
+  github:
+    appId: ""              # CHANGE_ME: GitHub App ID (numeric)
+    installationId: ""     # CHANGE_ME: GitHub App installation ID
+    webhookSecretRef:
+      key: github_webhook_secret
 
 # Use single replica for everything (development)
 replicaCount:
@@ -58,9 +66,26 @@ web:
       cpu: 100m
       memory: 128Mi
 
-# Single secret containing all credentials
+# Single secret containing all credentials.
+# With secret.defaultName set, every *SecretRef below can omit `name:` and
+# just reference a key inside this Secret.
 secret:
-  existingSecret: "shoehorn-credentials"
+  defaultName: shoehorn-credentials
+
+# Required credential refs — each one points at a key in shoehorn-credentials.
+postgresql:
+  superuserPasswordSecretRef:
+    key: postgres_password
+  passwordSecretRef:
+    key: db_password
+
+valkey:
+  passwordSecretRef:
+    key: valkey_password
+
+meilisearch:
+  masterKeySecretRef:
+    key: meilisearch_master_key
 
 # Mount GitHub App private key from the same secret (for repository crawling)
 extraVolumes:
@@ -88,10 +113,7 @@ extraVolumeMounts:
 #     --from-literal=valkey_password=$(openssl rand -hex 16) \
 #     --from-literal=jwt_secret=$(openssl rand -hex 32) \
 #     --from-literal=auth_encryption_key=$(openssl rand -hex 32) \
-#     --from-literal=session_encryption_key=$(openssl rand -hex 32) \
-#     --from-literal=service_user_pat=YOUR_PAT_TOKEN \
-#     --from-literal=github_app_id=YOUR_APP_ID \
-#     --from-literal=github_app_installation_id=YOUR_INSTALLATION_ID \
+#     --from-literal=secrets_encryption_key=$(openssl rand -hex 32) \
 #     --from-literal=github_webhook_secret=YOUR_WEBHOOK_SECRET \
 #     --from-file=github_app_private_key=/path/to/private-key.pem
 # ============================================================================

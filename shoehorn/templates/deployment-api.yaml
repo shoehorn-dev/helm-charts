@@ -43,18 +43,14 @@ spec:
         image: {{ include "shoehorn.componentImage" (dict "component" .Values.api "Values" .Values) }}
         command: ["/api", "--migrate-only"]
         env:
-        {{- include "shoehorn.secretRef" (dict "env" "POSTGRES_PASSWORD" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "POSTGRES_PASSWORD" "ref" .Values.postgresql.superuserPasswordSecretRef "root" .) | nindent 8 }}
         - name: MIGRATION_DATABASE_URL
           {{- if .Values.postgresql.tls.enabled }}
           value: "postgresql://shoehorn_user:$(POSTGRES_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode={{ .Values.postgresql.tls.sslMode | default "require" }}"
           {{- else }}
           value: "postgresql://shoehorn_user:$(POSTGRES_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode=disable"
           {{- end }}
-        - name: APP_USER_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.secret.existingSecret }}
-              key: {{ .Values.secret.mappings.DB_PASSWORD }}
+        {{- include "shoehorn.secretRef" (dict "env" "APP_USER_PASSWORD" "ref" .Values.postgresql.passwordSecretRef "root" .) | nindent 8 }}
         - name: ENVIRONMENT
           value: {{ .Values.global.environment | quote }}
         - name: LOG_LEVEL
@@ -84,7 +80,7 @@ spec:
 
         # Database configuration (secrets and dynamic values)
         # IMPORTANT: DB_PASSWORD must be defined BEFORE DATABASE_URL for $(DB_PASSWORD) substitution to work
-        {{- include "shoehorn.secretRef" (dict "env" "DB_PASSWORD" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "DB_PASSWORD" "ref" .Values.postgresql.passwordSecretRef "root" .) | nindent 8 }}
         - name: DATABASE_URL
           {{- if .Values.postgresql.tls.enabled }}
           value: "postgresql://app_user:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode={{ .Values.postgresql.tls.sslMode | default "require" }}"
@@ -92,11 +88,7 @@ spec:
           value: "postgresql://app_user:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode=disable"
           {{- end }}
         # App user password for RLS migration init container
-        - name: APP_USER_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.secret.existingSecret }}
-              key: {{ .Values.secret.mappings.DB_PASSWORD }}
+        {{- include "shoehorn.secretRef" (dict "env" "APP_USER_PASSWORD" "ref" .Values.postgresql.passwordSecretRef "root" .) | nindent 8 }}
         # Dynamic database host (from Helm helper)
         - name: DB_HOST
           value: {{ include "shoehorn.postgresql.host" . }}
@@ -132,10 +124,10 @@ spec:
         # Valkey/Redis
         - name: VALKEY_ADDR
           value: "{{ include "shoehorn.valkey.host" . }}:{{ include "shoehorn.valkey.port" . }}"
-        {{- include "shoehorn.secretRef" (dict "env" "VALKEY_PASSWORD" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "VALKEY_PASSWORD" "ref" .Values.valkey.passwordSecretRef "root" .) | nindent 8 }}
 
         # Meilisearch
-        {{- include "shoehorn.secretRef" (dict "env" "MEILISEARCH_MASTER_KEY" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "MEILISEARCH_MASTER_KEY" "ref" .Values.meilisearch.masterKeySecretRef "root" .) | nindent 8 }}
 
         # Authentication Provider Configuration
         - name: AUTH_PROVIDER
@@ -163,23 +155,15 @@ spec:
         # Zitadel Provider
         - name: ZITADEL_URL
           value: {{ .Values.auth.zitadel.externalUrl | quote }}
-        {{- if hasKey .Values.secret.mappings "ZITADEL_PROJECT_ID" }}
-        {{- include "shoehorn.secretRef" (dict "env" "ZITADEL_PROJECT_ID" "root" .) | nindent 8 }}
-        {{- else }}
         - name: ZITADEL_PROJECT_ID
           value: {{ .Values.auth.zitadel.projectId | quote }}
-        {{- end }}
-        {{- if hasKey .Values.secret.mappings "ZITADEL_CLIENT_ID" }}
-        {{- include "shoehorn.secretRef" (dict "env" "ZITADEL_CLIENT_ID" "root" .) | nindent 8 }}
-        {{- else }}
         - name: ZITADEL_CLIENT_ID
           value: {{ .Values.auth.zitadel.clientId | quote }}
-        {{- end }}
         - name: ZITADEL_INSECURE
           value: {{ .Values.auth.zitadel.insecure | default false | quote }}
         - name: APP_SCHEME
           value: "https"
-        {{- include "shoehorn.secretRef" (dict "env" "ZITADEL_SERVICE_USER_PAT" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "ZITADEL_SERVICE_USER_PAT" "ref" .Values.auth.zitadel.serviceUserPatSecretRef "root" . "optional" true) | nindent 8 }}
         {{- end }}
         # Multi-Provider OrgData Sync
         {{- if .Values.auth.orgdata.enabled }}
@@ -191,7 +175,7 @@ spec:
         - name: PRIMARY_ORGDATA_PROVIDER
           value: {{ .Values.auth.orgdata.primaryProvider | quote }}
         {{- end }}
-        {{- include "shoehorn.secretRef" (dict "env" "OKTA_API_TOKEN" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "OKTA_API_TOKEN" "ref" .Values.auth.okta.apiTokenSecretRef "root" . "optional" true) | nindent 8 }}
         {{- end }}
 
         {{- if eq .Values.auth.provider "okta" }}
@@ -200,7 +184,7 @@ spec:
           value: {{ .Values.auth.okta.domain | quote }}
         - name: OKTA_CLIENT_ID
           value: {{ .Values.auth.okta.clientId | quote }}
-        {{- include "shoehorn.secretRef" (dict "env" "OKTA_CLIENT_SECRET" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "OKTA_CLIENT_SECRET" "ref" .Values.auth.okta.clientSecretRef "root" .) | nindent 8 }}
         {{- if .Values.auth.okta.issuer }}
         - name: OKTA_ISSUER
           value: {{ .Values.auth.okta.issuer | quote }}
@@ -213,47 +197,54 @@ spec:
           value: {{ .Values.auth.entraId.tenantId | quote }}
         - name: ENTRA_CLIENT_ID
           value: {{ .Values.auth.entraId.clientId | quote }}
-        {{- include "shoehorn.secretRef" (dict "env" "ENTRA_CLIENT_SECRET" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "ENTRA_CLIENT_SECRET" "ref" .Values.auth.entraId.clientSecretRef "root" .) | nindent 8 }}
         {{- if .Values.auth.entraId.authority }}
         - name: ENTRA_AUTHORITY
           value: {{ .Values.auth.entraId.authority | quote }}
         {{- end }}
         {{- end }}
 
-        # GitHub Integration
-        {{- include "shoehorn.secretRef" (dict "env" "GITHUB_APP_ID" "root" .) | nindent 8 }}
-        {{- include "shoehorn.secretRef" (dict "env" "GITHUB_APP_INSTALLATION_ID" "root" .) | nindent 8 }}
-        {{- if hasKey .Values.secret.mappings "GITHUB_APP_INSTALLATION_ID" }}
-        - name: GITHUB_INSTALLATION_ID
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.secret.existingSecret }}
-              key: {{ index .Values.secret.mappings "GITHUB_APP_INSTALLATION_ID" }}
+        # GitHub Integration — appId/installationId are public identifiers, not secrets.
+        {{- if .Values.auth.github.appId }}
+        - name: GITHUB_APP_ID
+          value: {{ .Values.auth.github.appId | quote }}
         {{- end }}
-        {{- include "shoehorn.secretRef" (dict "env" "GITHUB_WEBHOOK_SECRET" "root" .) | nindent 8 }}
+        {{- if .Values.auth.github.installationId }}
+        - name: GITHUB_APP_INSTALLATION_ID
+          value: {{ .Values.auth.github.installationId | quote }}
+        - name: GITHUB_INSTALLATION_ID
+          value: {{ .Values.auth.github.installationId | quote }}
+        {{- end }}
+        {{- include "shoehorn.secretRef" (dict "env" "GITHUB_WEBHOOK_SECRET" "ref" .Values.auth.github.webhookSecretRef "root" .) | nindent 8 }}
         - name: GITHUB_APP_PRIVATE_KEY_PATH
           value: /var/secrets/github/private-key
 
-        # GitHub Forge Integration (for workflow execution)
-        {{- include "shoehorn.secretRef" (dict "env" "GITHUB_FORGE_APP_ID" "root" . "optional" true) | nindent 8 }}
-        {{- include "shoehorn.secretRef" (dict "env" "GITHUB_FORGE_INSTALLATION_ID" "root" . "optional" true) | nindent 8 }}
+        # GitHub Forge Integration (for workflow execution) — all public identifiers.
+        {{- if .Values.auth.github.forge.appId }}
+        - name: GITHUB_FORGE_APP_ID
+          value: {{ .Values.auth.github.forge.appId | quote }}
+        {{- end }}
+        {{- if .Values.auth.github.forge.installationId }}
+        - name: GITHUB_FORGE_INSTALLATION_ID
+          value: {{ .Values.auth.github.forge.installationId | quote }}
+        {{- end }}
         - name: GITHUB_FORGE_PRIVATE_KEY_PATH
           value: /var/secrets/github-forge/private-key
 
         # ArgoCD API token (for direct sync/refresh calls)
-        {{- include "shoehorn.secretRef" (dict "env" "ARGOCD_TOKEN" "root" . "optional" true) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "ARGOCD_TOKEN" "ref" .Values.auth.argocd.tokenSecretRef "root" . "optional" true) | nindent 8 }}
 
         # JWT
-        {{- include "shoehorn.secretRef" (dict "env" "JWT_SECRET" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "JWT_SECRET" "ref" .Values.auth.session.jwtSecretRef "root" .) | nindent 8 }}
 
         # Shared app/session encryption
-        {{- include "shoehorn.secretRef" (dict "env" "AUTH_ENCRYPTION_KEY" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "AUTH_ENCRYPTION_KEY" "ref" .Values.auth.session.encryptionKeyRef "root" .) | nindent 8 }}
         # Persisted addon/integration/provider secret encryption
-        {{- include "shoehorn.secretRef" (dict "env" "SECRETS_ENCRYPTION_KEY" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "SECRETS_ENCRYPTION_KEY" "ref" .Values.auth.session.secretsEncryptionKeyRef "root" .) | nindent 8 }}
 
         # SMTP
         {{- if .Values.smtp.enabled }}
-        {{- include "shoehorn.secretRef" (dict "env" "SMTP_PASSWORD" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "SMTP_PASSWORD" "ref" .Values.smtp.passwordSecretRef "root" .) | nindent 8 }}
         {{- end }}
 
         volumeMounts:

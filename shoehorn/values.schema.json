@@ -80,19 +80,14 @@
     },
     "secret": {
       "type": "object",
-      "description": "Secret configuration (vendor-agnostic)",
+      "description": "Top-level secret configuration. Per-credential references live under each owner block (e.g. postgresql.passwordSecretRef, auth.okta.clientSecretRef).",
       "properties": {
-        "existingSecret": {
+        "defaultName": {
           "type": "string",
-          "description": "Name of existing Kubernetes Secret containing all credentials (required)"
-        },
-        "mappings": {
-          "type": "object",
-          "description": "Maps environment variable names to keys in the secret",
-          "additionalProperties": { "type": "string" }
+          "description": "Optional shared default Kubernetes Secret name. When set, *SecretRef.name fields may be omitted and the helper falls back to this value. Leave empty to require an explicit name on every reference."
         }
       },
-      "required": ["existingSecret"]
+      "additionalProperties": false
     },
     "extraVolumes": {
       "type": "array",
@@ -182,7 +177,11 @@
             "projectId": { "type": "string" },
             "clientId": { "type": "string" },
             "externalUrl": { "type": "string", "format": "uri" },
-            "insecure": { "type": "boolean", "default": false }
+            "insecure": { "type": "boolean", "default": false },
+            "serviceUserPatSecretRef": {
+              "$ref": "#/$defs/secretKeyRef",
+              "description": "Personal Access Token for Zitadel orgdata sync. Optional unless orgdata is enabled with a Zitadel provider."
+            }
           }
         },
         "okta": {
@@ -200,6 +199,18 @@
             "issuer": {
               "type": "string",
               "description": "Optional. Override the derived issuer URL; usually leave empty."
+            },
+            "authorizationServer": {
+              "type": "string",
+              "default": "default"
+            },
+            "clientSecretRef": {
+              "$ref": "#/$defs/secretKeyRef",
+              "description": "OIDC client secret. Required when auth.provider is \"okta\"."
+            },
+            "apiTokenSecretRef": {
+              "$ref": "#/$defs/secretKeyRef",
+              "description": "Okta Management API token. Required when orgdata syncs from Okta."
             }
           }
         },
@@ -208,13 +219,58 @@
           "properties": {
             "tenantId": { "type": "string" },
             "clientId": { "type": "string" },
-            "authority": { "type": "string" }
+            "authority": { "type": "string" },
+            "clientSecretRef": {
+              "$ref": "#/$defs/secretKeyRef",
+              "description": "OIDC client secret. Required when auth.provider is \"entra-id\"."
+            }
+          }
+        },
+        "github": {
+          "type": "object",
+          "description": "GitHub integration. App ID and installation ID are public identifiers.",
+          "properties": {
+            "appId": { "type": "string" },
+            "installationId": { "type": "string" },
+            "webhookSecretRef": {
+              "$ref": "#/$defs/secretKeyRef",
+              "description": "Shared webhook secret used to validate inbound GitHub webhooks."
+            },
+            "forge": {
+              "type": "object",
+              "properties": {
+                "appId": { "type": "string" },
+                "installationId": { "type": "string" },
+                "organization": { "type": "string" }
+              }
+            }
+          }
+        },
+        "argocd": {
+          "type": "object",
+          "properties": {
+            "tokenSecretRef": {
+              "$ref": "#/$defs/secretKeyRef",
+              "description": "ArgoCD API token used for direct sync/refresh calls. Optional."
+            }
           }
         },
         "session": {
           "type": "object",
           "properties": {
-            "maxAge": { "type": "string", "default": "8h" }
+            "maxAge": { "type": "string", "default": "8h" },
+            "jwtSecretRef": {
+              "$ref": "#/$defs/secretKeyRef",
+              "description": "JWT signing secret. Required."
+            },
+            "encryptionKeyRef": {
+              "$ref": "#/$defs/secretKeyRef",
+              "description": "Shared app/session encryption key. Required for all providers."
+            },
+            "secretsEncryptionKeyRef": {
+              "$ref": "#/$defs/secretKeyRef",
+              "description": "Persisted-secret encryption key (addons, integrations, auth providers)."
+            }
           }
         },
         "csrf": {
@@ -235,11 +291,51 @@
             "required": ["okta"],
             "properties": {
               "okta": {
-                "required": ["domain", "clientId"],
+                "required": ["domain", "clientId", "clientSecretRef"],
                 "properties": {
                   "domain": { "minLength": 1 },
-                  "clientId": { "minLength": 1 }
+                  "clientId": { "minLength": 1 },
+                  "clientSecretRef": {
+                    "required": ["key"],
+                    "properties": { "key": { "minLength": 1 } }
+                  }
                 }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "provider": { "const": "entra-id" } },
+            "required": ["provider"]
+          },
+          "then": {
+            "required": ["entraId"],
+            "properties": {
+              "entraId": {
+                "required": ["tenantId", "clientId", "clientSecretRef"],
+                "properties": {
+                  "tenantId": { "minLength": 1 },
+                  "clientId": { "minLength": 1 },
+                  "clientSecretRef": {
+                    "required": ["key"],
+                    "properties": { "key": { "minLength": 1 } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "provider": { "const": "zitadel" } },
+            "required": ["provider"]
+          },
+          "then": {
+            "required": ["zitadel"],
+            "properties": {
+              "zitadel": {
+                "required": ["projectId", "clientId", "externalUrl"]
               }
             }
           }
@@ -275,7 +371,11 @@
         "port": { "type": "integer", "default": 587 },
         "username": { "type": "string" },
         "from": { "type": "string" },
-        "feedbackEmail": { "type": "string" }
+        "feedbackEmail": { "type": "string" },
+        "passwordSecretRef": {
+          "$ref": "#/$defs/secretKeyRef",
+          "description": "SMTP password. Required when smtp.enabled is true."
+        }
       }
     },
     "api": { "$ref": "#/$defs/serviceConfig" },
@@ -290,6 +390,14 @@
       "description": "PostgreSQL database configuration",
       "properties": {
         "enabled": { "type": "boolean", "default": true },
+        "superuserPasswordSecretRef": {
+          "$ref": "#/$defs/secretKeyRef",
+          "description": "Superuser password (POSTGRES_PASSWORD) for migrations and shoehorn_user. Required."
+        },
+        "passwordSecretRef": {
+          "$ref": "#/$defs/secretKeyRef",
+          "description": "Application user password (DB_PASSWORD) for the RLS-enforced app_user. Required."
+        },
         "external": {
           "type": "object",
           "properties": {
@@ -307,6 +415,10 @@
       "type": "object",
       "properties": {
         "enabled": { "type": "boolean", "default": true },
+        "masterKeySecretRef": {
+          "$ref": "#/$defs/secretKeyRef",
+          "description": "Meilisearch master key. Required."
+        },
         "external": {
           "type": "object",
           "properties": {
@@ -324,6 +436,10 @@
       "type": "object",
       "properties": {
         "enabled": { "type": "boolean", "default": true },
+        "passwordSecretRef": {
+          "$ref": "#/$defs/secretKeyRef",
+          "description": "Valkey/Redis password. Required."
+        },
         "external": {
           "type": "object",
           "properties": {
@@ -437,8 +553,18 @@
       }
     }
   },
-  "required": ["global", "secret"],
+  "required": ["global"],
   "$defs": {
+    "secretKeyRef": {
+      "type": "object",
+      "description": "Reference to a key inside a Kubernetes Secret. Mirrors valueFrom.secretKeyRef.",
+      "properties": {
+        "name": { "type": "string" },
+        "key": { "type": "string" }
+      },
+      "required": ["key"],
+      "additionalProperties": false
+    },
     "imageConfig": {
       "type": "object",
       "properties": {

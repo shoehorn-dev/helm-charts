@@ -2,6 +2,13 @@
 *.tgz
 charts/
 
+# Worktrees
+.claude/
+
+# Golden helm-template snapshots used to compare output during chart changes.
+# Regenerable via: helm template ./shoehorn -f examples/values-X.yaml
+**/test/golden/
+
 # Secrets
 *-secret.yaml
 *-secrets.yaml

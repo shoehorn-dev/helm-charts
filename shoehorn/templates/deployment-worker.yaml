@@ -59,17 +59,13 @@ spec:
         # Database configuration (secrets and dynamic values)
         - name: DB_HOST
           value: {{ include "shoehorn.postgresql.host" . }}
-        {{- include "shoehorn.secretRef" (dict "env" "DB_PASSWORD" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "DB_PASSWORD" "ref" .Values.postgresql.passwordSecretRef "root" .) | nindent 8 }}
 
         # Valkey/Redis (secret only, host/port in ConfigMap)
-        {{- include "shoehorn.secretRef" (dict "env" "VALKEY_PASSWORD" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "VALKEY_PASSWORD" "ref" .Values.valkey.passwordSecretRef "root" .) | nindent 8 }}
 
         # Meilisearch (secret only, host/port/protocol in ConfigMap)
-        - name: MEILISEARCH_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.secret.existingSecret }}
-              key: {{ .Values.secret.mappings.MEILISEARCH_MASTER_KEY }}
+        {{- include "shoehorn.secretRef" (dict "env" "MEILISEARCH_API_KEY" "ref" .Values.meilisearch.masterKeySecretRef "root" .) | nindent 8 }}
 
         # Distributed Tracing (OpenTelemetry)
         - name: TRACING_ENABLED

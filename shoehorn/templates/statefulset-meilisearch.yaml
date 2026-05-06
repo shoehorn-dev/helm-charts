@@ -70,11 +70,7 @@ spec:
         - name: MEILI_NO_ANALYTICS
           value: {{ .Values.meilisearch.env.MEILI_NO_ANALYTICS | quote }}
         {{- if eq .Values.meilisearch.env.MEILI_ENV "production" }}
-        - name: MEILI_MASTER_KEY
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.secret.existingSecret }}
-              key: {{ .Values.secret.mappings.MEILISEARCH_MASTER_KEY }}
+        {{- include "shoehorn.secretRef" (dict "env" "MEILI_MASTER_KEY" "ref" .Values.meilisearch.masterKeySecretRef "root" .) | nindent 8 }}
         {{- end }}
         {{- if .Values.meilisearch.tls.enabled }}
         # HTTPS Configuration

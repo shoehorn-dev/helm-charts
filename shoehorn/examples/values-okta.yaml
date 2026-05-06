@@ -10,7 +10,7 @@
 # server, and mint an API token for orgdata sync.
 #
 # Usage:
-#   kubectl create secret generic shoehorn-auth-secrets \
+#   kubectl create secret generic shoehorn-auth-secrets -n shoehorn \
 #     --from-literal=okta_client_secret='<client-secret>' \
 #     --from-literal=okta_api_token='<api-token>' \
 #     --from-literal=auth_encryption_key="$(openssl rand -base64 32)" \
@@ -38,11 +38,19 @@ global:
     name: "Acme Corp"
     slug: "acme-corp"
 
+# Point the chart at the Kubernetes Secret you created above.
+# defaultName sets the fallback `name:` for every *SecretRef below — each
+# ref then only needs to specify which `key:` inside this Secret holds the
+# credential.
+secret:
+  defaultName: shoehorn-auth-secrets
+
 # Authentication — Okta OIDC
 # ──────────────────────────
 # auth.provider = "okta" triggers values.schema.json's conditional
 # require on auth.okta.{domain,clientId}. Helm will refuse to install
-# if either is empty.
+# if either is empty. clientId is a public identifier (not a secret);
+# only clientSecretRef and apiTokenSecretRef point at Secret keys.
 auth:
   provider: okta
 
@@ -55,8 +63,16 @@ auth:
     issuer: ""
     authorizationServer: default
 
+    # OIDC client secret — required for Okta auth.
+    clientSecretRef:
+      key: okta_client_secret
+
+    # Okta Management API token — required when orgdata.providers includes "okta".
+    # Leave key empty to silently omit the env var (orgdata sync will fail).
+    apiTokenSecretRef:
+      key: okta_api_token
+
   # Org data sync — Okta Management API as the user/team source of truth.
-  # Requires OKTA_API_TOKEN in the referenced secret (mapping below).
   orgdata:
     enabled: true
     providers: ["okta"]
@@ -70,34 +86,33 @@ auth:
     # Alternatively: comma-separated emails (escape hatch; prefer groups).
     adminUsers: ""
 
+  # Required session keys — all three resolve against secret.defaultName.
   session:
     maxAge: "8h"
+    jwtSecretRef:
+      key: jwt_secret
+    encryptionKeyRef:
+      key: auth_encryption_key
+    secretsEncryptionKeyRef:
+      key: secrets_encryption_key
+
   csrf:
     enabled: true
 
-# Point the chart at the Kubernetes Secret you created above.
-secret:
-  existingSecret: "shoehorn-auth-secrets"
+# Infrastructure credentials — same shoehorn-auth-secrets Secret, different keys.
+postgresql:
+  superuserPasswordSecretRef:
+    key: postgres_password
+  passwordSecretRef:
+    key: db_password
 
-  # The chart never creates secrets — only references. Map env var names
-  # to keys in your secret. Override here if your secret uses different
-  # key names than the defaults.
-  mappings:
-    # Required for all auth providers
-    JWT_SECRET: jwt_secret
-    AUTH_ENCRYPTION_KEY: auth_encryption_key
-    SECRETS_ENCRYPTION_KEY: secrets_encryption_key
+valkey:
+  passwordSecretRef:
+    key: valkey_password
 
-    # Okta-specific
-    OKTA_CLIENT_SECRET: okta_client_secret
-    OKTA_API_TOKEN: okta_api_token
-
-    # Infrastructure (point at the same secret or a different one — the
-    # chart accepts a single secret name for simplicity).
-    POSTGRES_PASSWORD: postgres_password
-    DB_PASSWORD: db_password
-    VALKEY_PASSWORD: valkey_password
-    MEILISEARCH_MASTER_KEY: meilisearch_master_key
+meilisearch:
+  masterKeySecretRef:
+    key: meilisearch_master_key
 
 # Image configuration
 image:
