@@ -217,9 +217,11 @@ spec:
         - name: GITHUB_INSTALLATION_ID
           value: {{ .Values.auth.github.installationId | quote }}
         {{- end }}
+        {{- if .Values.auth.github.appId }}
         {{- include "shoehorn.secretRef" (dict "env" "GITHUB_WEBHOOK_SECRET" "ref" .Values.auth.github.webhookSecretRef "root" .) | nindent 8 }}
         - name: GITHUB_APP_PRIVATE_KEY_PATH
           value: /var/secrets/github/private-key
+        {{- end }}
 
         # GitHub Forge Integration (for workflow execution) — all public identifiers.
         {{- if .Values.auth.github.forge.appId }}
