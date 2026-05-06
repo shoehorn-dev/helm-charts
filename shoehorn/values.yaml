@@ -766,7 +766,7 @@ meilisearch:
     key: meilisearch_master_key
   image:
     repository: getmeili/meilisearch
-    tag: "v1.42.1"
+    tag: "v1.43.0"
   resources:
     requests:
       cpu: 250m
@@ -803,6 +803,10 @@ meilisearch:
     periodSeconds: 5
     failureThreshold: 30
     timeoutSeconds: 3
+  # Note (Meilisearch v1.43.0+): after a successful task-queue compaction,
+  # /health returns HTTP 500 to signal "please restart me". The default
+  # failureThreshold (3) gives a 30s buffer, then the pod restarts cleanly
+  # and /health returns 200 again. This is the intended v1.43+ behavior.
   livenessProbe:
     httpGet:
       path: /health
