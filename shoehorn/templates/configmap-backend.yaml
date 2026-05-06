@@ -8,8 +8,8 @@ metadata:
     app.kubernetes.io/component: backend
 data:
   # Application Configuration
+  # LOG_LEVEL is per-service (set on each Deployment env from <service>.logLevel).
   ENVIRONMENT: {{ .Values.global.environment | quote }}
-  LOG_LEVEL: {{ .Values.global.logLevel | default "info" | quote }}
   LOG_FORMAT: "json"
 
   # Domain Configuration

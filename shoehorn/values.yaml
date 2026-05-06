@@ -10,8 +10,9 @@ global:
   # Controls: security defaults, gRPC reflection, auth validation, CORS origins
   # Empty or unset = production behavior (fail-closed)
   environment: "production"
-  # Log level for all backend services (debug, info, warn, error)
-  logLevel: "info"
+  # logLevel lives per-service (api.logLevel, web.logLevel, ...). Putting it
+  # under global.* would propagate to the cert-manager subchart, whose schema
+  # rejects a string logLevel.
 
   # Trusted reverse proxies for forwarded identity/protocol headers
   # ═══════════════════════════════════════════════════════════════
@@ -278,6 +279,7 @@ smtp:
 # API Gateway
 api:
   name: api
+  logLevel: "info"
   # Shoehorn service catalog annotations (prefixed with shoehorn.dev/)
   annotations: {}
     # team: "platform-team"
@@ -328,6 +330,7 @@ api:
 # Web Frontend
 web:
   name: web
+  logLevel: "info"
   annotations: {}
     # team: "platform-team"
     # repositoryUrl: "https://github.com/org/shoehorn-web"
@@ -364,6 +367,7 @@ web:
 # EventBus Microservice
 eventbus:
   name: eventbus
+  logLevel: "info"
   annotations: {}
   image:
     repository: ghcr.io/shoehorn-dev/shoehorn-eventbus
@@ -399,6 +403,7 @@ eventbus:
 # Worker Microservice
 worker:
   name: worker
+  logLevel: "info"
   annotations: {}
   image:
     repository: ghcr.io/shoehorn-dev/shoehorn-worker
@@ -434,6 +439,7 @@ worker:
 # Crawler Microservice
 crawler:
   name: crawler
+  logLevel: "info"
   annotations: {}
   image:
     repository: ghcr.io/shoehorn-dev/shoehorn-crawler
@@ -483,6 +489,7 @@ cloudProviders:
 # Forge Microservice (Workflow engine & scaffolding)
 forge:
   name: forge
+  logLevel: "info"
   annotations: {}
   image:
     repository: ghcr.io/shoehorn-dev/shoehorn-forge

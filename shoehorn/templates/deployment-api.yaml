@@ -72,6 +72,8 @@ spec:
             name: {{ include "shoehorn.fullname" . }}-backend-overrides
             optional: true
         env:
+        - name: LOG_LEVEL
+          value: {{ .Values.api.logLevel | default "info" | quote }}
         # Service-specific configuration
         - name: SERVICE_NAME
           value: "api"

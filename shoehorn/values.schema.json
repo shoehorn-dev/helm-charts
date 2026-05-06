@@ -20,12 +20,6 @@
           "enum": ["development", "staging", "production"],
           "default": "production"
         },
-        "logLevel": {
-          "type": "string",
-          "description": "Default log level for all services",
-          "enum": ["debug", "info", "warn", "error"],
-          "default": "info"
-        },
         "storageClass": {
           "type": "string",
           "description": "Kubernetes storage class for persistent volumes"
@@ -609,6 +603,12 @@
       "type": "object",
       "properties": {
         "name": { "type": "string" },
+        "logLevel": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "default": "info",
+          "description": "Log level for this service. Overrides the chart default ('info')."
+        },
         "annotations": {
           "type": "object",
           "properties": {
