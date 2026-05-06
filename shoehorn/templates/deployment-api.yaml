@@ -52,7 +52,7 @@ spec:
           {{- end }}
         {{- include "shoehorn.secretRef" (dict "env" "APP_USER_PASSWORD" "ref" .Values.postgresql.passwordSecretRef "root" .) | nindent 8 }}
         - name: ENVIRONMENT
-          value: {{ .Values.global.environment | quote }}
+          value: "production"
         - name: LOG_LEVEL
           value: "info"
       containers:
@@ -80,8 +80,7 @@ spec:
         - name: HTTP_PORT
           value: {{ .Values.api.env.HTTP_PORT | quote }}
 
-        # Database configuration (secrets and dynamic values)
-        # IMPORTANT: DB_PASSWORD must be defined BEFORE DATABASE_URL for $(DB_PASSWORD) substitution to work
+        # Database. DB_PASSWORD must come before DATABASE_URL so $(DB_PASSWORD) expands.
         {{- include "shoehorn.secretRef" (dict "env" "DB_PASSWORD" "ref" .Values.postgresql.passwordSecretRef "root" .) | nindent 8 }}
         - name: DATABASE_URL
           {{- if .Values.postgresql.tls.enabled }}
@@ -89,13 +88,11 @@ spec:
           {{- else }}
           value: "postgresql://app_user:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode=disable"
           {{- end }}
-        # App user password for RLS migration init container
         {{- include "shoehorn.secretRef" (dict "env" "APP_USER_PASSWORD" "ref" .Values.postgresql.passwordSecretRef "root" .) | nindent 8 }}
-        # Dynamic database host (from Helm helper)
         - name: DB_HOST
           value: {{ include "shoehorn.postgresql.host" . }}
 
-        # Cerbos Authorization
+        # Cerbos
         - name: CERBOS_ENABLED
           value: "true"
         - name: CERBOS_URL
@@ -103,7 +100,7 @@ spec:
         - name: CERBOS_TLS_ENABLED
           value: {{ .Values.global.mtls.enabled | quote }}
 
-        # Distributed Tracing (OpenTelemetry)
+        # Tracing
         - name: TRACING_ENABLED
           value: {{ .Values.global.tracing.enabled | default false | quote }}
         {{- if .Values.global.tracing.otlpEndpoint }}
@@ -111,7 +108,7 @@ spec:
           value: {{ .Values.global.tracing.otlpEndpoint | quote }}
         {{- end }}
 
-        # gRPC mTLS Configuration
+        # gRPC mTLS
         - name: GRPC_TLS_ENABLED
           value: {{ .Values.global.mtls.enabled | default false | quote }}
         {{- if .Values.global.mtls.enabled }}
@@ -131,12 +128,11 @@ spec:
         # Meilisearch
         {{- include "shoehorn.secretRef" (dict "env" "MEILISEARCH_MASTER_KEY" "ref" .Values.meilisearch.masterKeySecretRef "root" .) | nindent 8 }}
 
-        # Authentication Provider Configuration
+        # Auth
         - name: AUTH_PROVIDER
           value: {{ .Values.auth.provider | quote }}
 
-        # Role Assignment (IdP-agnostic tenant role auto-assignment)
-        # Bootstrap admin gets tenant:admin role on first login (if no roles in database)
+        # Bootstrap admin (first login gets tenant:admin if no roles in DB).
         {{- if .Values.rbac.roleAssignment }}
         {{- if .Values.rbac.roleAssignment.tenantAdmin }}
         {{- if .Values.rbac.roleAssignment.tenantAdmin.user }}
@@ -167,7 +163,7 @@ spec:
           value: "https"
         {{- include "shoehorn.secretRef" (dict "env" "ZITADEL_SERVICE_USER_PAT" "ref" .Values.auth.zitadel.serviceUserPatSecretRef "root" . "optional" true) | nindent 8 }}
         {{- end }}
-        # Multi-Provider OrgData Sync
+        # OrgData sync
         {{- if .Values.auth.orgdata.enabled }}
         {{- if .Values.auth.orgdata.providers }}
         - name: ORGDATA_PROVIDERS
@@ -206,7 +202,7 @@ spec:
         {{- end }}
         {{- end }}
 
-        # GitHub Integration — appId/installationId are public identifiers, not secrets.
+        # GitHub (appId / installationId are public).
         {{- if .Values.auth.github.appId }}
         - name: GITHUB_APP_ID
           value: {{ .Values.auth.github.appId | quote }}
@@ -223,7 +219,7 @@ spec:
           value: /var/secrets/github/private-key
         {{- end }}
 
-        # GitHub Forge Integration (for workflow execution) — all public identifiers.
+        # GitHub Forge App (separate from auth.github)
         {{- if .Values.auth.github.forge.appId }}
         - name: GITHUB_FORGE_APP_ID
           value: {{ .Values.auth.github.forge.appId | quote }}
@@ -235,15 +231,15 @@ spec:
         - name: GITHUB_FORGE_PRIVATE_KEY_PATH
           value: /var/secrets/github-forge/private-key
 
-        # ArgoCD API token (for direct sync/refresh calls)
+        # ArgoCD
         {{- include "shoehorn.secretRef" (dict "env" "ARGOCD_TOKEN" "ref" .Values.auth.argocd.tokenSecretRef "root" . "optional" true) | nindent 8 }}
 
         # JWT
         {{- include "shoehorn.secretRef" (dict "env" "JWT_SECRET" "ref" .Values.auth.session.jwtSecretRef "root" .) | nindent 8 }}
 
-        # Shared app/session encryption
+        # Shared app/session encryption key
         {{- include "shoehorn.secretRef" (dict "env" "AUTH_ENCRYPTION_KEY" "ref" .Values.auth.session.encryptionKeyRef "root" .) | nindent 8 }}
-        # Persisted addon/integration/provider secret encryption
+        # Encryption key for persisted addon/integration/provider secrets
         {{- include "shoehorn.secretRef" (dict "env" "SECRETS_ENCRYPTION_KEY" "ref" .Values.auth.session.secretsEncryptionKeyRef "root" .) | nindent 8 }}
 
         # SMTP

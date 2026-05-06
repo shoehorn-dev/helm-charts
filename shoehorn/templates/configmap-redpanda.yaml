@@ -52,7 +52,6 @@ data:
       auto_create_topics_enabled: true
 
     {{- if .Values.redpanda.tls.enabled }}
-    # Kafka API TLS Configuration
     kafka_api_tls:
       - name: internal_tls
         enabled: true
@@ -68,7 +67,6 @@ data:
           port: 8082
           name: internal
           {{- if .Values.redpanda.tls.enabled }}
-          # Pandaproxy TLS configuration
           tls:
             enabled: true
             cert_file: {{ .Values.redpanda.tls.certFile }}

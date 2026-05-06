@@ -14,12 +14,6 @@
           "description": "Domain for Shoehorn (e.g., shoehorn.example.com)",
           "examples": ["shoehorn.example.com", "alpha.shoehorn.dev"]
         },
-        "environment": {
-          "type": "string",
-          "description": "Environment name",
-          "enum": ["development", "staging", "production"],
-          "default": "production"
-        },
         "storageClass": {
           "type": "string",
           "description": "Kubernetes storage class for persistent volumes"

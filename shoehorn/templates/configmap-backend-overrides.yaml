@@ -1,3 +1,8 @@
+{{- /*
+  Operator-managed override ConfigMap. Mounted as an optional envFrom source on
+  backend Deployments. Write keys here to override the main backend ConfigMap
+  without a chart release. Preserved across helm uninstall.
+*/ -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:

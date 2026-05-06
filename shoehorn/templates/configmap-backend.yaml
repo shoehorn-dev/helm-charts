@@ -7,22 +7,15 @@ metadata:
     {{- include "shoehorn.labels" . | nindent 4 }}
     app.kubernetes.io/component: backend
 data:
-  # Application Configuration
-  # LOG_LEVEL is per-service (set on each Deployment env from <service>.logLevel).
-  ENVIRONMENT: {{ .Values.global.environment | quote }}
+  ENVIRONMENT: "production"
   LOG_FORMAT: "json"
 
-  # Domain Configuration
   DOMAIN: {{ .Values.global.domain | quote }}
-
-  # Trusted Reverse Proxies
-  # Comma-separated IPs/CIDRs allowed to send X-Forwarded-* identity headers.
-  # Empty in production = forwarded headers ignored (fail-closed).
   {{- if .Values.global.trustedProxies }}
   TRUSTED_PROXIES: {{ .Values.global.trustedProxies | quote }}
   {{- end }}
 
-  # Database Configuration (non-sensitive)
+  # Database
   DB_PORT: "5432"
   DB_NAME: "shoehorn"
   DB_USER: "app_user"
@@ -31,20 +24,16 @@ data:
   {{- else }}
   DB_SSLMODE: "disable"
   {{- end }}
-
-  # Database Connection Pool (global defaults - services can override via deployment env)
-  # Total connections across all services should stay below PostgreSQL max_connections (default: 100)
-  # Formula: sum(all services DB_MAX_OPEN_CONNS) + 20 (admin headroom) <= max_connections
   DB_MAX_OPEN_CONNS: {{ .Values.postgresql.pool.maxOpenConns | default "25" | quote }}
   DB_MAX_IDLE_CONNS: {{ .Values.postgresql.pool.maxIdleConns | default "5" | quote }}
   DB_CONN_MAX_LIFETIME: {{ .Values.postgresql.pool.maxLifetime | default "5m" | quote }}
   DB_CONN_MAX_IDLE_TIME: {{ .Values.postgresql.pool.maxIdleTime | default "90s" | quote }}
 
-  # Redis/Valkey Configuration
+  # Valkey
   VALKEY_HOST: {{ include "shoehorn.valkey.host" . }}
   VALKEY_PORT: {{ include "shoehorn.valkey.port" . | quote }}
 
-  # Meilisearch Configuration
+  # Meilisearch
   MEILISEARCH_HOST: {{ include "shoehorn.meilisearch.host" . }}
   MEILISEARCH_PORT: {{ include "shoehorn.meilisearch.port" . | quote }}
   {{- if .Values.meilisearch.tls.enabled }}
@@ -53,11 +42,11 @@ data:
   MEILISEARCH_PROTOCOL: {{ include "shoehorn.meilisearch.protocol" . | quote }}
   {{- end }}
 
-  # Redpanda/Kafka Configuration
+  # Redpanda
   KAFKA_BROKERS: {{ include "shoehorn.redpanda.brokers" . }}
   REDPANDA_BROKERS: {{ include "shoehorn.redpanda.brokers" . }}
 
-  # Service Discovery (GRPC endpoints)
+  # gRPC service discovery
   EVENTBUS_GRPC_ADDR: {{ include "shoehorn.eventbus.grpc" . }}
   WORKER_GRPC_ADDR: {{ include "shoehorn.worker.grpc" . }}
   CRAWLER_GRPC_ADDR: {{ include "shoehorn.crawler.grpc" . }}
@@ -69,12 +58,11 @@ data:
   {{- end }}
   CSRF_ENABLED: {{ .Values.auth.csrf.enabled | quote }}
 
-  # Feature Flags
   TELEMETRY_ENABLED: "true"
   ENABLE_METRICS: "true"
   METRICS_PORT: "9090"
 
-  # GitHub Integration
+  # GitHub
   {{- if .Values.api.env.GITHUB_ORGANIZATIONS }}
   GITHUB_ORGANIZATIONS: {{ .Values.api.env.GITHUB_ORGANIZATIONS | quote }}
   {{- end }}
@@ -97,7 +85,6 @@ data:
   DEBUG_GITHUB_API: {{ .Values.api.env.DEBUG_GITHUB_API | quote }}
   {{- end }}
 
-  # GitHub Security Features
   {{- if hasKey .Values.api.env "GITHUB_SECURITY_CODEQL_ENABLED" }}
   GITHUB_SECURITY_CODEQL_ENABLED: {{ .Values.api.env.GITHUB_SECURITY_CODEQL_ENABLED | quote }}
   {{- else }}
@@ -114,7 +101,7 @@ data:
   GITHUB_SECURITY_DEPENDABOT_ENABLED: "true"
   {{- end }}
 
-  # SMTP Configuration
+  # SMTP
   {{- if .Values.smtp.enabled }}
   SMTP_ENABLED: "true"
   SMTP_HOST: {{ .Values.smtp.host | quote }}
@@ -126,7 +113,7 @@ data:
   {{- end }}
   {{- end }}
 
-  # Organization/Tenant Configuration
+  # Tenant
   {{- if and .Values.global.organization .Values.global.organization.slug }}
   ORGANIZATION_SLUG: {{ .Values.global.organization.slug | quote }}
   {{- if .Values.global.organization.name }}

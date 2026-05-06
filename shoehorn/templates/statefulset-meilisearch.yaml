@@ -73,7 +73,6 @@ spec:
         {{- include "shoehorn.secretRef" (dict "env" "MEILI_MASTER_KEY" "ref" .Values.meilisearch.masterKeySecretRef "root" .) | nindent 8 }}
         {{- end }}
         {{- if .Values.meilisearch.tls.enabled }}
-        # HTTPS Configuration
         - name: MEILI_SSL_CERT_PATH
           value: {{ .Values.meilisearch.tls.certFile | quote }}
         - name: MEILI_SSL_KEY_PATH

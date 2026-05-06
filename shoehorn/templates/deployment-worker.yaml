@@ -77,7 +77,7 @@ spec:
           value: {{ .Values.global.tracing.otlpEndpoint | quote }}
         {{- end }}
 
-        # gRPC mTLS Configuration
+        # gRPC mTLS
         - name: GRPC_TLS_ENABLED
           value: {{ .Values.global.mtls.enabled | default false | quote }}
         {{- if .Values.global.mtls.enabled }}

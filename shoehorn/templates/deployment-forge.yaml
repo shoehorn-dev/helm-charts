@@ -66,8 +66,7 @@ spec:
           value: {{ .Values.forge.env.HTTP_PORT | quote }}
         - name: GRPC_PORT
           value: {{ .Values.forge.env.GRPC_PORT | quote }}
-        # Forge-specific environment (controls ShellAdapter security mode)
-        # - production: Containers required, direct execution blocked
+        # FORGE_ENVIRONMENT=production blocks direct shell execution (containers required).
         {{- if .Values.forge.env.FORGE_ENVIRONMENT }}
         - name: FORGE_ENVIRONMENT
           value: {{ .Values.forge.env.FORGE_ENVIRONMENT | quote }}
@@ -76,8 +75,7 @@ spec:
           value: "production"
         {{- end }}
 
-        # Database configuration (secrets and dynamic values)
-        # IMPORTANT: DB_PASSWORD must be defined BEFORE DATABASE_URL for $(DB_PASSWORD) substitution to work
+        # Database. DB_PASSWORD must come before DATABASE_URL so $(DB_PASSWORD) expands.
         {{- include "shoehorn.secretRef" (dict "env" "DB_PASSWORD" "ref" .Values.postgresql.passwordSecretRef "root" .) | nindent 8 }}
         - name: DATABASE_URL
           {{- if .Values.postgresql.tls.enabled }}
@@ -114,7 +112,7 @@ spec:
         - name: REDPANDA_BROKERS
           value: {{ include "shoehorn.redpanda.brokers" . }}
 
-        # Authentication Provider Configuration (for JWT verification in gRPC)
+        # Auth (JWT verification on gRPC)
         - name: AUTH_PROVIDER
           value: {{ .Values.auth.provider | quote }}
 
@@ -144,6 +142,19 @@ spec:
         {{- end }}
         {{- end }}
 
+        # OrgData sync (group-based approvals require this).
+        {{- if .Values.auth.orgdata.enabled }}
+        {{- if .Values.auth.orgdata.providers }}
+        - name: ORGDATA_PROVIDERS
+          value: {{ join "," .Values.auth.orgdata.providers | quote }}
+        {{- end }}
+        {{- if .Values.auth.orgdata.primaryProvider }}
+        - name: PRIMARY_ORGDATA_PROVIDER
+          value: {{ .Values.auth.orgdata.primaryProvider | quote }}
+        {{- end }}
+        {{- include "shoehorn.secretRef" (dict "env" "OKTA_API_TOKEN" "ref" .Values.auth.okta.apiTokenSecretRef "root" . "optional" true) | nindent 8 }}
+        {{- end }}
+
         {{- if eq .Values.auth.provider "entra-id" }}
         # Microsoft Entra ID Provider
         - name: ENTRA_TENANT_ID
@@ -164,7 +175,7 @@ spec:
         - name: CERBOS_TLS_ENABLED
           value: {{ .Values.global.mtls.enabled | quote }}
 
-        # Distributed Tracing (OpenTelemetry)
+        # Tracing
         - name: TRACING_ENABLED
           value: {{ .Values.global.tracing.enabled | default false | quote }}
         {{- if .Values.global.tracing.otlpEndpoint }}
@@ -172,7 +183,7 @@ spec:
           value: {{ .Values.global.tracing.otlpEndpoint | quote }}
         {{- end }}
 
-        # gRPC mTLS Configuration
+        # gRPC mTLS
         - name: GRPC_TLS_ENABLED
           value: {{ .Values.global.mtls.enabled | default false | quote }}
         {{- if .Values.global.mtls.enabled }}
@@ -184,7 +195,7 @@ spec:
           value: {{ .Values.global.mtls.caFile | quote }}
         {{- end }}
 
-        # GitHub Forge Integration (uses dedicated forge GitHub App)
+        # GitHub Forge App (separate from auth.github)
         {{- if .Values.auth.github.forge.appId }}
         - name: GITHUB_FORGE_APP_ID
           value: {{ .Values.auth.github.forge.appId | quote }}
