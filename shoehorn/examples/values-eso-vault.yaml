@@ -8,8 +8,8 @@
 # ───────────────
 # When you let one Vault path rotate independently from another (database
 # password rotated by Vault's database secrets engine; OIDC client secret
-# rotated by your IdP team; GitHub webhook secret rotated by SecOps), you
-# do NOT want them all glued into a single Kubernetes Secret. Putting each
+# rotated by your IdP team), you do NOT want them all glued into a single
+# Kubernetes Secret. Putting each
 # credential in its own Secret means:
 #
 #   - Each Vault path becomes its own K8s Secret, rotated independently.
@@ -77,7 +77,7 @@
 #   shoehorn-session-keys  (jwt, auth_encryption_key, secrets_encryption_key)
 #   shoehorn-cache-creds   (valkey password)
 #   shoehorn-search-creds  (meilisearch master key)
-#   shoehorn-github-creds  (github webhook secret + private key file)
+#   shoehorn-github-creds  (github app private key file)
 #
 # ============================================================================
 

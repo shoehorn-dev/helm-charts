@@ -17,9 +17,8 @@
 #                               Holds: postgres_password, db_password.
 #
 #   shoehorn-app-secrets      ← managed by your platform team. Holds JWT,
-#                               session keys, search/cache passwords, GitHub
-#                               webhook secret, etc. Rotated on its own
-#                               schedule.
+#                               session keys, search/cache passwords. Rotated
+#                               on its own schedule.
 #
 # Each *SecretRef in this chart points at a Kubernetes Secret + key, so the
 # two sources stay separate. `secret.defaultName` provides the fallback for
