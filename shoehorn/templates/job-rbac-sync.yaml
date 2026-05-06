@@ -46,11 +46,7 @@ spec:
               done
               echo "PostgreSQL is ready!"
           env:
-            - name: PGPASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $.Values.secret.existingSecret }}
-                  key: {{ $.Values.secret.mappings.DB_PASSWORD }}
+            {{- include "shoehorn.secretRef" (dict "env" "PGPASSWORD" "ref" $.Values.postgresql.passwordSecretRef "root" $) | nindent 18 }}
 
         # Wait for Valkey to be ready (for distributed locking)
         - name: wait-for-valkey
@@ -91,11 +87,7 @@ spec:
               value: {{ include "shoehorn.postgresql.database" $ }}
             - name: DB_USER
               value: {{ include "shoehorn.postgresql.user" $ }}
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $.Values.secret.existingSecret }}
-                  key: {{ $.Values.secret.mappings.DB_PASSWORD }}
+            {{- include "shoehorn.secretRef" (dict "env" "DB_PASSWORD" "ref" $.Values.postgresql.passwordSecretRef "root" $) | nindent 18 }}
             - name: DB_SSL_MODE
               value: {{ $.Values.postgresql.sslMode | default "disable" }}
 
@@ -104,12 +96,7 @@ spec:
               value: {{ include "shoehorn.valkey.host" $ }}
             - name: VALKEY_PORT
               value: {{ include "shoehorn.valkey.port" $ | quote }}
-            - name: VALKEY_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $.Values.secret.existingSecret }}
-                  key: {{ $.Values.secret.mappings.VALKEY_PASSWORD }}
-                  optional: true
+            {{- include "shoehorn.secretRef" (dict "env" "VALKEY_PASSWORD" "ref" $.Values.valkey.passwordSecretRef "root" $) | nindent 18 }}
 
             # RBAC configuration
             - name: RBAC_ENABLED

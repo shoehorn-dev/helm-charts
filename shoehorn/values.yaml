@@ -161,47 +161,31 @@ replicaCount:
 # ═══════════════════════════════════════════════════════════════
 # Secret Configuration
 # ═══════════════════════════════════════════════════════════════
-# Point the chart at an existing Kubernetes Secret containing all credentials.
-# Create the secret however you prefer: kubectl, External Secrets Operator,
-# Vault, Sealed Secrets, or any other tool.
+# Each credential references a Kubernetes Secret using the same shape as
+# Kubernetes' native valueFrom.secretKeyRef:
 #
-# The chart never creates secrets — it only references them.
+#   <thing>SecretRef:
+#     name: <kubernetes-secret-name>     # optional if secret.defaultName is set
+#     key:  <key-inside-secret>          # the key holding the credential
+#
+# Two operating modes:
+#
+#   (A) One Secret for everything (kubectl + Sealed Secrets workflows):
+#       Set secret.defaultName once. Each *SecretRef can omit `name:` and
+#       just supply `key:`.
+#
+#   (B) Per-credential Secrets (External Secrets Operator + Vault / AWS / GCP):
+#       Set `name:` on each *SecretRef pointing at the per-source K8s Secret
+#       synced by ESO/CSI from the matching upstream path.
+#
+# The chart never creates Secrets — it only references them.
+# See the chart README "Secret configuration" section for the full
+# reference table and worked examples.
 secret:
-  # Name of the existing Kubernetes Secret (required)
-  existingSecret: ""
-
-  # Maps environment variable names to keys in your secret.
-  # Override if your secret uses different key names.
-  mappings:
-    # Database
-    POSTGRES_PASSWORD: postgres_password
-    DB_PASSWORD: db_password
-    # Services
-    VALKEY_PASSWORD: valkey_password
-    MEILISEARCH_MASTER_KEY: meilisearch_master_key
-    JWT_SECRET: jwt_secret
-    # GitHub Integration
-    GITHUB_APP_ID: github_app_id
-    GITHUB_APP_INSTALLATION_ID: github_app_installation_id
-    GITHUB_WEBHOOK_SECRET: github_webhook_secret
-    # GitHub Forge (optional — remove if not using Forge)
-    GITHUB_FORGE_APP_ID: github_forge_app_id
-    GITHUB_FORGE_INSTALLATION_ID: github_forge_installation_id
-    # Auth — add keys based on your auth provider:
-    #   Zitadel:  ZITADEL_SERVICE_USER_PAT: service_user_pat
-    #   Okta:     OKTA_CLIENT_SECRET: okta_client_secret
-    #             OKTA_API_TOKEN: okta_api_token
-    #   Entra ID: ENTRA_CLIENT_SECRET: entra_client_secret
-    # Shared app/session encryption (required for all providers)
-    AUTH_ENCRYPTION_KEY: auth_encryption_key
-    # Persisted secret encryption (required for addon, integration, and auth-provider secrets)
-    SECRETS_ENCRYPTION_KEY: secrets_encryption_key
-    # SMTP (optional):
-    #   SMTP_PASSWORD: smtp_password
-    # ArgoCD (optional):
-    #   ARGOCD_TOKEN: argocd_token
-    # UpCloud (optional):
-    #   UPCLOUD_TOKEN: upcloud_token
+  # Optional shared default secret name. When set, *SecretRef.name fields
+  # may be omitted and the helper falls back to this value. Leave empty
+  # to require an explicit name on every reference.
+  defaultName: ""
 
 # Additional volumes to mount on all backend pods.
 # Use for file-based secrets (e.g., GitHub private keys, TLS certs).
@@ -287,6 +271,9 @@ smtp:
   username: ""       # SMTP username
   from: ""           # e.g., "noreply@shoehorn.dev"
   feedbackEmail: ""  # Recipient for user feedback (e.g., "feedback@shoehorn.dev")
+  passwordSecretRef:
+    name: ""
+    key: ""
 
 # API Gateway
 api:
@@ -488,7 +475,10 @@ cloudProviders:
     enabled: false
     syncInterval: ""    # Per-provider override (empty = use cloudProviders.syncInterval)
     apiBaseUrl: ""      # Empty = default https://api.upcloud.com/1.3
-    # Token is read from secret.existingSecret (key: upcloud_token)
+    # API token. Required when cloudProviders.upcloud.enabled is true.
+    tokenSecretRef:
+      name: ""
+      key: ""
 
 # Forge Microservice (Workflow engine & scaffolding)
 forge:
@@ -542,6 +532,10 @@ auth:
     clientId: ""
     externalUrl: "https://auth.example.com"
     insecure: false
+    # Personal Access Token for Zitadel orgdata sync. Optional unless orgdata is enabled with a Zitadel provider.
+    serviceUserPatSecretRef:
+      name: ""
+      key: ""
 
   # Okta (customer's existing org)
   okta:
@@ -549,18 +543,62 @@ auth:
     clientId: ""
     issuer: ""
     authorizationServer: default
+    # OIDC client secret. Required when auth.provider is "okta".
+    clientSecretRef:
+      name: ""
+      key: ""
+    # Okta Management API token. Required when orgdata syncs from Okta.
+    apiTokenSecretRef:
+      name: ""
+      key: ""
 
   # Microsoft Entra ID
   entraId:
     tenantId: ""
     clientId: ""
     authority: ""
+    # OIDC client secret. Required when auth.provider is "entra-id".
+    clientSecretRef:
+      name: ""
+      key: ""
+
+  # GitHub integration. App ID and installation ID are public identifiers, not secrets.
+  github:
+    appId: ""
+    installationId: ""
+    # Shared webhook secret used to validate inbound GitHub webhooks.
+    webhookSecretRef:
+      name: ""
+      key: github_webhook_secret
+    forge:
+      # Optional: a separate GitHub App used by Forge for workflow execution.
+      appId: ""
+      installationId: ""
+      organization: ""
+
+  # ArgoCD integration (optional). Token used for direct sync/refresh calls.
+  argocd:
+    tokenSecretRef:
+      name: ""
+      key: ""
 
   # Session settings
   session:
     # Max age for session cookies (Go duration format: 8h, 24h, 720h)
     # Minimum: 5m, Maximum: 720h (30 days)
     maxAge: "8h"
+    # JWT signing secret. Required.
+    jwtSecretRef:
+      name: ""
+      key: jwt_secret
+    # Shared app/session encryption key. Required for all providers.
+    encryptionKeyRef:
+      name: ""
+      key: auth_encryption_key
+    # Persisted-secret encryption key (addons, integrations, auth providers).
+    secretsEncryptionKeyRef:
+      name: ""
+      key: secrets_encryption_key
 
   # CSRF protection (double-submit cookie pattern)
   csrf:
@@ -578,7 +616,7 @@ auth:
     enabled: false  # Enable multi-provider orgdata sync
     providers: []  # List of providers: ["okta", "zitadel"]
     primaryProvider: ""  # Primary provider for conflict resolution (e.g., "zitadel")
-    # Okta API token key is read from secret.existingSecret via secret.mappings
+    # Per-provider tokens are referenced via *SecretRef fields (see auth.okta.apiTokenSecretRef).
 
 
 # Cerbos (policy-based authorization — always deployed, required by Shoehorn)
@@ -605,6 +643,15 @@ cerbos:
 postgresql:
   name: postgresql
   enabled: true  # Deploy PostgreSQL StatefulSet in cluster
+  # Two-user model: superuser handles migrations, app user is RLS-enforced.
+  # superuserPasswordSecretRef → POSTGRES_PASSWORD (shoehorn_user, BYPASSRLS)
+  # passwordSecretRef          → DB_PASSWORD       (app_user, NOBYPASSRLS)
+  superuserPasswordSecretRef:
+    name: ""
+    key: postgres_password
+  passwordSecretRef:
+    name: ""
+    key: db_password
   image:
     repository: ghcr.io/shoehorn-dev/shoehorn-postgres
     tag: ""
@@ -712,6 +759,11 @@ postgresql:
 meilisearch:
   name: meilisearch
   enabled: true  # Deploy Meilisearch StatefulSet in cluster
+  # Meilisearch master key — used both by the in-cluster StatefulSet and as
+  # the search auth token consumed by API/forge/crawler/worker.
+  masterKeySecretRef:
+    name: ""
+    key: meilisearch_master_key
   image:
     repository: getmeili/meilisearch
     tag: "v1.42.1"
@@ -784,6 +836,11 @@ meilisearch:
 valkey:
   name: valkey
   enabled: true  # Deploy Valkey StatefulSet in cluster
+  # Valkey/Redis password — used for both client connections and the in-cluster
+  # StatefulSet's --requirepass.
+  passwordSecretRef:
+    name: ""
+    key: valkey_password
   image:
     repository: valkey/valkey
     tag: "9.0.3"

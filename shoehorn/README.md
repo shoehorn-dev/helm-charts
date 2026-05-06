@@ -72,9 +72,21 @@ Official Helm chart for deploying Shoehorn, an Internal Developer Portal, on Kub
 kubectl create namespace shoehorn
 ```
 
-### 2. Create Secret
+### 2. Create Secret(s)
 
-Shoehorn uses a single Kubernetes Secret for all credentials. Create it using whichever tool you prefer -- `kubectl`, External Secrets Operator, Vault, Sealed Secrets, etc.
+The chart never creates Secrets — it only references them. Each credential has a typed `*SecretRef` block that mirrors Kubernetes' native `valueFrom.secretKeyRef`:
+
+```yaml
+<thing>SecretRef:
+  name: <kubernetes-secret-name>   # optional if secret.defaultName is set
+  key:  <key-inside-secret>        # the key holding the credential
+```
+
+Pick one of two workflows.
+
+#### Path A — One Secret for everything (kubectl / Sealed Secrets)
+
+Stuff every credential into a single Secret, then set `secret.defaultName`. Each `*SecretRef` can omit `name:` and just supply `key:` (most defaults already match the key names below).
 
 ```bash
 kubectl create secret generic shoehorn-credentials -n shoehorn \
@@ -84,21 +96,51 @@ kubectl create secret generic shoehorn-credentials -n shoehorn \
   --from-literal=meilisearch_master_key="$(openssl rand -hex 32)" \
   --from-literal=jwt_secret="$(openssl rand -hex 32)" \
   --from-literal=auth_encryption_key="$(openssl rand -base64 32)" \
-  --from-literal=session_encryption_key="$(openssl rand -hex 32)" \
-  --from-literal=github_app_id="YOUR_APP_ID" \
-  --from-literal=github_app_installation_id="YOUR_INSTALLATION_ID" \
-  --from-literal=github_webhook_secret="$(openssl rand -hex 32)" \
-  --from-file=github_app_private_key=/path/to/private-key.pem
+  --from-literal=secrets_encryption_key="$(openssl rand -hex 32)" \
+  --from-literal=github_webhook_secret="$(openssl rand -hex 32)"
 ```
-
-Then reference it in your values:
 
 ```yaml
 secret:
-  existingSecret: shoehorn-credentials
+  defaultName: shoehorn-credentials
 ```
 
-The chart maps environment variables to keys in your secret via `secret.mappings`. The defaults match the key names shown above. Override mappings if your secret uses different key names.
+See [`examples/values-minimal.yaml`](examples/values-minimal.yaml) for the full minimal layout.
+
+#### Path B — Per-credential Secrets (ESO + Vault / AWS / GCP)
+
+Sync each credential domain to its own K8s Secret (typically one per upstream path) and set `name:` explicitly on each `*SecretRef`:
+
+```yaml
+postgresql:
+  superuserPasswordSecretRef:
+    name: shoehorn-postgres
+    key: postgres_password
+  passwordSecretRef:
+    name: shoehorn-postgres
+    key: db_password
+
+valkey:
+  passwordSecretRef:
+    name: shoehorn-valkey
+    key: password
+
+auth:
+  session:
+    jwtSecretRef:
+      name: shoehorn-auth
+      key: jwt_secret
+    encryptionKeyRef:
+      name: shoehorn-auth
+      key: auth_encryption_key
+    secretsEncryptionKeyRef:
+      name: shoehorn-auth
+      key: secrets_encryption_key
+```
+
+See [`examples/values-eso-vault.yaml`](examples/values-eso-vault.yaml) for a complete ExternalSecret + Vault setup.
+
+Public identifiers (`auth.github.appId`, `installationId`, `forge.organization`, `auth.zitadel.projectId`, `auth.zitadel.clientId`, etc.) are plain values — not Secret references.
 
 ### 3. Configure File-Based Secrets
 
@@ -153,83 +195,73 @@ kubectl get ingressroute -n shoehorn
 
 ### How It Works
 
-1. You create a Kubernetes Secret containing all credentials (using any tool you prefer)
-2. You set `secret.existingSecret` to the name of that secret
-3. The chart reads keys from the secret using `secret.mappings`
+The chart references credentials via per-credential typed `*SecretRef` blocks, one per credential, sitting next to the thing they belong to (e.g. `postgresql.passwordSecretRef`, `auth.session.jwtSecretRef`). Each ref takes the same shape as Kubernetes' built-in `valueFrom.secretKeyRef`:
 
 ```yaml
-secret:
-  existingSecret: shoehorn-credentials  # Name of your K8s secret
-  mappings:
-    # Maps env var names -> keys in your secret
-    DB_PASSWORD: db_password
-    VALKEY_PASSWORD: valkey_password
-    MEILISEARCH_MASTER_KEY: meilisearch_master_key
-    # ... see values.yaml for full list
+postgresql:
+  passwordSecretRef:
+    name: my-postgres-secret   # Kubernetes Secret name
+    key:  db_password          # key inside that Secret
 ```
+
+The chart wires each ref into the matching environment variable (or downstream config) on the pods that need it. The chart does **not** create Secrets — bring your own Secret object via `kubectl`, Sealed Secrets, External Secrets Operator, Vault, AWS/Azure/GCP providers, etc.
+
+`secret.defaultName` is an optional shortcut: when set, any `*SecretRef` with `name` left blank falls back to this value. This makes the one-Secret-for-everything workflow concise without changing the underlying mechanics.
 
 ### Supported Secret Providers
 
-Any tool that creates a standard Kubernetes Secret works:
+Any tool that creates a standard Kubernetes Secret works — kubectl, External Secrets Operator (Vault / AWS / Azure / GCP / 1Password / etc.), Sealed Secrets, Vault Agent Injector, CSI Secret Store, and so on. The chart only cares that a Secret object exists with the referenced `name` and `key` at install time.
 
-| Provider | How |
-|----------|-----|
-| **kubectl** | `kubectl create secret generic ...` |
-| **External Secrets Operator** | `ExternalSecret` CR targeting your vault |
-| **HashiCorp Vault** | Vault Agent Injector or ESO |
-| **Sealed Secrets** | `SealedSecret` CR |
-| **AWS Secrets Manager** | ESO with AWS provider |
-| **Azure Key Vault** | ESO with Azure provider |
-| **GCP Secret Manager** | ESO with GCP provider |
+### `*SecretRef` reference
 
-### Required Keys
+Every credential the chart consumes, the values path that points at it, and the env var the chart emits on the consuming pods.
 
-| Key | Description | Used By |
-|-----|-------------|---------|
-| `postgres_password` | PostgreSQL admin password | API (migrations) |
-| `db_password` | PostgreSQL app user password | All backend services |
-| `valkey_password` | Valkey/Redis password | All backend services |
-| `meilisearch_master_key` | Meilisearch API key | All backend services |
-| `jwt_secret` | JWT signing secret | API |
-| `auth_encryption_key` | Auth provider encryption key | API |
-| `session_encryption_key` | Session cookie encryption | API |
-| `github_app_id` | GitHub App ID | API, Crawler |
-| `github_app_installation_id` | GitHub App installation ID | API, Crawler |
-| `github_webhook_secret` | GitHub webhook signature secret | API |
+| Env var | Values path | Notes |
+|---|---|---|
+| `POSTGRES_PASSWORD` | `postgresql.superuserPasswordSecretRef` | shoehorn_user (migrations, BYPASSRLS) |
+| `DB_PASSWORD` | `postgresql.passwordSecretRef` | app_user (runtime, NOBYPASSRLS) |
+| `VALKEY_PASSWORD` | `valkey.passwordSecretRef` | |
+| `MEILI_MASTER_KEY` (server) / `MEILISEARCH_API_KEY` (clients) | `meilisearch.masterKeySecretRef` | Same value, both sides |
+| `JWT_SECRET` | `auth.session.jwtSecretRef` | Required |
+| `AUTH_ENCRYPTION_KEY` | `auth.session.encryptionKeyRef` | Required |
+| `SECRETS_ENCRYPTION_KEY` | `auth.session.secretsEncryptionKeyRef` | Required |
+| `ZITADEL_SERVICE_USER_PAT` | `auth.zitadel.serviceUserPatSecretRef` | Optional, for orgdata sync |
+| `OKTA_CLIENT_SECRET` | `auth.okta.clientSecretRef` | Required when `auth.provider=okta` |
+| `OKTA_API_TOKEN` | `auth.okta.apiTokenSecretRef` | Optional, for Okta orgdata sync |
+| `ENTRA_CLIENT_SECRET` | `auth.entraId.clientSecretRef` | Required when `auth.provider=entra-id` |
+| `GITHUB_WEBHOOK_SECRET` | `auth.github.webhookSecretRef` | |
+| `ARGOCD_TOKEN` | `auth.argocd.tokenSecretRef` | Optional, for ArgoCD sync |
+| `UPCLOUD_TOKEN` | `cloudProviders.upcloud.tokenSecretRef` | Required when `cloudProviders.upcloud.enabled` |
+| `SMTP_PASSWORD` | `smtp.passwordSecretRef` | Required when `smtp.enabled` |
 
-### Optional Keys
+### Public identifiers (not secrets)
 
-Add these to your secret and `secret.mappings` as needed:
+These moved out of the Secret and into plain values — they're not sensitive and shouldn't be wrapped in `*SecretRef`:
 
-| Key | Description |
-|-----|-------------|
-| `github_app_private_key` | GitHub App private key (mount as file via `extraVolumes`) |
-| `github_forge_app_id` | GitHub Forge App ID |
-| `github_forge_installation_id` | GitHub Forge installation ID |
-| `github_forge_private_key` | GitHub Forge private key (mount as file) |
-| `service_user_pat` | Zitadel service user PAT (if using Zitadel) |
-| `okta_client_secret` | Okta client secret (if using Okta) |
-| `okta_api_token` | Okta API token (if using Okta orgdata sync) |
-| `entra_client_secret` | Entra ID client secret (if using Entra ID) |
-| `smtp_password` | SMTP password (if SMTP enabled) |
-| `argocd_token` | ArgoCD API token (if using ArgoCD sync) |
-| `upcloud_token` | UpCloud API token (if using cloud discovery) |
+| Values path | Description |
+|---|---|
+| `auth.github.appId` | GitHub App ID |
+| `auth.github.installationId` | GitHub App installation ID |
+| `auth.github.forge.appId` | Forge GitHub App ID (optional separate App for workflows) |
+| `auth.github.forge.installationId` | Forge installation ID |
+| `auth.github.forge.organization` | Forge target organization |
+| `auth.zitadel.projectId` | Zitadel project ID |
+| `auth.zitadel.clientId` | Zitadel OIDC client ID |
 
-### Custom Key Names
+### File-based credentials
 
-If your secret uses different key names (e.g., from a vault), override the mappings:
+Things that have to land on disk as files — GitHub App private keys, custom CA bundles — are mounted via `extraVolumes` / `extraVolumeMounts`, not via `*SecretRef`. See the GitHub private key example in the Quick Start above.
 
-```yaml
-secret:
-  existingSecret: my-vault-secret
-  mappings:
-    DB_PASSWORD: database/password     # Your vault's key name
-    VALKEY_PASSWORD: redis/auth-token  # Different naming convention
-```
+### Worked examples
+
+- One shared Secret + `secret.defaultName`: [`examples/values-minimal.yaml`](examples/values-minimal.yaml)
+- Per-credential Secrets via External Secrets Operator + Vault: [`examples/values-eso-vault.yaml`](examples/values-eso-vault.yaml)
 
 ## Configuration
 
 ### Minimal values.yaml
+
+Uses `secret.defaultName` so each `*SecretRef` only needs `key:`. See [`examples/values-minimal.yaml`](examples/values-minimal.yaml) for the full file.
 
 ```yaml
 global:
@@ -237,8 +269,11 @@ global:
   organization:
     slug: my-org
 
+# All credentials live in one Secret named "shoehorn-credentials".
+# The default keys on each *SecretRef already match the kubectl example
+# in step 2, so no per-ref overrides are needed here.
 secret:
-  existingSecret: shoehorn-credentials
+  defaultName: shoehorn-credentials
 
 auth:
   provider: zitadel
@@ -246,13 +281,16 @@ auth:
     projectId: "YOUR_PROJECT_ID"
     clientId: "YOUR_CLIENT_ID"
     externalUrl: "https://auth.yourdomain.xyz"
+  github:
+    appId: "YOUR_APP_ID"
+    installationId: "YOUR_INSTALLATION_ID"
 
 rbac:
   roleAssignment:
     tenantAdmin:
       user: "admin@example.com"
 
-# Mount GitHub private key
+# Mount GitHub private key (file-based credential, not a *SecretRef)
 extraVolumes:
 - name: github-private-key
   secret:
@@ -283,6 +321,8 @@ redpanda:
 
 ### Production values.yaml
 
+Per-credential Secrets, each `*SecretRef.name` set explicitly so credentials can come from independent vault paths. See [`examples/values-eso-vault.yaml`](examples/values-eso-vault.yaml) for an end-to-end ESO + Vault example.
+
 ```yaml
 global:
   domain: shoehorn.example.com
@@ -291,14 +331,44 @@ global:
     slug: acme-corp
     name: Acme Corporation
 
-secret:
-  existingSecret: shoehorn-credentials
-
 ingressRoute:
   enabled: true
   tls:
     enabled: true
     certResolver: letsencrypt
+
+# Per-credential Secrets — name set explicitly on every ref.
+postgresql:
+  superuserPasswordSecretRef:
+    name: shoehorn-postgres
+    key: postgres_password
+  passwordSecretRef:
+    name: shoehorn-postgres
+    key: db_password
+  persistence:
+    enabled: true
+    size: 50Gi
+
+valkey:
+  passwordSecretRef:
+    name: shoehorn-valkey
+    key: password
+  persistence:
+    enabled: true
+    size: 10Gi
+
+meilisearch:
+  masterKeySecretRef:
+    name: shoehorn-meilisearch
+    key: master_key
+  persistence:
+    enabled: true
+    size: 100Gi
+
+redpanda:
+  persistence:
+    enabled: true
+    size: 200Gi
 
 auth:
   provider: zitadel
@@ -306,6 +376,25 @@ auth:
     projectId: "YOUR_PROJECT_ID"
     clientId: "YOUR_CLIENT_ID"
     externalUrl: "https://auth.yourdomain.xyz"
+    serviceUserPatSecretRef:
+      name: shoehorn-zitadel
+      key: service_user_pat
+  session:
+    jwtSecretRef:
+      name: shoehorn-auth
+      key: jwt_secret
+    encryptionKeyRef:
+      name: shoehorn-auth
+      key: auth_encryption_key
+    secretsEncryptionKeyRef:
+      name: shoehorn-auth
+      key: secrets_encryption_key
+  github:
+    appId: "YOUR_APP_ID"
+    installationId: "YOUR_INSTALLATION_ID"
+    webhookSecretRef:
+      name: shoehorn-github
+      key: webhook_secret
 
 # Redundancy and zero-downtime rolling updates
 replicaCount:
@@ -322,27 +411,6 @@ api:
     minReplicas: 3
     maxReplicas: 20
     targetCPUUtilizationPercentage: 70
-
-# Persistence
-postgresql:
-  persistence:
-    enabled: true
-    size: 50Gi
-
-meilisearch:
-  persistence:
-    enabled: true
-    size: 100Gi
-
-redpanda:
-  persistence:
-    enabled: true
-    size: 200Gi
-
-valkey:
-  persistence:
-    enabled: true
-    size: 10Gi
 ```
 
 ## Key Configuration Parameters
@@ -365,10 +433,13 @@ valkey:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `secret.existingSecret` | Name of existing K8s secret (required) | `""` |
-| `secret.mappings` | Map of env var names to secret keys | See `values.yaml` |
-| `extraVolumes` | Additional volumes for all backend pods | `[]` |
-| `extraVolumeMounts` | Additional volume mounts for all backend pods | `[]` |
+| `secret.defaultName` | Optional fallback Secret name. When set, any `*SecretRef.name` left blank resolves to this; per-ref `name:` always wins. | `""` |
+| `<thing>SecretRef.name` | Name of the Kubernetes Secret holding this credential. Required unless `secret.defaultName` is set. | `""` |
+| `<thing>SecretRef.key` | Key inside the Secret that holds the credential value. | per-ref default |
+| `extraVolumes` | Additional volumes for all backend pods (file-based secrets like GitHub private keys). | `[]` |
+| `extraVolumeMounts` | Additional volume mounts for all backend pods. | `[]` |
+
+See the [`*SecretRef` reference](#secretref-reference) above for the full list of credential paths.
 
 ### Authentication
 
@@ -418,7 +489,7 @@ See the [Okta integration guide](https://docs.shoehorn.dev/integrations/okta) fo
 | `smtp.from` | Sender email address | `""` |
 | `smtp.feedbackEmail` | Recipient for user feedback | `""` |
 
-When SMTP is enabled, add `SMTP_PASSWORD: smtp_password` to your `secret.mappings`.
+When SMTP is enabled, set `smtp.passwordSecretRef.name` and `smtp.passwordSecretRef.key` (or rely on `secret.defaultName` and just set `key:`).
 
 ### GitHub Integration
 
@@ -431,7 +502,7 @@ Configure repository discovery via `api.env`:
 | `api.env.GITHUB_FORGE_ORGANIZATION` | Organization for Forge workflows | `""` |
 | `api.env.GITHUB_RATE_LIMIT_PER_HOUR` | GitHub API rate limit budget | `1000` |
 
-GitHub App credentials (IDs, private keys) are configured via the secret and `extraVolumes`, not values.
+GitHub App IDs and installation IDs are plain values under `auth.github` (and `auth.github.forge` for the optional Forge App). The webhook secret uses `auth.github.webhookSecretRef`. Private keys are file-based credentials mounted via `extraVolumes` / `extraVolumeMounts`.
 
 ### Database (PostgreSQL)
 
@@ -501,18 +572,17 @@ The chart validates required configuration at template render time. If a require
 ```
 Error: execution error at (shoehorn/templates/deployment-api.yaml:1:4):
 
-secret.existingSecret is required.
+postgresql.passwordSecretRef.name is required.
 
-Create a Kubernetes Secret and set:
-  secret:
-    existingSecret: <your-secret-name>
+Set the Secret name on the ref directly, or set secret.defaultName
+to a Secret containing all credentials.
 
 See README.md for details.
 ```
 
 Validated at render time:
-- `secret.existingSecret` is set
-- Auth provider fields are set (projectId, clientId, etc. based on `auth.provider`)
+- Every required `*SecretRef` resolves to a Secret name (either via its own `name:` or via `secret.defaultName`)
+- Auth provider fields are set (`projectId`, `clientId`, etc. based on `auth.provider`)
 
 ## Upgrading
 
@@ -586,10 +656,10 @@ kubectl get ingressroute -n shoehorn
 - [ ] TLS certificates configured
 
 ### Secrets
-- [ ] Kubernetes Secret created with all required keys
-- [ ] `secret.existingSecret` set in values
+- [ ] Kubernetes Secrets created for every required credential
+- [ ] Every required `*SecretRef` resolves (per-ref `name:` or `secret.defaultName`)
 - [ ] GitHub private keys mounted via `extraVolumes`
-- [ ] Auth provider credentials included (Zitadel PAT / Okta secret / Entra secret)
+- [ ] Auth provider credentials referenced (Zitadel PAT / Okta client secret / Entra client secret)
 
 ### Configuration
 - [ ] `global.domain` set to production domain

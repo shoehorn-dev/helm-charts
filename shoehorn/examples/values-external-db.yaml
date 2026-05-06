@@ -1,11 +1,30 @@
-# External Database Values
-# =========================
+# External Database Values — Multi-Secret Pattern
+# =================================================
 # Configuration for using external managed services instead of in-cluster StatefulSets.
 # Ideal for production environments using:
 # - AWS RDS, Azure Database, Cloud SQL for PostgreSQL
 # - ElastiCache, MemoryDB, or managed Redis for Valkey
 # - Meilisearch Cloud or self-hosted cluster
 # - Amazon MSK, Confluent Cloud, or managed Kafka for Redpanda
+#
+# WHY MULTIPLE SECRETS?
+# ─────────────────────
+# In a typical managed-services setup, the database password is owned by a
+# different system than the application secrets:
+#
+#   shoehorn-db-credentials   ← synced from RDS Secrets Manager via External
+#                               Secrets Operator. Rotated by RDS, not by you.
+#                               Holds: postgres_password, db_password.
+#
+#   shoehorn-app-secrets      ← managed by your platform team. Holds JWT,
+#                               session keys, search/cache passwords, GitHub
+#                               webhook secret, etc. Rotated on its own
+#                               schedule.
+#
+# Each *SecretRef in this chart points at a Kubernetes Secret + key, so the
+# two sources stay separate. `secret.defaultName` provides the fallback for
+# every ref that doesn't override `name:` — here we point it at the app
+# secrets Secret and explicitly override `name:` only on the postgres refs.
 #
 # Usage:
 #   helm install shoehorn ./charts/shoehorn -n shoehorn --create-namespace \
@@ -34,15 +53,15 @@ image:
   tag: "1.0.0"
   pullPolicy: IfNotPresent
 
-# Single secret containing all credentials
+# Default Secret name for everything *except* the database credentials.
 secret:
-  existingSecret: "shoehorn-credentials"
+  defaultName: shoehorn-app-secrets
 
-# Mount GitHub App private key from the credentials secret (for repository crawling)
+# Mount GitHub App private key from the app-secrets Secret (for repository crawling).
 extraVolumes:
   - name: github-private-key
     secret:
-      secretName: shoehorn-credentials
+      secretName: shoehorn-app-secrets
       items:
         - key: github_app_private_key
           path: private-key
@@ -72,12 +91,19 @@ replicaCount:
 # ============================================================================
 # External PostgreSQL (AWS RDS, Azure Database, Cloud SQL, etc.)
 # ============================================================================
+# Database credentials live in their OWN Secret, synced from RDS by ESO.
+# Both refs explicitly override `name:` to point away from secret.defaultName.
 
 postgresql:
-  # Disable in-cluster PostgreSQL
   enabled: false
 
-  # External PostgreSQL configuration
+  superuserPasswordSecretRef:
+    name: shoehorn-db-credentials
+    key: postgres_password
+  passwordSecretRef:
+    name: shoehorn-db-credentials
+    key: db_password
+
   external:
     enabled: true
     # CHANGE_ME: Your external PostgreSQL host
@@ -89,10 +115,12 @@ postgresql:
 # ============================================================================
 
 meilisearch:
-  # Disable in-cluster Meilisearch
   enabled: false
 
-  # External Meilisearch configuration
+  # Master key lives in shoehorn-app-secrets (via secret.defaultName).
+  masterKeySecretRef:
+    key: meilisearch_master_key
+
   external:
     enabled: true
     # CHANGE_ME: Your Meilisearch cluster
@@ -105,10 +133,11 @@ meilisearch:
 # ============================================================================
 
 valkey:
-  # Disable in-cluster Valkey
   enabled: false
 
-  # External Redis configuration
+  passwordSecretRef:
+    key: valkey_password
+
   external:
     enabled: true
     # CHANGE_ME: Your Redis endpoint
@@ -120,10 +149,8 @@ valkey:
 # ============================================================================
 
 redpanda:
-  # Disable in-cluster Redpanda
   enabled: false
 
-  # External Kafka configuration
   external:
     enabled: true
     # CHANGE_ME: Your Kafka brokers (comma-separated)
@@ -146,15 +173,30 @@ cerbos:
 # ============================================================================
 # Authentication
 # ============================================================================
+# All auth secrets live in shoehorn-app-secrets via secret.defaultName.
 
 auth:
   provider: zitadel
   zitadel:
-    # CHANGE_ME: Your Zitadel configuration
+    # CHANGE_ME: Your Zitadel configuration (projectId/clientId are public IDs)
     projectId: "YOUR_PROJECT_ID"
     clientId: "YOUR_CLIENT_ID"
     externalUrl: "https://auth.example.com"
     insecure: false
+
+  github:
+    appId: ""              # CHANGE_ME: GitHub App ID
+    installationId: ""     # CHANGE_ME: installation ID
+    webhookSecretRef:
+      key: github_webhook_secret
+
+  session:
+    jwtSecretRef:
+      key: jwt_secret
+    encryptionKeyRef:
+      key: auth_encryption_key
+    secretsEncryptionKeyRef:
+      key: secrets_encryption_key
 
 # ============================================================================
 # Services (API, Web, Microservices)

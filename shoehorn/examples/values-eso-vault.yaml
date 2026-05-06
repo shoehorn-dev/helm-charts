@@ -1,0 +1,263 @@
+# Shoehorn + External Secrets Operator + HashiCorp Vault
+# ========================================================
+# End-to-end worked example for the typed-ref secret model. Each *SecretRef
+# below points at a DIFFERENT Kubernetes Secret, and each Secret is synced
+# from a DIFFERENT Vault path by an ExternalSecret resource.
+#
+# Why this shape?
+# ───────────────
+# When you let one Vault path rotate independently from another (database
+# password rotated by Vault's database secrets engine; OIDC client secret
+# rotated by your IdP team; GitHub webhook secret rotated by SecOps), you
+# do NOT want them all glued into a single Kubernetes Secret. Putting each
+# credential in its own Secret means:
+#
+#   - Each Vault path becomes its own K8s Secret, rotated independently.
+#   - ESO `refreshInterval` can differ per source (DB: 1h, JWT: 24h).
+#   - RBAC on each Secret can be tightened (e.g., only api can read JWT).
+#   - Rolling one credential never touches the others' resourceVersion,
+#     so unrelated pods don't get restarted.
+#
+# Prerequisites:
+#   - external-secrets-operator installed in the cluster
+#   - A ClusterSecretStore named "vault-backend" pointing at your Vault
+#   - Vault paths populated with the keys referenced below
+#
+# ============================================================================
+# EXAMPLE ExternalSecret manifests (apply BEFORE `helm install`)
+# ============================================================================
+#
+# ---
+# apiVersion: external-secrets.io/v1
+# kind: ExternalSecret
+# metadata:
+#   name: shoehorn-db-creds
+#   namespace: shoehorn
+# spec:
+#   refreshInterval: 1h
+#   secretStoreRef:
+#     name: vault-backend
+#     kind: ClusterSecretStore
+#   target:
+#     name: shoehorn-db-creds          # <-- referenced by postgresql.*SecretRef.name
+#   data:
+#     - secretKey: postgres_password
+#       remoteRef:
+#         key: secret/data/shoehorn/database
+#         property: postgres_password
+#     - secretKey: db_password
+#       remoteRef:
+#         key: secret/data/shoehorn/database
+#         property: db_password
+#
+# ---
+# apiVersion: external-secrets.io/v1
+# kind: ExternalSecret
+# metadata:
+#   name: shoehorn-okta-creds
+#   namespace: shoehorn
+# spec:
+#   refreshInterval: 6h
+#   secretStoreRef:
+#     name: vault-backend
+#     kind: ClusterSecretStore
+#   target:
+#     name: shoehorn-okta-creds        # <-- referenced by auth.okta.*SecretRef.name
+#   data:
+#     - secretKey: client_secret
+#       remoteRef:
+#         key: secret/data/shoehorn/okta
+#         property: client_secret
+#     - secretKey: api_token
+#       remoteRef:
+#         key: secret/data/shoehorn/okta
+#         property: api_token
+#
+# Repeat similar ExternalSecret manifests for:
+#   shoehorn-session-keys  (jwt, auth_encryption_key, secrets_encryption_key)
+#   shoehorn-cache-creds   (valkey password)
+#   shoehorn-search-creds  (meilisearch master key)
+#   shoehorn-github-creds  (github webhook secret + private key file)
+#
+# ============================================================================
+
+global:
+  # CHANGE_ME: your domain
+  domain: shoehorn.example.com
+
+  environment: production
+  logLevel: info
+
+  organization:
+    name: "Acme Corp"
+    slug: "acme-corp"
+
+# No defaultName — each ref carries its own `name:` so it can point at
+# the per-path Secret synced by ESO.
+secret:
+  defaultName: ""
+
+# ============================================================================
+# Authentication — Okta
+# ============================================================================
+# Each credential domain gets its own K8s Secret.
+
+auth:
+  provider: okta
+
+  okta:
+    # CHANGE_ME: your Okta org domain (no scheme, no trailing slash)
+    domain: your-org.okta.com
+    # CHANGE_ME: OIDC app client ID (public, not a secret)
+    clientId: 0oaXXXXXXXXXXXXXX
+    issuer: ""
+    authorizationServer: default
+
+    # Synced from Vault path: secret/data/shoehorn/okta
+    clientSecretRef:
+      name: shoehorn-okta-creds
+      key: client_secret
+    apiTokenSecretRef:
+      name: shoehorn-okta-creds
+      key: api_token
+
+  # Org data sync from Okta
+  orgdata:
+    enabled: true
+    providers: ["okta"]
+    primaryProvider: "okta"
+
+  adminAssignment:
+    adminGroups: "shoehorn-admins"
+    adminUsers: ""
+
+  github:
+    appId: ""              # CHANGE_ME: GitHub App ID (public)
+    installationId: ""     # CHANGE_ME: installation ID (public)
+    # Synced from Vault path: secret/data/shoehorn/github
+    webhookSecretRef:
+      name: shoehorn-github-creds
+      key: webhook_secret
+
+  # Session/encryption keys — distinct Secret, distinct Vault path,
+  # distinct rotation cadence (rotating these forces a re-login wave).
+  session:
+    maxAge: "8h"
+    jwtSecretRef:
+      name: shoehorn-session-keys
+      key: jwt_secret
+    encryptionKeyRef:
+      name: shoehorn-session-keys
+      key: auth_encryption_key
+    secretsEncryptionKeyRef:
+      name: shoehorn-session-keys
+      key: secrets_encryption_key
+
+  csrf:
+    enabled: true
+
+# ============================================================================
+# Database — its own Secret, synced from Vault's database secrets engine
+# ============================================================================
+postgresql:
+  enabled: true
+  superuserPasswordSecretRef:
+    name: shoehorn-db-creds
+    key: postgres_password
+  passwordSecretRef:
+    name: shoehorn-db-creds
+    key: db_password
+  persistence:
+    enabled: true
+    size: 50Gi
+
+# ============================================================================
+# Cache — its own Secret
+# ============================================================================
+valkey:
+  enabled: true
+  passwordSecretRef:
+    name: shoehorn-cache-creds
+    key: valkey_password
+
+# ============================================================================
+# Search — its own Secret
+# ============================================================================
+meilisearch:
+  enabled: true
+  masterKeySecretRef:
+    name: shoehorn-search-creds
+    key: master_key
+
+# ============================================================================
+# SMTP — optional, its own Secret
+# ============================================================================
+smtp:
+  enabled: false
+  host: ""
+  port: 587
+  username: ""
+  from: ""
+  passwordSecretRef:
+    name: shoehorn-smtp-creds
+    key: password
+
+# ============================================================================
+# GitHub App private key file — mounted from the github creds Secret
+# ============================================================================
+extraVolumes:
+  - name: github-private-key
+    secret:
+      secretName: shoehorn-github-creds
+      items:
+        - key: app_private_key
+          path: private-key
+
+extraVolumeMounts:
+  - name: github-private-key
+    mountPath: /var/secrets/github
+    readOnly: true
+
+# ============================================================================
+# Replicas, resources, ingress (standard production-ish)
+# ============================================================================
+
+replicaCount:
+  api: 2
+  web: 2
+  eventbus: 2
+  worker: 2
+  crawler: 2
+  forge: 2
+
+ingressRoute:
+  enabled: true
+  tls:
+    enabled: true
+    certResolver: letsencrypt
+
+api:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+web:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+forge:
+  env:
+    FORGE_ENVIRONMENT: "production"
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

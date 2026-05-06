@@ -70,7 +70,7 @@ spec:
           value: {{ .Values.postgresql.env.POSTGRES_USER | quote }}
         - name: POSTGRES_DB
           value: {{ .Values.postgresql.env.POSTGRES_DB | quote }}
-        {{- include "shoehorn.secretRef" (dict "env" "POSTGRES_PASSWORD" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "POSTGRES_PASSWORD" "ref" .Values.postgresql.superuserPasswordSecretRef "root" .) | nindent 8 }}
         - name: PGDATA
           value: /var/lib/postgresql/data/pgdata
         args:

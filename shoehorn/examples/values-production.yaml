@@ -7,6 +7,13 @@
 # - Security hardening enabled
 # - Autoscaling configured (disabled by default)
 #
+# Secret style:
+#   This file uses the VERBOSE form of typed *SecretRef blocks — every ref
+#   carries an explicit `name:` and `key:`. No `secret.defaultName` shortcut.
+#   For most teams the shortcut is preferable (see values-minimal.yaml);
+#   the explicit form is shown here so you can copy-paste a single ref into
+#   a different Secret without touching anything else.
+#
 # Usage:
 #   helm install shoehorn ./charts/shoehorn -n shoehorn --create-namespace \
 #     -f ./charts/shoehorn/examples/values-production.yaml
@@ -52,9 +59,10 @@ image:
   tag: "1.0.0"
   pullPolicy: IfNotPresent
 
-# Single secret containing all credentials
+# Secret references — explicit `name:` on every ref (no defaultName).
+# All point at a single Kubernetes Secret named "shoehorn-credentials".
 secret:
-  existingSecret: "shoehorn-credentials"
+  defaultName: ""
 
 # Traefik IngressRoute (or use ingress section for nginx/other)
 ingressRoute:
@@ -81,15 +89,37 @@ replicaCount:
 auth:
   provider: zitadel
   zitadel:
-    # CHANGE_ME: Your Zitadel configuration
+    # CHANGE_ME: Your Zitadel configuration (projectId/clientId are public IDs)
     projectId: "YOUR_PROJECT_ID"
     clientId: "YOUR_CLIENT_ID"
     externalUrl: "https://auth.example.com"
     insecure: false
+    # Optional PAT for orgdata sync. Leave key:"" to omit the env var.
+    serviceUserPatSecretRef:
+      name: shoehorn-credentials
+      key: ""
+
+  github:
+    appId: ""              # CHANGE_ME: GitHub App ID (public)
+    installationId: ""     # CHANGE_ME: installation ID (public)
+    webhookSecretRef:
+      name: shoehorn-credentials
+      key: github_webhook_secret
+
   session:
-    maxAge: "8h"       # 8 hours - covers a workday
+    maxAge: "8h"           # 8 hours - covers a workday
+    jwtSecretRef:
+      name: shoehorn-credentials
+      key: jwt_secret
+    encryptionKeyRef:
+      name: shoehorn-credentials
+      key: auth_encryption_key
+    secretsEncryptionKeyRef:
+      name: shoehorn-credentials
+      key: secrets_encryption_key
+
   csrf:
-    enabled: true      # CSRF double-submit cookie protection
+    enabled: true          # CSRF double-submit cookie protection
   # Multi-Provider OrgData Sync (optional)
   # Sync users and teams from multiple providers
   # orgdata:
@@ -248,6 +278,12 @@ forge:
 
 postgresql:
   enabled: true
+  superuserPasswordSecretRef:
+    name: shoehorn-credentials
+    key: postgres_password
+  passwordSecretRef:
+    name: shoehorn-credentials
+    key: db_password
   image:
     repository: postgres
     tag: "18"
@@ -265,6 +301,9 @@ postgresql:
 
 meilisearch:
   enabled: true
+  masterKeySecretRef:
+    name: shoehorn-credentials
+    key: meilisearch_master_key
   resources:
     requests:
       cpu: 200m
@@ -278,6 +317,9 @@ meilisearch:
 
 valkey:
   enabled: true
+  passwordSecretRef:
+    name: shoehorn-credentials
+    key: valkey_password
   resources:
     requests:
       cpu: 100m

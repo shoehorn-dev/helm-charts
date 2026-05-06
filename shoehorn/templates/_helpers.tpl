@@ -409,19 +409,16 @@ Namespace helpers - all components deploy to Release.Namespace
 {{- end }}
 
 {{/*
-Validate required values at template render time.
-Fails helm install/template with a clear error message.
+Validate required plain values at template render time.
+Each *SecretRef is validated by the shoehorn.secretRef helper itself when called.
 */}}
 {{- define "shoehorn.validateValues" -}}
-{{- if not .Values.secret.existingSecret -}}
-  {{- fail "\n\nsecret.existingSecret is required.\n\nCreate a Kubernetes Secret and set:\n  secret:\n    existingSecret: <your-secret-name>\n\nSee README.md for details." -}}
-{{- end -}}
 {{- if eq .Values.auth.provider "zitadel" -}}
-  {{- if and (not .Values.auth.zitadel.projectId) (not (hasKey .Values.secret.mappings "ZITADEL_PROJECT_ID")) -}}
-    {{- fail "\n\nauth.zitadel.projectId is required when auth.provider is 'zitadel'.\nSet it in values or add ZITADEL_PROJECT_ID to secret.mappings." -}}
+  {{- if not .Values.auth.zitadel.projectId -}}
+    {{- fail "\n\nauth.zitadel.projectId is required when auth.provider is 'zitadel'." -}}
   {{- end -}}
-  {{- if and (not .Values.auth.zitadel.clientId) (not (hasKey .Values.secret.mappings "ZITADEL_CLIENT_ID")) -}}
-    {{- fail "\n\nauth.zitadel.clientId is required when auth.provider is 'zitadel'.\nSet it in values or add ZITADEL_CLIENT_ID to secret.mappings." -}}
+  {{- if not .Values.auth.zitadel.clientId -}}
+    {{- fail "\n\nauth.zitadel.clientId is required when auth.provider is 'zitadel'." -}}
   {{- end -}}
   {{- if not .Values.auth.zitadel.externalUrl -}}
     {{- fail "\n\nauth.zitadel.externalUrl is required when auth.provider is 'zitadel'." -}}
@@ -446,21 +443,60 @@ Fails helm install/template with a clear error message.
 {{- end -}}
 
 {{/*
-Secret environment variable from secret.existingSecret + secret.mappings.
-Usage: {{ include "shoehorn.secretRef" (dict "env" "DB_PASSWORD" "root" .) }}
-Optional: {{ include "shoehorn.secretRef" (dict "env" "ARGOCD_TOKEN" "root" . "optional" true) }}
+Typed-ref secret environment variable.
+
+Each credential lives under its owner block as a `*SecretRef` shaped like
+Kubernetes' native valueFrom.secretKeyRef:
+
+  database:
+    passwordSecretRef:
+      name: shoehorn-db          # optional if secret.defaultName is set
+      key:  db_password           # required if the env var is required
+
+The helper resolves `name` to `ref.name` first, then falls back to
+`secret.defaultName`.
+
+Usage (required ref):
+  {{- include "shoehorn.secretRef" (dict
+       "env"  "DB_PASSWORD"
+       "ref"  .Values.database.passwordSecretRef
+       "root" .) | nindent 8 }}
+
+Usage (optional ref — omits the env var if `ref.key` is unset):
+  {{- include "shoehorn.secretRef" (dict
+       "env"  "ARGOCD_TOKEN"
+       "ref"  .Values.auth.argocd.tokenSecretRef
+       "root" .
+       "optional" true) | nindent 8 }}
+
+Behavior:
+  1. If ref.key is non-empty: emit valueFrom.secretKeyRef (resolved name + key).
+  2. Else if optional: emit nothing.
+  3. Else: fail with a clear error pointing at the env var.
 */}}
 {{- define "shoehorn.secretRef" -}}
-{{- if hasKey .root.Values.secret.mappings .env }}
-- name: {{ .env }}
+{{- $env := required "shoehorn.secretRef: env is required" .env -}}
+{{- $optional := .optional | default false -}}
+{{- $key := "" -}}
+{{- $refName := "" -}}
+{{- if .ref -}}
+{{- $key = (get .ref "key") | default "" -}}
+{{- $refName = (get .ref "name") | default "" -}}
+{{- end -}}
+{{- $defaultName := (get (.root.Values.secret | default dict) "defaultName") | default "" -}}
+{{- $name := $refName | default $defaultName -}}
+{{- if $key -}}
+{{- if not $name -}}
+{{- fail (printf "\n\nCannot resolve secret name for env %s.\nSet the *SecretRef.name field or set secret.defaultName at the top level.\n" $env) -}}
+{{- end }}
+- name: {{ $env }}
   valueFrom:
     secretKeyRef:
-      name: {{ .root.Values.secret.existingSecret }}
-      key: {{ index .root.Values.secret.mappings .env }}
-      {{- if .optional }}
-      optional: true
-      {{- end }}
-{{- end }}
+      name: {{ $name }}
+      key: {{ $key }}
+{{- else if not $optional -}}
+{{- fail (printf "\n\nMissing required SecretRef for env %s.\nSet the corresponding *SecretRef.key in values, or set secret.defaultName and provide a key.\nSee the chart README 'Secret configuration' section for the full list of *SecretRef paths.\n" $env) -}}
+{{- end -}}
 {{- end -}}
 
 {{/*

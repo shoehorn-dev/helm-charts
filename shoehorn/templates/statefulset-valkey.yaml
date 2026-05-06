@@ -63,7 +63,7 @@ spec:
           containerPort: 6379
           protocol: TCP
         env:
-        {{- include "shoehorn.secretRef" (dict "env" "VALKEY_PASSWORD" "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "VALKEY_PASSWORD" "ref" .Values.valkey.passwordSecretRef "root" .) | nindent 8 }}
         command:
           {{- toYaml .Values.valkey.command | nindent 12 }}
         livenessProbe:
