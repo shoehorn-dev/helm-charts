@@ -445,9 +445,8 @@ postgresql:
     name: ""
     key: db_password
   image:
-    # Custom image based on PostgreSQL 18 with pgaudit pre-installed.
     repository: ghcr.io/shoehorn-dev/shoehorn-postgres
-    tag: ""
+    tag: "v18.3-pgaudit-1.0"
   replicas: 1
   resources:
     requests: { cpu: 250m, memory: 512Mi }
