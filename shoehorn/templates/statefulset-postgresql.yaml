@@ -27,9 +27,13 @@ metadata:
   labels:
     {{- include "shoehorn.labels" . | nindent 4 }}
     app.kubernetes.io/component: postgresql
+  annotations:
+    "helm.sh/resource-policy": keep
 spec:
   serviceName: {{ include "shoehorn.fullname" . }}-postgresql
   replicas: {{ .Values.postgresql.replicas }}
+  updateStrategy:
+    type: OnDelete
   selector:
     matchLabels:
       {{- include "shoehorn.selectorLabels" . | nindent 6 }}

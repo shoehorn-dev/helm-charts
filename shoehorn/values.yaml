@@ -178,7 +178,7 @@ api:
     initialDelaySeconds: 30
     periodSeconds: 10
   readinessProbe:
-    httpGet: { path: /healthz, port: 8080 }
+    httpGet: { path: /readiness, port: 8080 }
     initialDelaySeconds: 10
     periodSeconds: 5
   autoscaling:
@@ -233,7 +233,7 @@ eventbus:
     initialDelaySeconds: 20
     periodSeconds: 10
   readinessProbe:
-    httpGet: { path: /healthz, port: 8083 }
+    httpGet: { path: /readiness, port: 8083 }
     initialDelaySeconds: 10
     periodSeconds: 5
   autoscaling:
@@ -261,7 +261,7 @@ worker:
     initialDelaySeconds: 20
     periodSeconds: 10
   readinessProbe:
-    httpGet: { path: /healthz, port: 8085 }
+    httpGet: { path: /readiness, port: 8085 }
     initialDelaySeconds: 10
     periodSeconds: 5
   autoscaling:
@@ -289,7 +289,7 @@ crawler:
     initialDelaySeconds: 20
     periodSeconds: 10
   readinessProbe:
-    httpGet: { path: /healthz, port: 8086 }
+    httpGet: { path: /readiness, port: 8086 }
     initialDelaySeconds: 10
     periodSeconds: 5
   autoscaling:
@@ -445,9 +445,8 @@ postgresql:
     name: ""
     key: db_password
   image:
-    # Custom image based on PostgreSQL 18 with pgaudit pre-installed.
     repository: ghcr.io/shoehorn-dev/shoehorn-postgres
-    tag: ""
+    tag: "v18.3-pgaudit-1.0"
   replicas: 1
   resources:
     requests: { cpu: 250m, memory: 512Mi }

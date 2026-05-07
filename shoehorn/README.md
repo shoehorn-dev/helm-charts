@@ -74,7 +74,7 @@ kubectl create namespace shoehorn
 
 ### 2. Create Secret(s)
 
-The chart never creates Secrets — it only references them. Each credential has a typed `*SecretRef` block that mirrors Kubernetes' native `valueFrom.secretKeyRef`:
+The chart never creates Secrets. It only references them. Each credential has a typed `*SecretRef` block that mirrors Kubernetes' native `valueFrom.secretKeyRef`:
 
 ```yaml
 <thing>SecretRef:
@@ -84,7 +84,7 @@ The chart never creates Secrets — it only references them. Each credential has
 
 Pick one of two workflows.
 
-#### Path A — One Secret for everything (kubectl / Sealed Secrets)
+#### Path A: one Secret for everything (kubectl / Sealed Secrets)
 
 Stuff every credential into a single Secret, then set `secret.defaultName`. Each `*SecretRef` can omit `name:` and just supply `key:` (most defaults already match the key names below).
 
@@ -106,7 +106,7 @@ secret:
 
 See [`examples/values-minimal.yaml`](examples/values-minimal.yaml) for the full minimal layout.
 
-#### Path B — Per-credential Secrets (ESO + Vault / AWS / GCP)
+#### Path B: per-credential Secrets (ESO + Vault / AWS / GCP)
 
 Sync each credential domain to its own K8s Secret (typically one per upstream path) and set `name:` explicitly on each `*SecretRef`:
 
@@ -203,7 +203,7 @@ postgresql:
     key:  db_password          # key inside that Secret
 ```
 
-The chart wires each ref into the matching environment variable (or downstream config) on the pods that need it. The chart does **not** create Secrets — bring your own Secret object via `kubectl`, Sealed Secrets, External Secrets Operator, Vault, AWS/Azure/GCP providers, etc.
+The chart wires each ref into the matching environment variable (or downstream config) on the pods that need it. The chart does **not** create Secrets. Bring your own Secret object via `kubectl`, Sealed Secrets, External Secrets Operator, Vault, AWS/Azure/GCP providers, etc.
 
 `secret.defaultName` is an optional shortcut: when set, any `*SecretRef` with `name` left blank falls back to this value. This makes the one-Secret-for-everything workflow concise without changing the underlying mechanics.
 
@@ -452,11 +452,11 @@ See the [`*SecretRef` reference](#secretref-reference) above for the full list o
 | `auth.argocd.tokenSecretRef` | ArgoCD API token for direct sync/refresh calls. Optional. | `{}` |
 | `auth.csrf.enabled` | Double-submit CSRF protection on state-changing requests. | `true` |
 | `auth.adminAssignment.adminUsers` / `adminGroups` | Comma-separated admin emails / IdP groups (env-var role mapping). | `""` |
-| `auth.orgdata.enabled` | Sync users and teams from one or more identity providers. Wired on api AND forge — forge needs it for group-based approvals. | `false` |
+| `auth.orgdata.enabled` | Sync users and teams from one or more identity providers. Wired on api and forge (forge needs it for group-based approvals). | `false` |
 | `auth.orgdata.providers` | Provider list, e.g. `["okta"]`, `["zitadel"]`, or mixed. | `[]` |
 | `auth.orgdata.primaryProvider` | Primary provider for conflict resolution. | `""` |
 
-When `auth.provider=okta`, `values.schema.json` enforces that both `auth.okta.domain` and `auth.okta.clientId` are set — Helm will refuse to install otherwise.
+When `auth.provider=okta`, `values.schema.json` enforces that both `auth.okta.domain` and `auth.okta.clientId` are set. Helm refuses to install otherwise.
 
 #### Okta
 
@@ -599,13 +599,31 @@ helm history shoehorn --namespace shoehorn
 helm rollback shoehorn 1 --namespace shoehorn
 ```
 
-## Uninstalling
+### PostgreSQL is decoupled from chart upgrades
+
+The postgres StatefulSet uses `updateStrategy: OnDelete`. `helm upgrade` doesn't restart the postgres pod even when chart values bump platform images. Roll it explicitly when needed:
 
 ```bash
-# Uninstall release (keeps PVCs)
+kubectl delete pod -n shoehorn shoehorn-postgresql-0
+```
+
+The StatefulSet recreates the pod against the current spec on the same PVC. This avoids data downtime on every platform release and prevents the schedule wedges that hit small clusters when postgres can't reserve its CPU during a multi-service rollout.
+
+The postgres image tag is pinned in `values.yaml` (e.g. `v18.3-pgaudit-1.0`) and follows postgres releases, not platform releases. Bump it deliberately to upgrade the database.
+
+## Uninstalling
+
+The postgres StatefulSet carries `helm.sh/resource-policy: keep`. `helm uninstall` removes everything else but leaves the StatefulSet and its PVC standing, so a later reinstall reattaches the same data.
+
+```bash
+# Uninstall release (keeps PostgreSQL StatefulSet + PVC)
 helm uninstall shoehorn --namespace shoehorn
 
-# Delete PVCs (WARNING: deletes all data!)
+# Drop the database explicitly (DESTROYS DATA)
+kubectl delete sts -n shoehorn shoehorn-postgresql
+kubectl delete pvc -n shoehorn data-shoehorn-postgresql-0
+
+# Delete remaining PVCs (search index, cache, event log)
 kubectl delete pvc -n shoehorn --all
 
 # Delete namespace
