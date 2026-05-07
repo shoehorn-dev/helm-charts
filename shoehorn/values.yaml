@@ -178,7 +178,7 @@ api:
     initialDelaySeconds: 30
     periodSeconds: 10
   readinessProbe:
-    httpGet: { path: /healthz, port: 8080 }
+    httpGet: { path: /readiness, port: 8080 }
     initialDelaySeconds: 10
     periodSeconds: 5
   autoscaling:
@@ -233,7 +233,7 @@ eventbus:
     initialDelaySeconds: 20
     periodSeconds: 10
   readinessProbe:
-    httpGet: { path: /healthz, port: 8083 }
+    httpGet: { path: /readiness, port: 8083 }
     initialDelaySeconds: 10
     periodSeconds: 5
   autoscaling:
@@ -261,7 +261,7 @@ worker:
     initialDelaySeconds: 20
     periodSeconds: 10
   readinessProbe:
-    httpGet: { path: /healthz, port: 8085 }
+    httpGet: { path: /readiness, port: 8085 }
     initialDelaySeconds: 10
     periodSeconds: 5
   autoscaling:
@@ -289,7 +289,7 @@ crawler:
     initialDelaySeconds: 20
     periodSeconds: 10
   readinessProbe:
-    httpGet: { path: /healthz, port: 8086 }
+    httpGet: { path: /readiness, port: 8086 }
     initialDelaySeconds: 10
     periodSeconds: 5
   autoscaling:
