@@ -29,10 +29,8 @@ global:
     slug: ""
     name: ""
 
-  # Image pull secrets (existing secret names in the release namespace).
-  # See `registryCredentials` below to have the chart create them from values.
+  # Pull secrets for private mirrors. Public Docker Hub needs none.
   imagePullSecrets: []
-  # - name: ghcr-secret
 
 # cert-manager.
 # `install: true` bundles cert-manager as a sub-chart.

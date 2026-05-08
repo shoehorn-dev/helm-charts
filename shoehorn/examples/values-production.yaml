@@ -45,8 +45,7 @@ global:
     keyFile: "/etc/shoehorn/certs/tls.key"
     caFile: "/etc/shoehorn/certs/ca.crt"
 
-  imagePullSecrets:
-    - name: ghcr-secret
+  imagePullSecrets: []
 
 # Image configuration
 image:

@@ -147,8 +147,7 @@ image:
   tag: ""  # Defaults to .Chart.AppVersion
   pullPolicy: IfNotPresent
 
-# Image pull secrets for private registries
-# Example: imagePullSecrets: [{ name: "ghcr-secret" }]
+# Pull secrets for private mirrors. Public Docker Hub needs none.
 imagePullSecrets: []
 
 # Service account
