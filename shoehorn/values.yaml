@@ -56,10 +56,10 @@ certManager:
 # own `image.tag` is empty. `repository` here is used only by the rbac-sync Job
 # (the `shoehorn` CLI image); per-service blocks set their own repository.
 image:
-  registry: ghcr.io
-  repository: shoehorn-dev/shoehorn
-  pullPolicy: Always
-  tag: "v0.4.1"
+  registry: docker.io
+  repository: shoehorned/shoehorn
+  pullPolicy: IfNotPresent
+  tag: "v0.5.21"
 
 # Service catalog annotations (prefixed with shoehorn.dev/) are configured per
 # service below. Supported keys: team, repositoryUrl, slackChannel, tier, tags,
@@ -157,7 +157,7 @@ api:
     # repositoryUrl: "https://github.com/org/shoehorn-api"
     # tier: "tier1"
   image:
-    repository: ghcr.io/shoehorn-dev/shoehorn-api
+    repository: shoehorned/shoehorn-api
     tag: ""
   resources:
     requests: { cpu: 250m, memory: 512Mi }
@@ -193,7 +193,7 @@ web:
   logLevel: "info"
   annotations: {}
   image:
-    repository: ghcr.io/shoehorn-dev/shoehorn-web
+    repository: shoehorned/shoehorn-web
     tag: ""
   resources:
     requests: { cpu: 100m, memory: 256Mi }
@@ -220,7 +220,7 @@ eventbus:
   logLevel: "info"
   annotations: {}
   image:
-    repository: ghcr.io/shoehorn-dev/shoehorn-eventbus
+    repository: shoehorned/shoehorn-eventbus
     tag: ""
   resources:
     requests: { cpu: 100m, memory: 256Mi }
@@ -248,7 +248,7 @@ worker:
   logLevel: "info"
   annotations: {}
   image:
-    repository: ghcr.io/shoehorn-dev/shoehorn-worker
+    repository: shoehorned/shoehorn-worker
     tag: ""
   resources:
     requests: { cpu: 100m, memory: 256Mi }
@@ -276,7 +276,7 @@ crawler:
   logLevel: "info"
   annotations: {}
   image:
-    repository: ghcr.io/shoehorn-dev/shoehorn-crawler
+    repository: shoehorned/shoehorn-crawler
     tag: ""
   resources:
     requests: { cpu: 100m, memory: 256Mi }
@@ -315,7 +315,7 @@ forge:
   logLevel: "info"
   annotations: {}
   image:
-    repository: ghcr.io/shoehorn-dev/shoehorn-forge
+    repository: shoehorned/shoehorn-forge
     tag: ""
   resources:
     requests: { cpu: 100m, memory: 256Mi }
@@ -418,7 +418,7 @@ auth:
 # Cerbos (always deployed; required by the platform).
 cerbos:
   image:
-    repository: ghcr.io/shoehorn-dev/shoehorn-cerbos
+    repository: shoehorned/shoehorn-cerbos
     tag: ""
     pullPolicy: IfNotPresent
   replicas: 1
@@ -445,7 +445,7 @@ postgresql:
     name: ""
     key: db_password
   image:
-    repository: ghcr.io/shoehorn-dev/shoehorn-postgres
+    repository: shoehorned/shoehorn-postgres
     tag: "v18.3-pgaudit-1.0"
   replicas: 1
   resources:

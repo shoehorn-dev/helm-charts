@@ -113,8 +113,8 @@ meilisearch:
 
 # Image configuration
 image:
-  registry: ghcr.io
-  repository: shoehorn-dev
+  registry: docker.io
+  repository: shoehorned/shoehorn
   # CHANGE_ME: pin to a specific version in production
   tag: ""
   pullPolicy: IfNotPresent

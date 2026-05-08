@@ -229,12 +229,12 @@
         "registry": {
           "type": "string",
           "description": "Container registry",
-          "default": "ghcr.io"
+          "default": "docker.io"
         },
         "repository": {
           "type": "string",
           "description": "Image repository",
-          "default": "shoehorn-dev/shoehorn-k8s-agent"
+          "default": "shoehorned/shoehorn-k8s-agent"
         },
         "tag": {
           "type": "string",
