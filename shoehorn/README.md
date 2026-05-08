@@ -160,18 +160,9 @@ extraVolumeMounts:
   readOnly: true
 ```
 
-### 4. Create Registry Secret (for Private Images)
+### 4. Install Shoehorn
 
-```bash
-kubectl create secret docker-registry ghcr-secret \
-  --docker-server=ghcr.io \
-  --docker-username=YOUR_GITHUB_USERNAME \
-  --docker-password=YOUR_GITHUB_PAT \
-  --docker-email=YOUR_EMAIL \
-  --namespace shoehorn
-```
-
-### 5. Install Shoehorn
+Images live on Docker Hub at [`shoehorned/`](https://hub.docker.com/u/shoehorned). They're public, so no pull secret is needed.
 
 ```bash
 helm install shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn \
@@ -180,7 +171,7 @@ helm install shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn \
   --wait
 ```
 
-### 6. Access Shoehorn
+### 5. Access Shoehorn
 
 ```bash
 # Get ingress address

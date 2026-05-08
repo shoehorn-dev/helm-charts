@@ -91,7 +91,7 @@
       "type": "object",
       "description": "Global image configuration",
       "properties": {
-        "registry": { "type": "string", "default": "ghcr.io" },
+        "registry": { "type": "string", "default": "docker.io" },
         "repository": { "type": "string" },
         "tag": { "type": "string" },
         "pullPolicy": {

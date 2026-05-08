@@ -250,7 +250,7 @@ Return the proper image name
 
 {{/*
 Return the proper component image name
-Each component specifies its full image repository (e.g., ghcr.io/shoehorn-dev/shoehorn-api).
+Each component specifies its full image repository (e.g., shoehorned/shoehorn-api).
 Tag precedence: component.image.tag > global image.tag > "latest"
 */}}
 {{- define "shoehorn.componentImage" -}}

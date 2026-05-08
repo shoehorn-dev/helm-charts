@@ -154,8 +154,8 @@ GitOps integration is **independent** of standard workload watching -- you can e
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `image.registry` | Container registry | `ghcr.io` |
-| `image.repository` | Image repository | `shoehorn-dev/shoehorn-k8s-agent` |
+| `image.registry` | Container registry | `docker.io` |
+| `image.repository` | Image repository | `shoehorned/shoehorn-k8s-agent` |
 | `image.tag` | Image tag | `.Chart.AppVersion` |
 | `image.pullPolicy` | Image pull policy | `IfNotPresent` |
 
@@ -188,8 +188,8 @@ Optional DaemonSet that captures pod-to-pod TCP connections using eBPF for servi
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `netobserver.enabled` | Enable the network observer DaemonSet | `false` |
-| `netobserver.image.registry` | Container registry | `ghcr.io` |
-| `netobserver.image.repository` | Image repository | `shoehorn-dev/shoehorn-netobserver` |
+| `netobserver.image.registry` | Container registry | `docker.io` |
+| `netobserver.image.repository` | Image repository | `shoehorned/shoehorn-netobserver` |
 | `netobserver.logLevel` | Log level (independent of main agent) | `info` |
 | `netobserver.healthPort` | Health server port | `8082` |
 | `netobserver.flushInterval` | Aggregation flush interval | `60s` |

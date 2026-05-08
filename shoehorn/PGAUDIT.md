@@ -28,8 +28,8 @@ With our default configuration (`pgaudit.log = 'write,ddl,role'`):
 postgresql:
   enabled: true
   image:
-    repository: ghcr.io/shoehorn-dev/shoehorn-postgres
-    tag: "latest"
+    repository: shoehorned/shoehorn-postgres
+    tag: "v18.3-pgaudit-1.0"
   pgaudit:
     enabled: true
 ```

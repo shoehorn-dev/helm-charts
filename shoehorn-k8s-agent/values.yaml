@@ -142,8 +142,8 @@ agent:
 
 # Image configuration
 image:
-  registry: ghcr.io
-  repository: shoehorn-dev/shoehorn-k8s-agent
+  registry: docker.io
+  repository: shoehorned/shoehorn-k8s-agent
   tag: ""  # Defaults to .Chart.AppVersion
   pullPolicy: IfNotPresent
 
@@ -253,8 +253,8 @@ netobserver:
 
   # Image configuration (separate image from the main agent)
   image:
-    registry: ghcr.io
-    repository: shoehorn-dev/shoehorn-netobserver
+    registry: docker.io
+    repository: shoehorned/shoehorn-netobserver
     tag: ""  # Defaults to .Chart.AppVersion
     pullPolicy: IfNotPresent
 

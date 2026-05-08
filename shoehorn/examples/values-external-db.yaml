@@ -44,9 +44,9 @@ global:
 
 # Image configuration
 image:
-  registry: ghcr.io
-  repository: imbabamba
-  tag: "1.0.0"
+  registry: docker.io
+  repository: shoehorned/shoehorn
+  tag: "v0.5.21"
   pullPolicy: IfNotPresent
 
 # Default Secret name for everything *except* the database credentials.
