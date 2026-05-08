@@ -39,8 +39,7 @@ global:
     name: "Acme Corp"
     slug: "acme-corp"
 
-  imagePullSecrets:
-    - name: ghcr-secret
+  imagePullSecrets: []
 
 # Image configuration
 image:
