@@ -48,26 +48,45 @@ jobs:
           VERSION="${VERSION#v}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Configure git as release bot
-        run: |
-          git config user.name "shoehorn-release[bot]"
-          git config user.email "272929799+shoehorn-release[bot]@users.noreply.github.com"
-
-      - name: Create and push tags
+      - name: Create tags via GitHub API (verified)
         env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           VERSION: ${{ steps.version.outputs.version }}
+          REPO: ${{ github.repository }}
         run: |
           set -e
+          COMMIT_SHA=$(git rev-parse HEAD)
+          TAGGER_NAME="shoehorn-release[bot]"
+          TAGGER_EMAIL="272929799+shoehorn-release[bot]@users.noreply.github.com"
+
           CHARTS=(shoehorn shoehorn-k8s-agent)
           for chart in "${CHARTS[@]}"; do
             TAG="${chart}-v${VERSION}"
-            if git rev-parse "$TAG" >/dev/null 2>&1; then
+
+            if gh api "repos/${REPO}/git/refs/tags/${TAG}" >/dev/null 2>&1; then
               echo "Tag $TAG already exists -- skipping"
               continue
             fi
-            git tag -a "$TAG" -m "Release $TAG"
-            git push origin "$TAG"
-            echo "Pushed $TAG"
+
+            # Create the annotated tag object. GitHub signs this automatically
+            # when called with a GitHub App installation token, so the tag shows
+            # as Verified in the UI.
+            TAG_SHA=$(gh api -X POST "repos/${REPO}/git/tags" \
+              -f tag="$TAG" \
+              -f message="Release $TAG" \
+              -f object="$COMMIT_SHA" \
+              -f type=commit \
+              -f tagger[name]="$TAGGER_NAME" \
+              -f tagger[email]="$TAGGER_EMAIL" \
+              --jq '.sha')
+
+            # Publish the tag ref so it appears in `git ls-remote --tags` and
+            # triggers the per-chart release workflow.
+            gh api -X POST "repos/${REPO}/git/refs" \
+              -f ref="refs/tags/${TAG}" \
+              -f sha="$TAG_SHA" >/dev/null
+
+            echo "Created verified tag $TAG -> $COMMIT_SHA"
           done
 
       - name: Summary
