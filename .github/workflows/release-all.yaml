@@ -1,0 +1,83 @@
+name: Release All Charts
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Override version (default: read from version.json)'
+        required: false
+        type: string
+
+jobs:
+  tag:
+    name: Tag both charts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Generate release bot token
+        id: app-token
+        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v2
+        with:
+          client-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: shoehorn-dev
+          repositories: helm-charts
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="$INPUT_VERSION"
+          else
+            VERSION=$(jq -r '.version' version.json)
+          fi
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            echo "Could not resolve version" >&2
+            exit 1
+          fi
+          # Reject leading 'v' to keep tag format predictable
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Configure git as release bot
+        run: |
+          git config user.name "shoehorn-release[bot]"
+          git config user.email "272929799+shoehorn-release[bot]@users.noreply.github.com"
+
+      - name: Create and push tags
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -e
+          CHARTS=(shoehorn shoehorn-k8s-agent)
+          for chart in "${CHARTS[@]}"; do
+            TAG="${chart}-v${VERSION}"
+            if git rev-parse "$TAG" >/dev/null 2>&1; then
+              echo "Tag $TAG already exists -- skipping"
+              continue
+            fi
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+            echo "Pushed $TAG"
+          done
+
+      - name: Summary
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          {
+            echo "## Released both charts at \`$VERSION\`"
+            echo ""
+            echo "Tags pushed (each triggers \`release.yaml\`):"
+            echo "- \`shoehorn-v$VERSION\`"
+            echo "- \`shoehorn-k8s-agent-v$VERSION\`"
+          } >> "$GITHUB_STEP_SUMMARY"
