@@ -3,7 +3,7 @@ name: shoehorn
 description: Intelligent Platform for Engineering - Internal Developer Platform
 type: application
 version: 0.1.0
-appVersion: "0.1.0"
+appVersion: "0.5.22"
 
 home: https://shoehorn.dev
 icon: https://shoehorn.dev/maskot1.png

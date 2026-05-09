@@ -25,6 +25,3 @@
 .github/
 .gitlab-ci.yml
 .travis.yml
-# Documentation
-README.md
-OWNERS
