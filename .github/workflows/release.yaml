@@ -193,11 +193,9 @@ jobs:
             echo "CHANGELOG_EOF"
           } >> $GITHUB_OUTPUT
 
-          {
-            echo "artifacthub_changes<<AHCHANGES_EOF"
-            echo "$ARTIFACTHUB_CHANGES"
-            echo "AHCHANGES_EOF"
-          } >> $GITHUB_OUTPUT
+          AH_CHANGES_FILE="${RUNNER_TEMP}/artifacthub_changes.yaml"
+          printf '%s' "$ARTIFACTHUB_CHANGES" > "$AH_CHANGES_FILE"
+          echo "ah_changes_file=$AH_CHANGES_FILE" >> $GITHUB_OUTPUT
 
           echo "prev_tag=${PREV_TAG:-initial}" >> $GITHUB_OUTPUT
 
@@ -206,7 +204,7 @@ jobs:
           APP_VERSION: ${{ steps.app-version.outputs.version }}
           CHART_NAME: ${{ steps.chart.outputs.name }}
           CHART_VERSION: ${{ steps.chart.outputs.version }}
-          ARTIFACTHUB_CHANGES: ${{ steps.changelog.outputs.artifacthub_changes }}
+          AH_CHANGES_FILE: ${{ steps.changelog.outputs.ah_changes_file }}
         run: |
           CHART_FILE="${CHART_NAME}/Chart.yaml"
 
@@ -216,12 +214,12 @@ jobs:
           echo "Chart version: ${CHART_VERSION}"
           echo "App version:   ${APP_VERSION}"
 
-          # Pass values via env (not inline ${{ }}) so quoted descriptions don't break the shell.
-          python3 - "$CHART_FILE" <<'PYEOF'
-          import os, sys, re
+          python3 - "$CHART_FILE" "$AH_CHANGES_FILE" <<'PYEOF'
+          import sys, re
 
           chart_file = sys.argv[1]
-          new_changes = os.environ['ARTIFACTHUB_CHANGES']
+          with open(sys.argv[2]) as f:
+              new_changes = f.read()
 
           with open(chart_file, 'r') as f:
               content = f.read()
