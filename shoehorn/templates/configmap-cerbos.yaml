@@ -15,7 +15,7 @@ data:
       httpListenAddr: ":3592"
       grpcListenAddr: ":3593"
       {{- if .Values.global.mtls.enabled }}
-      # mTLS — cert/key for server identity, caCert triggers client cert verification.
+      # mTLS: cert/key for server identity, caCert triggers client cert verification.
       tls:
         cert: {{ .Values.global.mtls.certFile }}
         key: {{ .Values.global.mtls.keyFile }}

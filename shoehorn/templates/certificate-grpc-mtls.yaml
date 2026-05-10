@@ -1,6 +1,6 @@
 {{- /*
   Shared gRPC mTLS certificate. Mounted by api, forge, worker, crawler,
-  eventbus, and cerbos — they all use the same secret.
+  eventbus, and cerbos. They all use the same secret.
 */ -}}
 {{- if and .Values.global.mtls.enabled .Values.global.mtls.createCertificates }}
 ---

@@ -462,7 +462,7 @@ Usage (required ref):
        "ref"  .Values.database.passwordSecretRef
        "root" .) | nindent 8 }}
 
-Usage (optional ref — omits the env var if `ref.key` is unset):
+Usage (optional ref, omits the env var if `ref.key` is unset):
   {{- include "shoehorn.secretRef" (dict
        "env"  "ARGOCD_TOKEN"
        "ref"  .Values.auth.argocd.tokenSecretRef
@@ -500,7 +500,7 @@ Behavior:
 {{- end -}}
 
 {{/*
-Extra volumes — renders user-provided extraVolumes list.
+Extra volumes. Renders user-provided extraVolumes list.
 Usage: {{- include "shoehorn.extraVolumes" . | nindent 6 }}
 */}}
 {{- define "shoehorn.extraVolumes" -}}
@@ -510,7 +510,7 @@ Usage: {{- include "shoehorn.extraVolumes" . | nindent 6 }}
 {{- end -}}
 
 {{/*
-Extra volume mounts — renders user-provided extraVolumeMounts list.
+Extra volume mounts. Renders user-provided extraVolumeMounts list.
 Usage: {{- include "shoehorn.extraVolumeMounts" . | nindent 8 }}
 */}}
 {{- define "shoehorn.extraVolumeMounts" -}}

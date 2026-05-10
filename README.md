@@ -4,30 +4,29 @@
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/shoehorn-k8s-agent)](https://artifacthub.io/packages/search?repo=shoehorn-k8s-agent)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-Official Helm charts for [Shoehorn](https://shoehorn.dev), the Intelligent Platform for Engineering.
+Helm charts for [Shoehorn](https://shoehorn.dev), the Intelligent Developer Platform.
 
-## Repositories
+## Charts
 
-- OCI registry: `oci://ghcr.io/shoehorn-dev/helm-charts`
+| Chart | Description |
+|-------|-------------|
+| [shoehorn](./shoehorn) | Full platform deployment (api, web, eventbus, worker, crawler, forge + datastores) |
+| [shoehorn-k8s-agent](./shoehorn-k8s-agent) | Kubernetes agent for workload discovery, GitOps, and eBPF network flows |
+
+## Repository
+
+OCI registry: `oci://ghcr.io/shoehorn-dev/helm-charts`
 
 ## Requirements
 
 - Kubernetes 1.24+
 - Helm 4.0+
 
-## Charts
-
-| Chart | Description |
-|-------|-------------|
-| [shoehorn](./shoehorn) | Intelligent Developer Platform — full platform deployment |
-| [shoehorn-k8s-agent](./shoehorn-k8s-agent) | Kubernetes agent — workload discovery, GitOps, and eBPF network observability |
-
 ## Quick Start
 
 ### Shoehorn Platform
 
-1. Create a Kubernetes Secret with your credentials (using kubectl, External Secrets Operator, Vault, etc.)
-2. Install the chart:
+Create a Kubernetes Secret with your credentials (kubectl, External Secrets Operator, Vault, etc.), then:
 
 ```bash
 helm install shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn \
@@ -36,26 +35,25 @@ helm install shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn \
   --wait
 ```
 
-See [shoehorn/README.md](./shoehorn/README.md) for secret setup and configuration.
+See [shoehorn/README.md](./shoehorn/README.md) for the Secret keys and configuration.
 
 ### Kubernetes Agent
 
 ```bash
 helm install shoehorn-k8s-agent oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn-k8s-agent \
+  --namespace shoehorn --create-namespace \
   --set shoehorn.apiURL=https://shoehorn.example.com \
   --set shoehorn.apiToken=sha_your_token_here \
   --set shoehorn.cluster.id=my-cluster \
   --wait
 ```
 
-Or use an existing secret instead of passing the token directly — see [shoehorn-k8s-agent/README.md](./shoehorn-k8s-agent/README.md).
+To pass the token via an existing Secret instead, see [shoehorn-k8s-agent/README.md](./shoehorn-k8s-agent/README.md).
 
 ## Documentation
 
-- [Shoehorn chart README](./shoehorn/README.md)
-- [K8s Agent chart README](./shoehorn-k8s-agent/README.md)
-- [Shoehorn Docs](https://docs.shoehorn.dev)
+Full product docs: <https://docs.shoehorn.dev>
 
 ## License
 
-Apache 2.0 — see [LICENSE](LICENSE) for details.
+Apache 2.0. See [LICENSE](LICENSE).
