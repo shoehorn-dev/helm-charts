@@ -12,7 +12,7 @@ shoehorn:
   apiToken: ""
   #
   # Option 2: Use an existing secret (created by kubectl, ESO, Vault, etc.)
-  # When set, the chart does NOT create a secret — it references yours instead.
+  # When set, the chart does NOT create a secret. It references yours instead.
   existingSecret: ""
   # Maps env var names to keys in your secret. Defaults:
   secretMappings:
@@ -290,7 +290,7 @@ netobserver:
       cpu: 100m
       memory: 128Mi
 
-  # Tolerations — by default run on all nodes to capture full mesh
+  # Tolerations: by default run on all nodes to capture full mesh
   tolerations:
     - operator: Exists
 

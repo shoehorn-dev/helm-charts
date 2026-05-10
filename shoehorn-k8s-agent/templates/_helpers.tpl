@@ -139,7 +139,7 @@ SHOEHORN_GITOPS_FLUXCD_NAMESPACE: {{ .Values.agent.gitops.fluxcd.namespace | def
 {{- end }}
 
 {{/*
-Secret name — returns existingSecret if set, otherwise the chart-managed secret.
+Secret name. Returns existingSecret if set, otherwise the chart-managed secret.
 */}}
 {{- define "shoehorn-agent.secretName" -}}
 {{- if .Values.shoehorn.existingSecret -}}

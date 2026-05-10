@@ -33,7 +33,7 @@ Container images live on [Docker Hub](https://hub.docker.com/u/shoehorned). The 
 - Kubernetes 1.24+
 - Helm 4.0+
 - An ingress controller (Traefik or Envoy Gateway recommended)
-- cert-manager (optional, for automatic TLS) — install [out-of-band](#cert-manager-bundling-is-unsupported)
+- cert-manager (optional, for automatic TLS). Install [out-of-band](#cert-manager-bundling-is-unsupported).
 - A Kubernetes Secret with credentials (see [Secrets](#secrets))
 
 ## Installing the Chart
@@ -47,8 +47,8 @@ helm install shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn \
 
 Two example values files ship with the chart:
 
-- [`examples/values-minimal.yaml`](examples/values-minimal.yaml) — single Secret, no persistence, dev-friendly
-- [`examples/values-eso-vault.yaml`](examples/values-eso-vault.yaml) — per-credential Secrets via External Secrets Operator + Vault
+- [`examples/values-minimal.yaml`](examples/values-minimal.yaml): single Secret, no persistence, dev-friendly
+- [`examples/values-eso-vault.yaml`](examples/values-eso-vault.yaml): per-credential Secrets via External Secrets Operator + Vault
 
 Verify the install:
 
@@ -85,9 +85,9 @@ The chart never creates Secrets. It only references them. Each credential has a 
 
 Two workflows:
 
-**One Secret for everything** — set `secret.defaultName: shoehorn-credentials`. Every `*SecretRef` falls back to that name, so each ref only needs `key:` (and most defaults already match the keys in the TL;DR `kubectl` command).
+**One Secret for everything.** Set `secret.defaultName: shoehorn-credentials`. Every `*SecretRef` falls back to that name, so each ref only needs `key:` (and most defaults already match the keys in the TL;DR `kubectl` command).
 
-**Per-credential Secrets** — set `name:` explicitly on each ref. Useful with External Secrets Operator, Sealed Secrets, or Vault when each credential domain syncs from its own upstream path.
+**Per-credential Secrets.** Set `name:` explicitly on each ref. Useful with External Secrets Operator, Sealed Secrets, or Vault when each credential domain syncs from its own upstream path.
 
 ### Credentials reference
 
@@ -107,7 +107,7 @@ Two workflows:
 | `UPCLOUD_TOKEN` | `cloudProviders.upcloud.tokenSecretRef` | Required when `cloudProviders.upcloud.enabled` |
 | `SMTP_PASSWORD` | `smtp.passwordSecretRef` | Required when `smtp.enabled` |
 
-Public identifiers — `auth.github.appId`, `auth.github.installationId`, `auth.zitadel.projectId`, `auth.zitadel.clientId` — are plain values, not Secret references.
+Public identifiers (`auth.github.appId`, `auth.github.installationId`, `auth.zitadel.projectId`, `auth.zitadel.clientId`) are plain values, not Secret references.
 
 ### File-based credentials
 
@@ -140,7 +140,7 @@ Key parameters:
 | `global.organization.slug` | URL-safe org identifier (required) | `""` |
 | `global.storageClass` | Default storage class for PVCs | `""` |
 | `secret.defaultName` | Fallback Secret name for refs without `name:` | `""` |
-| `auth.provider` | `zitadel`, `okta`, or `entra-id` | `zitadel` |
+| `auth.provider` | `zitadel` or `okta` | `zitadel` |
 | `ingressRoute.enabled` | Traefik IngressRoute | `true` |
 | `ingress.enabled` | Standard Kubernetes Ingress | `false` |
 | `postgresql.persistence.size` | PVC size | `20Gi` |
@@ -165,7 +165,7 @@ For single-tenant deployments, RLS still runs but the middleware injects a fixed
 
 ### Identity providers
 
-Supported: Zitadel (default), Okta, Microsoft Entra ID. See:
+Supported: Zitadel (default), Okta. See:
 
 - [`examples/values-okta.yaml`](examples/values-okta.yaml)
 - [Okta integration guide](https://docs.shoehorn.dev/integrations/okta)
