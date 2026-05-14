@@ -131,6 +131,10 @@ spec:
         # Auth
         - name: AUTH_PROVIDER
           value: {{ .Values.auth.provider | quote }}
+        {{- if .Values.auth.audience }}
+        - name: AUTH_AUDIENCE
+          value: {{ .Values.auth.audience | quote }}
+        {{- end }}
 
         # Bootstrap admin (first login gets tenant:admin if no roles in DB).
         {{- if .Values.rbac.roleAssignment }}

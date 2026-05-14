@@ -344,6 +344,11 @@ forge:
 auth:
   provider: zitadel
 
+  # Expected JWT audience. Leave empty to default to the active provider's
+  # client_id. Set this only when the IdP issues tokens with an audience
+  # that differs from the client_id.
+  audience: ""
+
   zitadel:
     projectId: ""
     clientId: ""
