@@ -344,9 +344,16 @@ forge:
 auth:
   provider: zitadel
 
-  # Expected JWT audience. Leave empty to default to the active provider's
-  # client_id. Set this only when the IdP issues tokens with an audience
-  # that differs from the client_id.
+  # Expected JWT audience. Resolution:
+  #   1. If set, this value is used verbatim.
+  #   2. If empty and provider is okta with the default authorization server
+  #      (`/oauth2/default`), audience auto-defaults to "api://default" —
+  #      Okta's own factory default. You do not need to set anything.
+  #   3. Otherwise (Zitadel, Entra ID, or Okta with a custom auth server),
+  #      audience falls back to the active provider's client_id.
+  # Set this only when your IdP issues tokens with an audience that differs
+  # from the auto-derived value (typically: custom Okta auth servers, or a
+  # Zitadel API audience that isn't the OIDC client_id).
   audience: ""
 
   zitadel:
