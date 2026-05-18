@@ -49,6 +49,8 @@ spec:
         runAsGroup: 1000
         runAsNonRoot: true
         runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
       # Note: Official chart has no initContainers - fsGroup handles permissions
       containers:
       - name: meilisearch
@@ -133,7 +135,7 @@ spec:
       {{- else }}
       storageClassName: {{ .Values.meilisearch.persistence.storageClass | quote }}
       {{- end }}
-      {{- else }}
+      {{- else if .Values.global.storageClass }}
       storageClassName: {{ .Values.global.storageClass | quote }}
       {{- end }}
       resources:

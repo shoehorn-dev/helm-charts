@@ -5,6 +5,7 @@ Self-hosted Intelligent Developer Platform on Kubernetes. Service catalog, score
 ## TL;DR
 
 ```bash
+# 1. Create namespace and the credential secret.
 kubectl create namespace shoehorn
 
 kubectl create secret generic shoehorn-credentials -n shoehorn \
@@ -16,11 +17,22 @@ kubectl create secret generic shoehorn-credentials -n shoehorn \
   --from-literal=auth_encryption_key="$(openssl rand -base64 32)" \
   --from-literal=secrets_encryption_key="$(openssl rand -hex 32)"
 
+# 2. Install. Replace YOUR_* placeholders with values from your Zitadel project
+#    (or switch to auth.provider=okta and use auth.okta.* instead).
+#    If your cluster has no default StorageClass, add --set global.storageClass=YOUR_CLASS.
 helm install shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn \
   --namespace shoehorn \
-  --values custom-values.yaml \
+  --set secret.defaultName=shoehorn-credentials \
+  --set global.domain=idp.example.com \
+  --set global.organization.slug=my-company \
+  --set global.organization.name="My Company" \
+  --set auth.zitadel.projectId=YOUR_ZITADEL_PROJECT_ID \
+  --set auth.zitadel.clientId=YOUR_ZITADEL_CLIENT_ID \
+  --set auth.zitadel.externalUrl=https://YOUR_INSTANCE.zitadel.cloud \
   --wait
 ```
+
+The `--set` values above are the minimum the chart requires beyond credentials. The full example with comments lives at [`examples/values-minimal.yaml`](examples/values-minimal.yaml).
 
 ## Introduction
 
@@ -32,9 +44,14 @@ Container images live on [Docker Hub](https://hub.docker.com/u/shoehorned). The 
 
 - Kubernetes 1.24+
 - Helm 4.0+
-- An ingress controller (Traefik or Envoy Gateway recommended)
+- An ingress controller. Traefik or Envoy Gateway recommended. If you don't have one yet, install Traefik:
+  ```bash
+  helm repo add traefik https://traefik.github.io/charts
+  helm install traefik traefik/traefik --namespace traefik --create-namespace --version 36.0.0
+  ```
+  Or skip ingress entirely and reach the app with `kubectl port-forward` (set `--set ingressRoute.enabled=false --set ingress.enabled=false`).
 - cert-manager (optional, for automatic TLS). Install [out-of-band](#cert-manager-bundling-is-unsupported).
-- A Kubernetes Secret with credentials (see [Secrets](#secrets))
+- A Kubernetes Secret with credentials (see [Secrets](#secrets)). On Windows without `openssl`, see [Generating secrets on Windows](#generating-secrets-on-windows).
 
 ## Installing the Chart
 
@@ -109,6 +126,23 @@ Two workflows:
 
 Public identifiers (`auth.github.appId`, `auth.github.installationId`, `auth.zitadel.projectId`, `auth.zitadel.clientId`) are plain values, not Secret references.
 
+### Generating secrets on Windows
+
+The TL;DR uses `openssl rand`, which isn't on stock Windows. PowerShell equivalent:
+
+```powershell
+function New-Hex { param([int]$Bytes) -join ((48..57)+(97..102) | Get-Random -Count ($Bytes * 2) | ForEach-Object { [char]$_ }) }
+
+kubectl create secret generic shoehorn-credentials -n shoehorn `
+  --from-literal=postgres_password=(New-Hex 16) `
+  --from-literal=db_password=(New-Hex 16) `
+  --from-literal=valkey_password=(New-Hex 16) `
+  --from-literal=meilisearch_master_key=(New-Hex 32) `
+  --from-literal=jwt_secret=(New-Hex 32) `
+  --from-literal=auth_encryption_key=(New-Hex 32) `
+  --from-literal=secrets_encryption_key=(New-Hex 32)
+```
+
 ### File-based credentials
 
 GitHub App private keys must land on disk as files. Mount them via `extraVolumes` and `extraVolumeMounts`:
@@ -136,7 +170,7 @@ Key parameters:
 
 | Parameter | Description | Default |
 |---|---|---|
-| `global.domain` | Main domain | `shoehorn.example.com` |
+| `global.domain` | Hostname users reach Shoehorn at (no default — chart fails fast if unset, e.g. `idp.acme.internal`) | _(required)_ |
 | `global.organization.slug` | URL-safe org identifier (required) | `""` |
 | `global.storageClass` | Default storage class for PVCs | `""` |
 | `secret.defaultName` | Fallback Secret name for refs without `name:` | `""` |

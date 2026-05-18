@@ -4,16 +4,16 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "shoehorn.fullname" $ }}-rbac-sync-{{ .slug }}-{{ now | date "20060102-150405" }}
+  name: {{ include "shoehorn.fullname" $ }}-rbac-sync-{{ .slug }}-r{{ $.Release.Revision }}
   labels:
     {{- include "shoehorn.labels" $ | nindent 4 }}
     app.kubernetes.io/component: rbac-sync
-    shoehorn.io/tenant: {{ .slug }}
+    shoehorn.dev/tenant: {{ .slug }}
   annotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "10"
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
-    shoehorn.io/rbac-version: {{ .version | quote }}
+    shoehorn.dev/rbac-version: {{ .version | quote }}
 spec:
   ttlSecondsAfterFinished: 300  # Clean up job after 5 minutes
   backoffLimit: {{ $.Values.rbac.sync.healthCheck.maxRetries | default 3 }}
@@ -22,13 +22,10 @@ spec:
       labels:
         {{- include "shoehorn.selectorLabels" $ | nindent 8 }}
         app.kubernetes.io/component: rbac-sync
-        shoehorn.io/tenant: {{ .slug }}
+        shoehorn.dev/tenant: {{ .slug }}
     spec:
       restartPolicy: OnFailure
-      {{- with $.Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- include "shoehorn.imagePullSecrets" $ | nindent 6 }}
       serviceAccountName: {{ include "shoehorn.serviceAccountName" $ }}
       securityContext:
         {{- toYaml $.Values.podSecurityContext | nindent 8 }}
@@ -40,17 +37,17 @@ spec:
             - sh
             - -c
             - |
-              until pg_isready -h {{ include "shoehorn.postgresql.host" $ }} -p {{ include "shoehorn.postgresql.port" $ }} -U {{ include "shoehorn.postgresql.user" $ }}; do
+              until pg_isready -h {{ include "shoehorn.postgresql.host" $ }} -p {{ include "shoehorn.postgresql.port" $ }} -U {{ $.Values.postgresql.external.user | default "shoehorn_user" }}; do
                 echo "Waiting for PostgreSQL..."
                 sleep 2
               done
               echo "PostgreSQL is ready!"
           env:
-            {{- include "shoehorn.secretRef" (dict "env" "PGPASSWORD" "ref" $.Values.postgresql.passwordSecretRef "root" $) | nindent 18 }}
+            {{- include "shoehorn.secretRef" (dict "env" "PGPASSWORD" "ref" $.Values.postgresql.passwordSecretRef "root" $) | nindent 12 }}
 
         # Wait for Valkey to be ready (for distributed locking)
         - name: wait-for-valkey
-          image: valkey/valkey:9.0.0
+          image: "{{ $.Values.valkey.image.repository }}:{{ $.Values.valkey.image.tag }}"
           command:
             - sh
             - -c
@@ -84,19 +81,19 @@ spec:
             - name: DB_PORT
               value: {{ include "shoehorn.postgresql.port" $ | quote }}
             - name: DB_NAME
-              value: {{ include "shoehorn.postgresql.database" $ }}
+              value: {{ $.Values.postgresql.external.database | default "shoehorn" }}
             - name: DB_USER
-              value: {{ include "shoehorn.postgresql.user" $ }}
-            {{- include "shoehorn.secretRef" (dict "env" "DB_PASSWORD" "ref" $.Values.postgresql.passwordSecretRef "root" $) | nindent 18 }}
+              value: {{ $.Values.postgresql.external.user | default "shoehorn_user" }}
+            {{- include "shoehorn.secretRef" (dict "env" "DB_PASSWORD" "ref" $.Values.postgresql.passwordSecretRef "root" $) | nindent 12 }}
             - name: DB_SSL_MODE
-              value: {{ $.Values.postgresql.sslMode | default "disable" }}
+              value: {{ if $.Values.postgresql.tls.enabled }}{{ $.Values.postgresql.tls.sslMode | default "require" }}{{ else }}disable{{ end }}
 
             # Valkey/Redis configuration (for distributed locking)
             - name: VALKEY_HOST
               value: {{ include "shoehorn.valkey.host" $ }}
             - name: VALKEY_PORT
               value: {{ include "shoehorn.valkey.port" $ | quote }}
-            {{- include "shoehorn.secretRef" (dict "env" "VALKEY_PASSWORD" "ref" $.Values.valkey.passwordSecretRef "root" $) | nindent 18 }}
+            {{- include "shoehorn.secretRef" (dict "env" "VALKEY_PASSWORD" "ref" $.Values.valkey.passwordSecretRef "root" $) | nindent 12 }}
 
             # RBAC configuration
             - name: RBAC_ENABLED
@@ -105,8 +102,10 @@ spec:
               value: {{ $.Values.rbac.validation.strict | quote }}
             - name: RBAC_DATABASE_VALIDATION
               value: {{ $.Values.rbac.validation.database | quote }}
+            {{- with $.Values.rbac.defaultRole }}
             - name: RBAC_DEFAULT_ROLE
-              value: {{ $.Values.rbac.defaultRole | quote }}
+              value: {{ . | quote }}
+            {{- end }}
 
             # Audit logging
             - name: RBAC_AUDIT_ENABLED

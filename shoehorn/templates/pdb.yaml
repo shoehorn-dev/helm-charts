@@ -1,5 +1,7 @@
 {{- if .Values.podDisruptionBudget.enabled }}
-# API Pod Disruption Budget
+{{/* PDBs only render when the component has 2+ replicas (or autoscaling enabled).
+     With a single replica, minAvailable: 1 would make node drains hang forever. */}}
+{{- if or (ge (int .Values.replicaCount.api) 2) .Values.api.autoscaling.enabled }}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -13,8 +15,9 @@ spec:
   selector:
     matchLabels:
       {{- include "shoehorn.api.selectorLabels" . | nindent 6 }}
+{{- end }}
+{{- if or (ge (int .Values.replicaCount.web) 2) .Values.web.autoscaling.enabled }}
 ---
-# Web Pod Disruption Budget
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -27,8 +30,9 @@ spec:
   selector:
     matchLabels:
       {{- include "shoehorn.web.selectorLabels" . | nindent 6 }}
+{{- end }}
+{{- if or (ge (int .Values.replicaCount.eventbus) 2) .Values.eventbus.autoscaling.enabled }}
 ---
-# EventBus Pod Disruption Budget
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -41,8 +45,9 @@ spec:
   selector:
     matchLabels:
       {{- include "shoehorn.eventbus.selectorLabels" . | nindent 6 }}
+{{- end }}
+{{- if or (ge (int .Values.replicaCount.worker) 2) .Values.worker.autoscaling.enabled }}
 ---
-# Worker Pod Disruption Budget
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -55,8 +60,9 @@ spec:
   selector:
     matchLabels:
       {{- include "shoehorn.worker.selectorLabels" . | nindent 6 }}
+{{- end }}
+{{- if or (ge (int .Values.replicaCount.forge) 2) .Values.forge.autoscaling.enabled }}
 ---
-# Forge Pod Disruption Budget
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -69,4 +75,5 @@ spec:
   selector:
     matchLabels:
       {{- include "shoehorn.forge.selectorLabels" . | nindent 6 }}
+{{- end }}
 {{- end }}

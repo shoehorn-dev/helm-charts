@@ -10,7 +10,7 @@
 
 # Global settings
 global:
-  domain: shoehorn.example.com
+  domain: idp.acme.internal
   organization:
     name: "Your Company"
     slug: "your-company"
@@ -126,7 +126,7 @@ ingress:
   tls:
     - secretName: shoehorn-tls
       hosts:
-        - shoehorn.example.com
+        - idp.acme.internal
 
 # Security Context (Production hardening)
 podSecurityContext:

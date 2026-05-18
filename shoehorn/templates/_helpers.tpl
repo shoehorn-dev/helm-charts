@@ -249,13 +249,17 @@ Return the proper image name
 {{- end }}
 
 {{/*
-Return the proper component image name
+Return the proper component image name.
 Each component specifies its full image repository (e.g., shoehorned/shoehorn-api).
-Tag precedence: component.image.tag > global image.tag > "latest"
+Tag precedence: component.image.tag > .Values.image.tag.
+Shoehorn does not publish a `:latest` tag. Render fails if no tag is set.
 */}}
 {{- define "shoehorn.componentImage" -}}
 {{- $componentRepo := .component.image.repository -}}
-{{- $tag := .component.image.tag | default .Values.image.tag | default "latest" -}}
+{{- $tag := .component.image.tag | default .Values.image.tag -}}
+{{- if not $tag -}}
+{{- fail (printf "shoehorn.componentImage: no tag set for %s. Set component.image.tag or .Values.image.tag (Shoehorn does not publish :latest)." $componentRepo) -}}
+{{- end -}}
 {{- printf "%s:%s" $componentRepo $tag -}}
 {{- end }}
 
@@ -413,6 +417,22 @@ Validate required plain values at template render time.
 Each *SecretRef is validated by the shoehorn.secretRef helper itself when called.
 */}}
 {{- define "shoehorn.validateValues" -}}
+{{- if or (not .Values.global.domain) (eq .Values.global.domain "idp.example.com") -}}
+  {{- fail "\n\nglobal.domain is required. Set it to the hostname customers will use to reach Shoehorn on your infra (e.g. idp.acme.internal). Pass --set global.domain=YOUR_DOMAIN or override it in your values file." -}}
+{{- end -}}
+{{- if .Values.ingressRoute.enabled -}}
+  {{/* The kube-system lookup tells us whether `lookup` has live cluster access.
+       During `helm template` (offline), every lookup returns nil and we must
+       skip the CRD check or we'd block CI dry-runs. During `helm install`,
+       kube-system exists so we run the real Traefik CRD check. */}}
+  {{- $kubeSystem := lookup "v1" "Namespace" "" "kube-system" -}}
+  {{- if $kubeSystem -}}
+    {{- $crd := lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "" "ingressroutes.traefik.io" -}}
+    {{- if not $crd -}}
+      {{- fail "\n\ningressRoute.enabled is true but the Traefik CRD ingressroutes.traefik.io is not installed in this cluster. Either install Traefik (see chart README Prerequisites) or switch to standard Ingress: --set ingressRoute.enabled=false --set ingress.enabled=true." -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
 {{- if eq .Values.auth.provider "zitadel" -}}
   {{- if not .Values.auth.zitadel.projectId -}}
     {{- fail "\n\nauth.zitadel.projectId is required when auth.provider is 'zitadel'." -}}

@@ -231,8 +231,13 @@ spec:
         - name: GITHUB_FORGE_INSTALLATION_ID
           value: {{ .Values.auth.github.forge.installationId | quote }}
         {{- end }}
+        {{- if .Values.auth.github.forge.appId }}
+        # Set only when the GitHub App is configured. The private key file
+        # must be mounted via extraVolumes at this path; the chart does not
+        # auto-mount it.
         - name: GITHUB_FORGE_PRIVATE_KEY_PATH
           value: /var/secrets/github-forge/private-key
+        {{- end }}
 
         # ArgoCD
         {{- include "shoehorn.secretRef" (dict "env" "ARGOCD_TOKEN" "ref" .Values.auth.argocd.tokenSecretRef "root" . "optional" true) | nindent 8 }}

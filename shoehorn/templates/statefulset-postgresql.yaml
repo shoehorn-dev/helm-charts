@@ -146,7 +146,7 @@ spec:
       {{- else }}
       storageClassName: {{ .Values.postgresql.persistence.storageClass | quote }}
       {{- end }}
-      {{- else }}
+      {{- else if .Values.global.storageClass }}
       storageClassName: {{ .Values.global.storageClass | quote }}
       {{- end }}
       resources:
