@@ -141,6 +141,7 @@ Key parameters:
 | `global.storageClass` | Default storage class for PVCs | `""` |
 | `secret.defaultName` | Fallback Secret name for refs without `name:` | `""` |
 | `auth.provider` | `zitadel` or `okta` | `zitadel` |
+| `auth.audience` | Expected JWT audience; empty defaults to the provider's client_id | `""` |
 | `ingressRoute.enabled` | Traefik IngressRoute | `true` |
 | `ingress.enabled` | Standard Kubernetes Ingress | `false` |
 | `postgresql.persistence.size` | PVC size | `20Gi` |
