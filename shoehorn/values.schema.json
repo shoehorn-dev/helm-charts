@@ -100,6 +100,46 @@
         }
       }
     },
+    "certManager": {
+      "type": "object",
+      "description": "cert-manager subchart configuration. Set install:false and provide your own cert-manager.",
+      "additionalProperties": true,
+      "properties": {
+        "install": { "type": "boolean", "default": false },
+        "createClusterIssuer": { "type": "boolean", "default": true },
+        "installCRDs": { "type": "boolean", "default": true },
+        "issuer": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "name": { "type": "string" },
+            "kind": { "type": "string", "enum": ["Issuer", "ClusterIssuer"] }
+          }
+        }
+      }
+    },
+    "registryCredentials": {
+      "type": "object",
+      "description": "Per-registry image pull secrets. Use existingDockerConfigJson or registries list.",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "registries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "registry": { "type": "string" },
+              "username": { "type": "string" },
+              "password": { "type": "string" },
+              "email": { "type": "string" }
+            }
+          }
+        },
+        "existingDockerConfigJson": { "type": "string" }
+      }
+    },
     "ingressRoute": {
       "type": "object",
       "description": "Traefik IngressRoute configuration",
@@ -112,6 +152,45 @@
             "certResolver": { "type": "string" }
           }
         }
+      }
+    },
+    "httpRoute": {
+      "type": "object",
+      "description": "Envoy Gateway HTTPRoute configuration (alternative to ingressRoute and ingress)",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false }
+      }
+    },
+    "service": {
+      "type": "object",
+      "description": "Kubernetes Service configuration for the api / web services",
+      "additionalProperties": true,
+      "properties": {
+        "type": { "type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer"], "default": "ClusterIP" }
+      }
+    },
+    "cloudProviders": {
+      "type": "object",
+      "description": "Cloud-provider credentials for catalog/Forge resource discovery",
+      "additionalProperties": true,
+      "properties": {
+        "upcloud": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "tokenSecretRef": { "$ref": "#/$defs/secretKeyRef" }
+          }
+        }
+      }
+    },
+    "kroki": {
+      "type": "object",
+      "description": "Kroki diagram-rendering sidecar (used by TechDocs)",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false }
       }
     },
     "ingress": {
