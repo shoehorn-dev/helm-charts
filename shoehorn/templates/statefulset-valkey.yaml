@@ -64,8 +64,15 @@ spec:
           protocol: TCP
         env:
         {{- include "shoehorn.secretRef" (dict "env" "VALKEY_PASSWORD" "ref" .Values.valkey.passwordSecretRef "root" .) | nindent 8 }}
+        {{- if and .Values.valkey.passwordSecretRef (get .Values.valkey.passwordSecretRef "key") }}
+        {{- include "shoehorn.secretRef" (dict "env" "REDISCLI_AUTH" "ref" .Values.valkey.passwordSecretRef "root" .) | nindent 8 }}
+        {{- end }}
         command:
-          {{- toYaml .Values.valkey.command | nindent 12 }}
+          {{- $cmd := .Values.valkey.command }}
+          {{- if and .Values.valkey.passwordSecretRef (get .Values.valkey.passwordSecretRef "key") }}
+          {{- $cmd = concat $cmd (list "--requirepass" "$(VALKEY_PASSWORD)") }}
+          {{- end }}
+          {{- toYaml $cmd | nindent 12 }}
         livenessProbe:
           {{- toYaml .Values.valkey.livenessProbe | nindent 12 }}
         readinessProbe:

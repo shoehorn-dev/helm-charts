@@ -1,7 +1,9 @@
 # Default values for the Shoehorn chart.
 
 global:
-  domain: shoehorn.example.com
+  # Required. Set to the hostname customers use to reach Shoehorn on your infra
+  # (e.g. idp.example.com). The chart fails to render if left at the placeholder.
+  domain: idp.example.com
   storageClass: ""
 
   # Comma-separated IPs/CIDRs allowed to send X-Forwarded-* identity headers.
@@ -624,14 +626,16 @@ valkey:
     - "512mb"
     - --maxmemory-policy
     - "allkeys-lru"
+  # Probes authenticate via REDISCLI_AUTH so the password never appears in ps listings.
+  # statefulset-valkey.yaml injects REDISCLI_AUTH from VALKEY_PASSWORD when a password is configured.
   livenessProbe:
     exec:
-      command: [sh, -c, "valkey-cli ping"]
+      command: [sh, -c, "valkey-cli --no-auth-warning ping | grep -q PONG"]
     initialDelaySeconds: 10
     periodSeconds: 10
   readinessProbe:
     exec:
-      command: [sh, -c, "valkey-cli ping"]
+      command: [sh, -c, "valkey-cli --no-auth-warning ping | grep -q PONG"]
     initialDelaySeconds: 5
     periodSeconds: 5
   external:

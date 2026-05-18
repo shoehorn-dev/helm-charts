@@ -249,13 +249,17 @@ Return the proper image name
 {{- end }}
 
 {{/*
-Return the proper component image name
+Return the proper component image name.
 Each component specifies its full image repository (e.g., shoehorned/shoehorn-api).
-Tag precedence: component.image.tag > global image.tag > "latest"
+Tag precedence: component.image.tag > .Values.image.tag.
+Shoehorn does not publish a `:latest` tag. Render fails if no tag is set.
 */}}
 {{- define "shoehorn.componentImage" -}}
 {{- $componentRepo := .component.image.repository -}}
-{{- $tag := .component.image.tag | default .Values.image.tag | default "latest" -}}
+{{- $tag := .component.image.tag | default .Values.image.tag -}}
+{{- if not $tag -}}
+{{- fail (printf "shoehorn.componentImage: no tag set for %s. Set component.image.tag or .Values.image.tag (Shoehorn does not publish :latest)." $componentRepo) -}}
+{{- end -}}
 {{- printf "%s:%s" $componentRepo $tag -}}
 {{- end }}
 
@@ -413,6 +417,9 @@ Validate required plain values at template render time.
 Each *SecretRef is validated by the shoehorn.secretRef helper itself when called.
 */}}
 {{- define "shoehorn.validateValues" -}}
+{{- if or (not .Values.global.domain) (eq .Values.global.domain "idp.example.com") (eq .Values.global.domain "shoehorn.example.com") -}}
+  {{- fail "\n\nglobal.domain is required. Set it to the hostname customers will use to reach Shoehorn on your infra (e.g. idp.acme.internal). Pass --set global.domain=YOUR_DOMAIN or override it in your values file." -}}
+{{- end -}}
 {{- if eq .Values.auth.provider "zitadel" -}}
   {{- if not .Values.auth.zitadel.projectId -}}
     {{- fail "\n\nauth.zitadel.projectId is required when auth.provider is 'zitadel'." -}}

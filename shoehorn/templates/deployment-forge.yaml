@@ -92,7 +92,7 @@ spec:
         - name: DB_USER
           value: "app_user"
         - name: DB_SSLMODE
-          value: "disable"
+          value: {{ if .Values.postgresql.tls.enabled }}{{ .Values.postgresql.tls.sslMode | default "require" | quote }}{{ else }}"disable"{{ end }}
 
         # Valkey/Redis
         - name: VALKEY_ADDR

@@ -5,6 +5,7 @@ Self-hosted Intelligent Developer Platform on Kubernetes. Service catalog, score
 ## TL;DR
 
 ```bash
+# 1. Create namespace and the credential secret.
 kubectl create namespace shoehorn
 
 kubectl create secret generic shoehorn-credentials -n shoehorn \
@@ -16,11 +17,22 @@ kubectl create secret generic shoehorn-credentials -n shoehorn \
   --from-literal=auth_encryption_key="$(openssl rand -base64 32)" \
   --from-literal=secrets_encryption_key="$(openssl rand -hex 32)"
 
+# 2. Install. Replace YOUR_* placeholders with values from your Zitadel project
+#    (or switch to auth.provider=okta and use auth.okta.* instead).
+#    If your cluster has no default StorageClass, add --set global.storageClass=YOUR_CLASS.
 helm install shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn \
   --namespace shoehorn \
-  --values custom-values.yaml \
+  --set secret.defaultName=shoehorn-credentials \
+  --set global.domain=idp.example.com \
+  --set global.organization.slug=my-company \
+  --set global.organization.name="My Company" \
+  --set auth.zitadel.projectId=YOUR_ZITADEL_PROJECT_ID \
+  --set auth.zitadel.clientId=YOUR_ZITADEL_CLIENT_ID \
+  --set auth.zitadel.externalUrl=https://YOUR_INSTANCE.zitadel.cloud \
   --wait
 ```
+
+The `--set` values above are the minimum the chart requires beyond credentials. The full example with comments lives at [`examples/values-minimal.yaml`](examples/values-minimal.yaml).
 
 ## Introduction
 
