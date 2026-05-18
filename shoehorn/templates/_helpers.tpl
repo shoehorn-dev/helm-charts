@@ -420,6 +420,19 @@ Each *SecretRef is validated by the shoehorn.secretRef helper itself when called
 {{- if or (not .Values.global.domain) (eq .Values.global.domain "idp.example.com") (eq .Values.global.domain "shoehorn.example.com") -}}
   {{- fail "\n\nglobal.domain is required. Set it to the hostname customers will use to reach Shoehorn on your infra (e.g. idp.acme.internal). Pass --set global.domain=YOUR_DOMAIN or override it in your values file." -}}
 {{- end -}}
+{{- if .Values.ingressRoute.enabled -}}
+  {{/* The kube-system lookup tells us whether `lookup` has live cluster access.
+       During `helm template` (offline), every lookup returns nil and we must
+       skip the CRD check or we'd block CI dry-runs. During `helm install`,
+       kube-system exists so we run the real Traefik CRD check. */}}
+  {{- $kubeSystem := lookup "v1" "Namespace" "" "kube-system" -}}
+  {{- if $kubeSystem -}}
+    {{- $crd := lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "" "ingressroutes.traefik.io" -}}
+    {{- if not $crd -}}
+      {{- fail "\n\ningressRoute.enabled is true but the Traefik CRD ingressroutes.traefik.io is not installed in this cluster. Either install Traefik (see chart README Prerequisites) or switch to standard Ingress: --set ingressRoute.enabled=false --set ingress.enabled=true." -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
 {{- if eq .Values.auth.provider "zitadel" -}}
   {{- if not .Values.auth.zitadel.projectId -}}
     {{- fail "\n\nauth.zitadel.projectId is required when auth.provider is 'zitadel'." -}}

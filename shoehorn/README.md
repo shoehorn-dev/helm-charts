@@ -44,9 +44,14 @@ Container images live on [Docker Hub](https://hub.docker.com/u/shoehorned). The 
 
 - Kubernetes 1.24+
 - Helm 4.0+
-- An ingress controller (Traefik or Envoy Gateway recommended)
+- An ingress controller. Traefik or Envoy Gateway recommended. If you don't have one yet, install Traefik:
+  ```bash
+  helm repo add traefik https://traefik.github.io/charts
+  helm install traefik traefik/traefik --namespace traefik --create-namespace --version 36.0.0
+  ```
+  Or skip ingress entirely and reach the app with `kubectl port-forward` (set `--set ingressRoute.enabled=false --set ingress.enabled=false`).
 - cert-manager (optional, for automatic TLS). Install [out-of-band](#cert-manager-bundling-is-unsupported).
-- A Kubernetes Secret with credentials (see [Secrets](#secrets))
+- A Kubernetes Secret with credentials (see [Secrets](#secrets)). On Windows without `openssl`, see [Generating secrets on Windows](#generating-secrets-on-windows).
 
 ## Installing the Chart
 
@@ -120,6 +125,23 @@ Two workflows:
 | `SMTP_PASSWORD` | `smtp.passwordSecretRef` | Required when `smtp.enabled` |
 
 Public identifiers (`auth.github.appId`, `auth.github.installationId`, `auth.zitadel.projectId`, `auth.zitadel.clientId`) are plain values, not Secret references.
+
+### Generating secrets on Windows
+
+The TL;DR uses `openssl rand`, which isn't on stock Windows. PowerShell equivalent:
+
+```powershell
+function New-Hex { param([int]$Bytes) -join ((48..57)+(97..102) | Get-Random -Count ($Bytes * 2) | ForEach-Object { [char]$_ }) }
+
+kubectl create secret generic shoehorn-credentials -n shoehorn `
+  --from-literal=postgres_password=(New-Hex 16) `
+  --from-literal=db_password=(New-Hex 16) `
+  --from-literal=valkey_password=(New-Hex 16) `
+  --from-literal=meilisearch_master_key=(New-Hex 32) `
+  --from-literal=jwt_secret=(New-Hex 32) `
+  --from-literal=auth_encryption_key=(New-Hex 32) `
+  --from-literal=secrets_encryption_key=(New-Hex 32)
+```
 
 ### File-based credentials
 
