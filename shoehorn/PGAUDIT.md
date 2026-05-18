@@ -1,80 +1,67 @@
-# PostgreSQL - PgAudit
+# PostgreSQL pgaudit
 
-This document explains how pgaudit is used in the Shoehorn Platform
+How pgaudit is wired into the Shoehorn Platform helm chart, what it logs, and how to run it against a managed Postgres.
 
-## What is pgaudit?
+## What pgaudit does
 
-`pgaudit` is a PostgreSQL extension that provides detailed session and object audit logging for compliance requirements (SOC 2, HIPAA, PCI DSS, etc.).
+[pgaudit](https://github.com/pgaudit/pgaudit) is a PostgreSQL extension for session and object audit logging. We use it to satisfy SOC 2, HIPAA, and PCI DSS audit-trail requirements.
 
-- **Official Repository**: https://github.com/pgaudit/pgaudit
-- **Documentation**: https://github.com/pgaudit/pgaudit/blob/master/README.md
+With the default `pgaudit.log = 'write,ddl,role'`:
 
-## What Gets Logged
+- `write`: INSERT, UPDATE, DELETE, TRUNCATE, COPY FROM
+- `ddl`: CREATE, ALTER, DROP
+- `role`: GRANT, REVOKE, CREATE/ALTER/DROP ROLE
 
-With our default configuration (`pgaudit.log = 'write,ddl,role'`):
+## Setup
 
-- **write**: INSERT, UPDATE, DELETE operations
-- **ddl**: CREATE, ALTER, DROP statements
-- **role**: GRANT, REVOKE, role assignments
+### Option 1: Built-in image (default)
 
-## Production Setup Options
-
-### Option 1: Use Our Custom Image (Default - Recommended)
-
-**This is what we ship.** The Helm chart uses our custom PostgreSQL image with pgaudit pre-installed by default:
+The chart ships a custom Postgres image with pgaudit compiled in. Base is `dhi.io/postgres:18-alpine3.23` (Docker Hardened Image) with pgaudit built from source against `postgresql18-dev`.
 
 ```yaml
-# values.yaml (default configuration)
+# values.yaml defaults
 postgresql:
   enabled: true
   image:
     repository: shoehorned/shoehorn-postgres
-    tag: "v18.3-pgaudit-1.0"
+    tag: "v18.3-pgaudit-1.0"   # see values.yaml for source of truth
   pgaudit:
     enabled: true
 ```
 
-**No additional configuration needed** - pgaudit works out of the box.
+`shared_preload_libraries = 'pgaudit'` is set unconditionally by `templates/configmap-postgresql.yaml`. Migration 091 creates the extension. Nothing else to configure.
 
-### Option 2: Managed PostgreSQL Services (Alternative)
+### Option 2: Managed Postgres (RDS, Cloud SQL, Azure)
 
-**Use this if you want managed PostgreSQL** (RDS, Cloud SQL, Azure Database) instead of running PostgreSQL in your cluster.
+Use external Postgres instead of the in-cluster StatefulSet. The cloud provider enables pgaudit; the chart's `pgaudit` block still controls runtime settings the app expects.
 
-Most managed PostgreSQL services support pgaudit:
+```yaml
+postgresql:
+  enabled: false
+  external:
+    enabled: true
+    host: "your-instance.example.com"
+    port: 5432
+    database: shoehorn
+    user: shoehorn_user
+  pgaudit:
+    enabled: true   # controls pgaudit.log values the app sets at session level
+```
 
-#### AWS RDS PostgreSQL
+#### AWS RDS
+
+In the parameter group, set `shared_preload_libraries = 'pgaudit'`. Then in psql:
 
 ```sql
--- Enable pgaudit in RDS parameter group
--- Set: shared_preload_libraries = 'pgaudit'
-
--- In psql:
 CREATE EXTENSION pgaudit;
-
--- Configure (via parameter group or session):
 SET pgaudit.log = 'write,ddl,role';
 SET pgaudit.log_relation = on;
 SET pgaudit.log_parameter = on;
 ```
 
-Helm configuration:
-```yaml
-postgresql:
-  enabled: false  # Don't deploy PostgreSQL StatefulSet
-  external:
-    enabled: true
-    host: "your-rds-endpoint.rds.amazonaws.com"
-    port: 5432
-    database: shoehorn
-    user: shoehorn_user
-  pgaudit:
-    enabled: true  # Config for application awareness
-```
-
-#### Google Cloud SQL for PostgreSQL
+#### Google Cloud SQL
 
 ```bash
-# Enable pgaudit via Cloud SQL flags
 gcloud sql instances patch INSTANCE_NAME \
   --database-flags=shared_preload_libraries=pgaudit,cloudsql_pgaudit.log=write:ddl:role
 ```
@@ -82,7 +69,6 @@ gcloud sql instances patch INSTANCE_NAME \
 #### Azure Database for PostgreSQL
 
 ```bash
-# Enable via Azure Portal or CLI
 az postgres server configuration set \
   --resource-group myresourcegroup \
   --server-name myserver \
@@ -90,36 +76,26 @@ az postgres server configuration set \
   --value pgaudit
 ```
 
-## Helm Chart Configuration
-
-### Full pgaudit Configuration
+## Chart values
 
 ```yaml
 postgresql:
   pgaudit:
     enabled: true
-    # What to audit (comma-separated):
-    # - read: SELECT, COPY TO
-    # - write: INSERT, UPDATE, DELETE, TRUNCATE, COPY FROM
-    # - function: Function calls and DO blocks
-    # - role: GRANT, REVOKE, CREATE/ALTER/DROP ROLE
-    # - ddl: All DDL not included in ROLE
-    # - misc: DISCARD, FETCH, CHECKPOINT, VACUUM, SET, etc.
+    # Comma-separated classes:
+    #   read     SELECT, COPY TO
+    #   write    INSERT, UPDATE, DELETE, TRUNCATE, COPY FROM
+    #   function Function calls and DO blocks
+    #   role     GRANT, REVOKE, CREATE/ALTER/DROP ROLE
+    #   ddl      All DDL not covered by `role`
+    #   misc     DISCARD, FETCH, CHECKPOINT, VACUUM, SET, etc.
     log: "write,ddl,role"
-
-    # Exclude system catalog queries (reduces noise)
-    logCatalog: false
-
-    # Include table/relation names in audit logs
-    logRelation: true
-
-    # Include statement parameters in audit logs
-    logParameter: true
+    logCatalog: false    # exclude system catalog queries
+    logRelation: true    # include table/relation names
+    logParameter: true   # include statement parameters
 ```
 
-### Disable pgaudit
-
-If you don't need audit logging:
+To disable logging while keeping the extension loaded (still required by migration 091):
 
 ```yaml
 postgresql:
@@ -127,95 +103,88 @@ postgresql:
     enabled: false
 ```
 
-The ConfigMap and volume mounts won't be created.
+This sets `pgaudit.log = 'none'`. The shared library stays preloaded.
 
-## Log Format
+## Log format
 
-Audit logs are written to PostgreSQL logs with `AUDIT:` prefix:
+pgaudit writes to the regular PostgreSQL log destination (stderr in container deployments). Each entry has an `AUDIT:` prefix:
 
 ```
 2026-01-19 10:30:45.123 UTC [12345] [shoehorn] [shoehorn_user] [API] AUDIT: SESSION,2,1,WRITE,INSERT,TABLE,public.user_roles,"INSERT INTO user_roles (user_id, role_name, tenant_id) VALUES ($1, $2, $3)",<tenant_id=abc123>
 ```
 
-### Log Fields
+Fields:
 
-- `SESSION`: Session audit logging (default)
-- `2`: Statement ID
-- `1`: Substatement ID
-- `WRITE`: Audit class
-- `INSERT`: Command
-- `TABLE`: Object type
-- `public.user_roles`: Object name
-- `"INSERT INTO..."`: SQL statement
-- `<tenant_id=abc123>`: RLS context (automatically captured)
+- `SESSION`: audit type (always SESSION for our config)
+- `2`: statement ID
+- `1`: substatement ID
+- `WRITE`: class
+- `INSERT`: command
+- `TABLE`: object type
+- `public.user_roles`: object name
+- The SQL statement
+- `<tenant_id=...>`: RLS context captured by the app
 
-## Querying Audit Logs
+## Querying audit logs
 
-### Example: Find all role assignments in last 24 hours
+pgaudit writes to Postgres' log destination, not a SQL table. Querying depends on where you ship those logs (Loki, ELK, CloudWatch, Datadog, etc.). The examples below assume logs have been ingested into a log store with `message`, `timestamp`, and `user` fields.
 
-```sql
--- In PostgreSQL logs or log aggregation system
-SELECT * FROM logs
-WHERE message LIKE '%AUDIT:%'
-  AND message LIKE '%GRANT%'
-  AND timestamp > NOW() - INTERVAL '24 hours';
+Find all role changes in the last 24 hours:
+
+```
+message:"AUDIT:" AND message:"GRANT" AND timestamp:[now-24h TO now]
 ```
 
-### Example: Find who deleted data
+Find deletes against a specific table:
 
-```sql
-SELECT * FROM logs
-WHERE message LIKE '%AUDIT:%'
-  AND message LIKE '%DELETE%'
-  AND message LIKE '%FROM sensitive_table%';
+```
+message:"AUDIT:" AND message:"DELETE" AND message:"FROM sensitive_table"
 ```
 
-### Example: Track all operations by specific user
+Track all operations by a user:
 
-```sql
-SELECT * FROM logs
-WHERE message LIKE '%AUDIT:%'
-  AND user = 'admin@company.com';
+```
+message:"AUDIT:" AND user:"admin@example.com"
 ```
 
-### Logs not appearing
+## Troubleshooting
 
-**Check**:
-1. Extension enabled: `SELECT * FROM pg_extension WHERE extname = 'pgaudit';`
-2. Configuration loaded: `SHOW shared_preload_libraries;` (should include `pgaudit`)
-3. Settings active: `SHOW pgaudit.log;` (should show `write,ddl,role`)
+**No audit lines in logs:**
 
-### Too many logs
+1. Extension loaded: `SELECT extname, extversion FROM pg_extension WHERE extname = 'pgaudit';`
+2. Preload set: `SHOW shared_preload_libraries;` (must include `pgaudit`)
+3. Logging active: `SHOW pgaudit.log;` (should be `write,ddl,role`, not `none`)
 
-**Reduce noise**:
+**Too much noise:**
+
 ```yaml
 postgresql:
   pgaudit:
-    log: "role"  # Only audit GRANT/REVOKE
-    logCatalog: false  # Exclude system queries
+    log: "role"
+    logCatalog: false
 ```
 
-## Compliance Mappings
+## Compliance mappings
 
 ### SOC 2 Type II
 
-- **CC6.1**: pgaudit logs all changes to production data
-- **CC6.2**: pgaudit logs all privileged operations
-- **CC6.3**: pgaudit provides tamper-evident audit trail
+- CC6.1: logs changes to production data
+- CC6.2: logs privileged operations
+- CC6.3: tamper-evident audit trail
 
 ### HIPAA
 
-- **§164.312(b)**: Audit controls - pgaudit tracks all PHI access
-- **§164.308(a)(1)(ii)(D)**: Information system activity review
+- §164.312(b): audit controls for PHI access
+- §164.308(a)(1)(ii)(D): information system activity review
 
 ### PCI DSS
 
-- **Requirement 10**: pgaudit logs all access to cardholder data
-- **10.2.2**: Logs all actions by privileged users
-- **10.2.4**: Logs invalid access attempts
+- Requirement 10: logs access to cardholder data
+- 10.2.2: actions by privileged users
+- 10.2.4: invalid access attempts
 
-## Resources
+## References
 
 - [pgaudit GitHub](https://github.com/pgaudit/pgaudit)
-- [PostgreSQL Audit Logging](https://www.postgresql.org/docs/current/runtime-config-logging.html)
-- [AWS RDS pgaudit](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.PostgreSQL.CommonDBATasks.Extensions.html#Appendix.PostgreSQL.CommonDBATasks.pgaudit)
+- [PostgreSQL runtime logging](https://www.postgresql.org/docs/current/runtime-config-logging.html)
+- [AWS RDS pgaudit guide](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.PostgreSQL.CommonDBATasks.Extensions.html#Appendix.PostgreSQL.CommonDBATasks.pgaudit)
