@@ -36,7 +36,6 @@ global:
   tracing:
     enabled: false
     # otlpEndpoint: "http://jaeger-collector:4317"
-    sampleRate: 0.1  # 10% sampling in production
 
   # Enable mTLS for inter-service communication (recommended)
   mtls:

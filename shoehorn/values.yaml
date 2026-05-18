@@ -14,7 +14,6 @@ global:
   tracing:
     enabled: false
     otlpEndpoint: ""        # e.g. "jaeger-collector.observability:4317"
-    sampleRate: 1.0         # 0.0 - 1.0
 
   # gRPC mTLS for inter-service traffic (api, forge, worker, crawler, eventbus, cerbos)
   mtls:

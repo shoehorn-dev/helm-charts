@@ -38,8 +38,7 @@
           "description": "Distributed tracing (OpenTelemetry) configuration",
           "properties": {
             "enabled": { "type": "boolean", "default": false },
-            "otlpEndpoint": { "type": "string" },
-            "sampleRate": { "type": "number", "minimum": 0, "maximum": 1, "default": 1.0 }
+            "otlpEndpoint": { "type": "string" }
           }
         },
         "mtls": {

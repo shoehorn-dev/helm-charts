@@ -73,7 +73,7 @@ spec:
           value: {{ include "shoehorn.meilisearch.port" . | quote }}
         - name: MEILISEARCH_PROTOCOL
           value: {{ include "shoehorn.meilisearch.protocol" . }}
-        {{- include "shoehorn.secretRef" (dict "env" "MEILISEARCH_API_KEY" "ref" .Values.meilisearch.masterKeySecretRef "root" .) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" "MEILISEARCH_MASTER_KEY" "ref" .Values.meilisearch.masterKeySecretRef "root" .) | nindent 8 }}
 
         # Distributed Tracing (OpenTelemetry)
         - name: TRACING_ENABLED
