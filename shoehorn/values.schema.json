@@ -11,8 +11,8 @@
       "properties": {
         "domain": {
           "type": "string",
-          "description": "Domain for Shoehorn (e.g., shoehorn.example.com)",
-          "examples": ["shoehorn.example.com", "alpha.shoehorn.dev"]
+          "description": "Hostname users reach Shoehorn at on your infra (e.g. idp.acme.internal). Required.",
+          "examples": ["idp.acme.internal", "platform.engineering.example.com"]
         },
         "storageClass": {
           "type": "string",

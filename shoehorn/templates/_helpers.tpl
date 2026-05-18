@@ -417,7 +417,7 @@ Validate required plain values at template render time.
 Each *SecretRef is validated by the shoehorn.secretRef helper itself when called.
 */}}
 {{- define "shoehorn.validateValues" -}}
-{{- if or (not .Values.global.domain) (eq .Values.global.domain "idp.example.com") (eq .Values.global.domain "shoehorn.example.com") -}}
+{{- if or (not .Values.global.domain) (eq .Values.global.domain "idp.example.com") -}}
   {{- fail "\n\nglobal.domain is required. Set it to the hostname customers will use to reach Shoehorn on your infra (e.g. idp.acme.internal). Pass --set global.domain=YOUR_DOMAIN or override it in your values file." -}}
 {{- end -}}
 {{- if .Values.ingressRoute.enabled -}}

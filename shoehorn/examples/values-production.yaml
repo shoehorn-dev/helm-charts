@@ -21,8 +21,8 @@
 # IMPORTANT: Review and customize all values marked with "CHANGE_ME" before deploying.
 
 global:
-  # CHANGE_ME: Your production domain
-  domain: shoehorn.example.com
+  # CHANGE_ME: Your production hostname (the one your users will type in the browser)
+  domain: idp.acme.internal
 
   # CHANGE_ME: Your storage class (check: kubectl get storageclass)
   storageClass: ""

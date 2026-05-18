@@ -33,6 +33,7 @@ jobs:
       - name: Lint shoehorn
         run: |
           helm lint shoehorn/ \
+            --set global.domain=ci.example.com \
             --set secret.defaultName=ci-test \
             --set auth.zitadel.projectId=test \
             --set auth.zitadel.clientId=test \
@@ -41,6 +42,7 @@ jobs:
       - name: Template shoehorn
         run: |
           helm template ci-test shoehorn/ \
+            --set global.domain=ci.example.com \
             --set secret.defaultName=ci-test \
             --set auth.zitadel.projectId=test \
             --set auth.zitadel.clientId=test \
@@ -159,6 +161,7 @@ jobs:
       - name: Validate shoehorn manifests
         run: |
           helm template ci-test shoehorn/ \
+            --set global.domain=ci.example.com \
             --set secret.defaultName=ci-test \
             --set auth.zitadel.projectId=test \
             --set auth.zitadel.clientId=test \

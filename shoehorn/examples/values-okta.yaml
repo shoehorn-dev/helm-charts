@@ -27,8 +27,8 @@
 # CHANGE_ME: review every value marked below before deploying.
 
 global:
-  # CHANGE_ME: your Shoehorn domain (used for the callback allowlist)
-  domain: shoehorn.example.com
+  # CHANGE_ME: your Shoehorn hostname (used for the Okta callback allowlist)
+  domain: idp.acme.internal
 
   organization:
     # CHANGE_ME

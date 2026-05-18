@@ -32,8 +32,8 @@
 # IMPORTANT: Update all "CHANGE_ME" values before deploying.
 
 global:
-  # CHANGE_ME: Your domain
-  domain: shoehorn.example.com
+  # CHANGE_ME: Your hostname (what users type in the browser)
+  domain: idp.acme.internal
 
   organization:
     name: "Acme Corp"

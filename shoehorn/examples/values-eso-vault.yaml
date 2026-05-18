@@ -82,8 +82,8 @@
 # ============================================================================
 
 global:
-  # CHANGE_ME: your domain
-  domain: shoehorn.example.com
+  # CHANGE_ME: your hostname (what users type in the browser)
+  domain: idp.acme.internal
 
   organization:
     name: "Acme Corp"

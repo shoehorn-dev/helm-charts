@@ -170,7 +170,7 @@ Key parameters:
 
 | Parameter | Description | Default |
 |---|---|---|
-| `global.domain` | Main domain | `shoehorn.example.com` |
+| `global.domain` | Hostname users reach Shoehorn at (no default — chart fails fast if unset, e.g. `idp.acme.internal`) | _(required)_ |
 | `global.organization.slug` | URL-safe org identifier (required) | `""` |
 | `global.storageClass` | Default storage class for PVCs | `""` |
 | `secret.defaultName` | Fallback Secret name for refs without `name:` | `""` |
