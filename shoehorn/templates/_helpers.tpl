@@ -453,19 +453,34 @@ Each *SecretRef is validated by the shoehorn.secretRef helper itself when called
   {{- if not .Values.auth.zitadel.projectId -}}
     {{- fail "\n\nauth.zitadel.projectId is required when auth.provider is 'zitadel'." -}}
   {{- end -}}
+  {{- if eq .Values.auth.zitadel.projectId "YOUR_PROJECT_ID" -}}
+    {{- fail "\n\nauth.zitadel.projectId still has the example placeholder 'YOUR_PROJECT_ID'. Set it to the project ID from your Zitadel console." -}}
+  {{- end -}}
   {{- if not .Values.auth.zitadel.clientId -}}
     {{- fail "\n\nauth.zitadel.clientId is required when auth.provider is 'zitadel'." -}}
   {{- end -}}
+  {{- if eq .Values.auth.zitadel.clientId "YOUR_CLIENT_ID" -}}
+    {{- fail "\n\nauth.zitadel.clientId still has the example placeholder 'YOUR_CLIENT_ID'. Set it to the OIDC client ID from your Zitadel app." -}}
+  {{- end -}}
   {{- if not .Values.auth.zitadel.externalUrl -}}
     {{- fail "\n\nauth.zitadel.externalUrl is required when auth.provider is 'zitadel'." -}}
+  {{- end -}}
+  {{- if contains "YOUR_INSTANCE" .Values.auth.zitadel.externalUrl -}}
+    {{- fail "\n\nauth.zitadel.externalUrl still contains the example placeholder 'YOUR_INSTANCE'. Set it to your Zitadel hostname (e.g. https://acme-corp.zitadel.cloud)." -}}
   {{- end -}}
 {{- end -}}
 {{- if eq .Values.auth.provider "okta" -}}
   {{- if not .Values.auth.okta.domain -}}
     {{- fail "\n\nauth.okta.domain is required when auth.provider is 'okta'." -}}
   {{- end -}}
+  {{- if eq .Values.auth.okta.domain "your-org.okta.com" -}}
+    {{- fail "\n\nauth.okta.domain still has the example placeholder 'your-org.okta.com'. Set it to your Okta org domain (e.g. acme.okta.com or acme.oktapreview.com)." -}}
+  {{- end -}}
   {{- if not .Values.auth.okta.clientId -}}
     {{- fail "\n\nauth.okta.clientId is required when auth.provider is 'okta'." -}}
+  {{- end -}}
+  {{- if eq .Values.auth.okta.clientId "0oaXXXXXXXXXXXXXX" -}}
+    {{- fail "\n\nauth.okta.clientId still has the example placeholder '0oaXXXXXXXXXXXXXX'. Set it to the Client ID from your Okta app integration." -}}
   {{- end -}}
 {{- end -}}
 {{- if eq .Values.auth.provider "entra-id" -}}

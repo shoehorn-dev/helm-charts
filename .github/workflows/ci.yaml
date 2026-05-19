@@ -79,18 +79,27 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Each example ships with placeholder IdP IDs that the chart's
+          # validateValues helper rejects. CI overrides them with non-placeholder
+          # values so the matrix exercises the rest of the template.
           - chart: shoehorn
             values: examples/values-minimal.yaml
-            extra_sets: ""
+            extra_sets: "--set auth.zitadel.projectId=ci --set auth.zitadel.clientId=ci --set auth.zitadel.externalUrl=https://ci.zitadel.cloud"
           - chart: shoehorn
             values: examples/values-production.yaml
-            extra_sets: ""
+            extra_sets: "--set auth.zitadel.projectId=ci --set auth.zitadel.clientId=ci"
           - chart: shoehorn
             values: examples/values-production-tls.yaml
             extra_sets: ""
           - chart: shoehorn
             values: examples/values-external-db.yaml
-            extra_sets: ""
+            extra_sets: "--set auth.zitadel.projectId=ci --set auth.zitadel.clientId=ci"
+          - chart: shoehorn
+            values: examples/values-okta.yaml
+            extra_sets: "--set auth.okta.domain=ci.okta.com --set auth.okta.clientId=0oa0ci0000000000"
+          - chart: shoehorn
+            values: examples/values-eso-vault.yaml
+            extra_sets: "--set auth.okta.domain=ci.okta.com --set auth.okta.clientId=0oa0ci0000000000"
           - chart: shoehorn-k8s-agent
             values: examples/values-minimal.yaml
             extra_sets: "--set shoehorn.apiURL=https://test.example.com --set shoehorn.apiToken=ci-test --set shoehorn.cluster.id=ci-test"

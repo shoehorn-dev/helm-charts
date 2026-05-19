@@ -10,18 +10,49 @@
 
 {{- if or .Values.ingressRoute.enabled .Values.ingress.enabled }}
 
- ▸ Web UI   https://{{ .Values.global.domain }}
- ▸ API      https://{{ .Values.global.domain }}/api/v1
+ Sign in
+
+   Web UI:  https://{{ .Values.global.domain }}
+   API:     https://{{ .Values.global.domain }}/api/v1
+
+   Login goes through {{ .Values.auth.provider | title }}. Make sure your
+   IdP's OIDC redirect URI points at https://{{ .Values.global.domain }}/auth/callback.
+{{- with .Values.rbac.roleAssignment.tenantAdmin.user }}
+   Bootstrap admin: {{ . }}
+   This account gets tenant:admin on first login (only if no roles are
+   set yet). After that, manage roles at https://{{ $.Values.global.domain }}/admin/roles.
+{{- else }}{{- with .Values.rbac.roleAssignment.tenantAdmin.group }}
+   Bootstrap admin group: {{ . }}
+   Members get tenant:admin on first login (only if no roles are set
+   yet). After that, manage roles at https://{{ $.Values.global.domain }}/admin/roles.
+{{- else }}
+   No bootstrap admin configured. Set rbac.roleAssignment.tenantAdmin.user
+   (or .group) so the first login picks up tenant:admin. Without it, no
+   one can reach /admin/roles to grant access.
+{{- end }}{{- end }}
 {{- else }}
 
- No ingress configured. Access locally:
+ No ingress configured
 
-   kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "shoehorn.fullname" . }}-web 4173:4173
+   Login requires a working HTTPS ingress on global.domain. Every login goes
+   through {{ .Values.auth.provider | title }} via OIDC, which only redirects
+   to the registered HTTPS callback. There is no local-user fallback.
 
- Then open http://localhost:4173
+   To unblock login:
+     1. Add an ingress (set ingressRoute.enabled=true or ingress.enabled=true)
+        that serves https://{{ .Values.global.domain }}.
+     2. Register https://{{ .Values.global.domain }}/auth/callback as a redirect
+        URI in your {{ .Values.auth.provider | title }} app.
+
+   Port-forward is fine for inspecting pod and API health, but the login
+   flow will not complete over http://localhost.
 {{- end }}
 
- ▸ Verify   kubectl get pods -n {{ .Release.Namespace }}
- ▸ Logs     kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=api -f
- ▸ Docs     https://docs.shoehorn.dev
+ Operate
+
+   Pods:    kubectl get pods -n {{ .Release.Namespace }}
+   Logs:    kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=api -f
+   Health:  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "shoehorn.fullname" . }}-api 8080:8080
+            then: curl http://localhost:8080/healthz
+   Docs:    https://docs.shoehorn.dev
 
