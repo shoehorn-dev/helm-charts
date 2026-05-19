@@ -10,14 +10,17 @@
 # server, and mint an API token for orgdata sync.
 #
 # Usage:
+#   # postgres_password and db_password must be URL-safe (they get embedded
+#   # in DATABASE_URL). Use `openssl rand -hex`, not `-base64`. Base64 produces
+#   # `/` characters that break the connection-string parser at the first one.
 #   kubectl create secret generic shoehorn-auth-secrets -n shoehorn \
 #     --from-literal=okta_client_secret='<client-secret>' \
 #     --from-literal=okta_api_token='<api-token>' \
 #     --from-literal=auth_encryption_key="$(openssl rand -base64 32)" \
 #     --from-literal=secrets_encryption_key="$(openssl rand -base64 32)" \
 #     --from-literal=jwt_secret="$(openssl rand -hex 32)" \
-#     --from-literal=postgres_password='<postgres-password>' \
-#     --from-literal=db_password='<app-user-password>' \
+#     --from-literal=postgres_password="$(openssl rand -hex 24)" \
+#     --from-literal=db_password="$(openssl rand -hex 24)" \
 #     --from-literal=valkey_password='<valkey-password>' \
 #     --from-literal=meilisearch_master_key="$(openssl rand -base64 32)"
 #
