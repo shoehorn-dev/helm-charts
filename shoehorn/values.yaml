@@ -51,9 +51,16 @@ certManager:
       duration: 87600h
       renewBefore: 8760h
 
-# Image registry/tag defaults consumed by per-service blocks below when their
-# own `image.tag` is empty. `repository` here is used only by the rbac-sync Job
-# (the `shoehorn` CLI image); per-service blocks set their own repository.
+# Image defaults for every service in the chart.
+#
+# registry:   Prepended to each per-service `image.repository`. Skipped when
+#             the repository already starts with a registry host (first path
+#             segment contains `.` or `:`, e.g. `ghcr.io/foo/bar`). Set to ""
+#             to drop the prefix and rely on the runtime's default registry.
+#             Override this one key to point the whole stack at a mirror.
+# repository: Used only by the rbac-sync Job (the `shoehorn` CLI image).
+#             Per-service blocks set their own repository.
+# tag:        Fallback when a per-service `image.tag` is empty.
 image:
   registry: docker.io
   repository: shoehorned/shoehorn
@@ -449,6 +456,12 @@ postgresql:
   # Two-user model:
   #   superuserPasswordSecretRef → POSTGRES_PASSWORD (shoehorn_user, BYPASSRLS, migrations)
   #   passwordSecretRef          → DB_PASSWORD       (app_user, NOBYPASSRLS, runtime)
+  #
+  # Both values get embedded in DATABASE_URL / MIGRATION_DATABASE_URL as
+  # `postgresql://user:password@host:port/db`. The chart does NOT URL-encode
+  # the password. Generate these two keys with `openssl rand -hex` (URL-safe),
+  # not `-base64`. A `/` or `+` in the password breaks the URL parser at the
+  # first occurrence and migrations fail with "invalid port" errors.
   superuserPasswordSecretRef:
     name: ""
     key: postgres_password

@@ -250,8 +250,17 @@ Return the proper image name
 
 {{/*
 Return the proper component image name.
-Each component specifies its full image repository (e.g., shoehorned/shoehorn-api).
-Tag precedence: component.image.tag > .Values.image.tag.
+
+Tag precedence:    component.image.tag > .Values.image.tag.
+Registry handling:
+  - If component.image.repository already starts with a registry host
+    (first path segment contains `.` or `:`, e.g. `ghcr.io/foo/bar` or
+    `localhost:5000/foo`), the repository is used verbatim.
+  - Otherwise, .Values.image.registry is prepended so users can swap
+    registries globally via a single override. Set image.registry to ""
+    to opt out of the prefix entirely (relies on the runtime's default
+    registry, typically docker.io).
+
 Shoehorn does not publish a `:latest` tag. Render fails if no tag is set.
 */}}
 {{- define "shoehorn.componentImage" -}}
@@ -260,7 +269,14 @@ Shoehorn does not publish a `:latest` tag. Render fails if no tag is set.
 {{- if not $tag -}}
 {{- fail (printf "shoehorn.componentImage: no tag set for %s. Set component.image.tag or .Values.image.tag (Shoehorn does not publish :latest)." $componentRepo) -}}
 {{- end -}}
+{{- $firstSegment := regexFind "^[^/]+" $componentRepo -}}
+{{- if or (contains "." $firstSegment) (contains ":" $firstSegment) -}}
 {{- printf "%s:%s" $componentRepo $tag -}}
+{{- else if .Values.image.registry -}}
+{{- printf "%s/%s:%s" .Values.image.registry $componentRepo $tag -}}
+{{- else -}}
+{{- printf "%s:%s" $componentRepo $tag -}}
+{{- end -}}
 {{- end }}
 
 {{/*
