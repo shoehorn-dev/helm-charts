@@ -114,10 +114,8 @@ meilisearch:
   masterKeySecretRef:
     key: meilisearch_master_key
 
-# Image configuration
-image:
-  registry: docker.io
-  repository: shoehorned/shoehorn
-  # CHANGE_ME: pin to a specific version in production
-  tag: ""
-  pullPolicy: IfNotPresent
+# Image configuration. The chart ships with `image.tag` set to the release
+# version, so this block only needs an entry when pinning to a different tag
+# or pointing at a mirror.
+# image:
+#   tag: "v0.5.21"
