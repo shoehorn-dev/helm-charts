@@ -250,8 +250,17 @@ Return the proper image name
 
 {{/*
 Return the proper component image name.
-Each component specifies its full image repository (e.g., shoehorned/shoehorn-api).
-Tag precedence: component.image.tag > .Values.image.tag.
+
+Tag precedence:    component.image.tag > .Values.image.tag.
+Registry handling:
+  - If component.image.repository already starts with a registry host
+    (first path segment contains `.` or `:`, e.g. `ghcr.io/foo/bar` or
+    `localhost:5000/foo`), the repository is used verbatim.
+  - Otherwise, .Values.image.registry is prepended so users can swap
+    registries globally via a single override. Set image.registry to ""
+    to opt out of the prefix entirely (relies on the runtime's default
+    registry, typically docker.io).
+
 Shoehorn does not publish a `:latest` tag. Render fails if no tag is set.
 */}}
 {{- define "shoehorn.componentImage" -}}
@@ -260,7 +269,14 @@ Shoehorn does not publish a `:latest` tag. Render fails if no tag is set.
 {{- if not $tag -}}
 {{- fail (printf "shoehorn.componentImage: no tag set for %s. Set component.image.tag or .Values.image.tag (Shoehorn does not publish :latest)." $componentRepo) -}}
 {{- end -}}
+{{- $firstSegment := regexFind "^[^/]+" $componentRepo -}}
+{{- if or (contains "." $firstSegment) (contains ":" $firstSegment) -}}
 {{- printf "%s:%s" $componentRepo $tag -}}
+{{- else if .Values.image.registry -}}
+{{- printf "%s/%s:%s" .Values.image.registry $componentRepo $tag -}}
+{{- else -}}
+{{- printf "%s:%s" $componentRepo $tag -}}
+{{- end -}}
 {{- end }}
 
 {{/*
@@ -437,19 +453,34 @@ Each *SecretRef is validated by the shoehorn.secretRef helper itself when called
   {{- if not .Values.auth.zitadel.projectId -}}
     {{- fail "\n\nauth.zitadel.projectId is required when auth.provider is 'zitadel'." -}}
   {{- end -}}
+  {{- if eq .Values.auth.zitadel.projectId "YOUR_PROJECT_ID" -}}
+    {{- fail "\n\nauth.zitadel.projectId still has the example placeholder 'YOUR_PROJECT_ID'. Set it to the project ID from your Zitadel console." -}}
+  {{- end -}}
   {{- if not .Values.auth.zitadel.clientId -}}
     {{- fail "\n\nauth.zitadel.clientId is required when auth.provider is 'zitadel'." -}}
   {{- end -}}
+  {{- if eq .Values.auth.zitadel.clientId "YOUR_CLIENT_ID" -}}
+    {{- fail "\n\nauth.zitadel.clientId still has the example placeholder 'YOUR_CLIENT_ID'. Set it to the OIDC client ID from your Zitadel app." -}}
+  {{- end -}}
   {{- if not .Values.auth.zitadel.externalUrl -}}
     {{- fail "\n\nauth.zitadel.externalUrl is required when auth.provider is 'zitadel'." -}}
+  {{- end -}}
+  {{- if contains "YOUR_INSTANCE" .Values.auth.zitadel.externalUrl -}}
+    {{- fail "\n\nauth.zitadel.externalUrl still contains the example placeholder 'YOUR_INSTANCE'. Set it to your Zitadel hostname (e.g. https://acme-corp.zitadel.cloud)." -}}
   {{- end -}}
 {{- end -}}
 {{- if eq .Values.auth.provider "okta" -}}
   {{- if not .Values.auth.okta.domain -}}
     {{- fail "\n\nauth.okta.domain is required when auth.provider is 'okta'." -}}
   {{- end -}}
+  {{- if eq .Values.auth.okta.domain "your-org.okta.com" -}}
+    {{- fail "\n\nauth.okta.domain still has the example placeholder 'your-org.okta.com'. Set it to your Okta org domain (e.g. acme.okta.com or acme.oktapreview.com)." -}}
+  {{- end -}}
   {{- if not .Values.auth.okta.clientId -}}
     {{- fail "\n\nauth.okta.clientId is required when auth.provider is 'okta'." -}}
+  {{- end -}}
+  {{- if eq .Values.auth.okta.clientId "0oaXXXXXXXXXXXXXX" -}}
+    {{- fail "\n\nauth.okta.clientId still has the example placeholder '0oaXXXXXXXXXXXXXX'. Set it to the Client ID from your Okta app integration." -}}
   {{- end -}}
 {{- end -}}
 {{- if eq .Values.auth.provider "entra-id" -}}

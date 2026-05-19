@@ -8,9 +8,12 @@ Self-hosted Intelligent Developer Platform on Kubernetes. Service catalog, score
 # 1. Create namespace and the credential secret.
 kubectl create namespace shoehorn
 
+# postgres_password and db_password must be URL-safe (they get embedded in
+# DATABASE_URL). Use `openssl rand -hex`, not `-base64`. Base64 produces `/`
+# characters that break the connection-string parser at the first one.
 kubectl create secret generic shoehorn-credentials -n shoehorn \
-  --from-literal=postgres_password="$(openssl rand -base64 24)" \
-  --from-literal=db_password="$(openssl rand -base64 24)" \
+  --from-literal=postgres_password="$(openssl rand -hex 24)" \
+  --from-literal=db_password="$(openssl rand -hex 24)" \
   --from-literal=valkey_password="$(openssl rand -base64 24)" \
   --from-literal=meilisearch_master_key="$(openssl rand -hex 32)" \
   --from-literal=jwt_secret="$(openssl rand -hex 32)" \

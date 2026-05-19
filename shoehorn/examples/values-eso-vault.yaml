@@ -124,10 +124,6 @@ auth:
     providers: ["okta"]
     primaryProvider: "okta"
 
-  adminAssignment:
-    adminGroups: "shoehorn-admins"
-    adminUsers: ""
-
   github:
     appId: ""              # CHANGE_ME: GitHub App ID (public)
     installationId: ""     # CHANGE_ME: installation ID (public)
