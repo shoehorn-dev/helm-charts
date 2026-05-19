@@ -422,10 +422,6 @@ auth:
   csrf:
     enabled: true
 
-  adminAssignment:
-    adminUsers: ""
-    adminGroups: ""
-
   # Multi-provider org sync. Users deduped by email, teams by name.
   orgdata:
     enabled: false

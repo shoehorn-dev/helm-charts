@@ -78,14 +78,6 @@ auth:
     providers: ["okta"]
     primaryProvider: "okta"
 
-  # Bootstrap admin access before any UI-side role mappings exist.
-  # Set at minimum one of these so the first login has a role.
-  adminAssignment:
-    # CHANGE_ME: comma-separated Okta group names whose members get tenant:admin.
-    adminGroups: "shoehorn-admins"
-    # Alternatively: comma-separated emails (escape hatch; prefer groups).
-    adminUsers: ""
-
   # Required session keys. All three resolve against secret.defaultName.
   session:
     maxAge: "8h"
