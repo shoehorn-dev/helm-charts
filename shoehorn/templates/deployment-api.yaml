@@ -255,6 +255,11 @@ spec:
         {{- include "shoehorn.secretRef" (dict "env" "SMTP_PASSWORD" "ref" .Values.smtp.passwordSecretRef "root" .) | nindent 8 }}
         {{- end }}
 
+        # Notification channel secrets (operator-provisioned)
+        {{- range .Values.notifications.secrets }}
+        {{- include "shoehorn.secretRef" (dict "env" (printf "NOTIFICATIONS_SECRET_%s" .name) "ref" .secretRef "root" $) | nindent 8 }}
+        {{- end }}
+
         volumeMounts:
         {{- include "shoehorn.extraVolumeMounts" . | nindent 8 }}
         {{- include "shoehorn.grpcMtlsVolumeMounts" . | nindent 8 }}
