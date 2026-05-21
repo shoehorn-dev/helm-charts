@@ -257,7 +257,7 @@ spec:
 
         # Notification channel secrets (operator-provisioned)
         {{- range .Values.notifications.secrets }}
-        {{- include "shoehorn.secretRef" (dict "env" (printf "NOTIFICATIONS_SECRET_%s" .name) "ref" .secretRef "root" $) | nindent 8 }}
+        {{- include "shoehorn.secretRef" (dict "env" (printf "NOTIFICATIONS_SECRET_%s" (.name | upper)) "ref" .secretRef "root" $) | nindent 8 }}
         {{- end }}
 
         volumeMounts:
