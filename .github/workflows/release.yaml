@@ -1,18 +1,28 @@
 name: Release
 
+# Releases a single Helm chart. Charts are released event-driven: each product
+# repo (shoehorn-platform, shoehorn-k8s-agents) fires a repository_dispatch when
+# it publishes a new version. workflow_dispatch is the manual fallback.
+#
+# There is deliberately no `push: tags` trigger and no in-workflow tag push, so a
+# release run can never re-trigger itself. The release tag is created by
+# `gh release create --target <sha>` as the final step.
 on:
-  push:
-    tags:
-      - 'shoehorn-v*'
-      - 'shoehorn-k8s-agent-v*'
+  repository_dispatch:
+    types:
+      - release-shoehorn
+      - release-shoehorn-k8s-agent
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Tag to release (e.g. shoehorn-v0.3.0 or shoehorn-k8s-agent-v0.3.0)'
+      chart:
+        description: 'Chart to release'
         required: true
-        type: string
-      app_version:
-        description: 'Application version for appVersion in Chart.yaml (fetched from shoehorn-platform if empty)'
+        type: choice
+        options:
+          - shoehorn
+          - shoehorn-k8s-agent
+      version:
+        description: 'Version override (default: dispatch payload, else resolved from the app source)'
         required: false
         type: string
 
@@ -44,11 +54,6 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           fetch-depth: 0
 
-      - name: Configure git as release bot
-        run: |
-          git config user.name "shoehorn-release[bot]"
-          git config user.email "272929799+shoehorn-release[bot]@users.noreply.github.com"
-
       - name: Install Helm
         uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
         with:
@@ -65,70 +70,70 @@ jobs:
           helm repo add jetstack https://charts.jetstack.io
           helm repo update
 
-      - name: Determine tag
-        id: resolve-tag
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          INPUT_TAG: ${{ inputs.tag }}
-          GIT_REF: ${{ github.ref }}
-        run: |
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            echo "tag=$INPUT_TAG" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${GIT_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Create tag if workflow_dispatch
-        if: github.event_name == 'workflow_dispatch'
-        env:
-          TAG: ${{ steps.resolve-tag.outputs.tag }}
-        run: |
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists"
-          else
-            git tag -a "$TAG" -m "Release $TAG"
-            git push origin "$TAG"
-          fi
-
-      - name: Fetch application version
-        id: app-version
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          INPUT_APP_VERSION: ${{ inputs.app_version }}
-        run: |
-          if [ -n "$INPUT_APP_VERSION" ]; then
-            echo "version=$INPUT_APP_VERSION" >> "$GITHUB_OUTPUT"
-            echo "Using provided appVersion: $INPUT_APP_VERSION"
-          else
-            # Fetch version.json from shoehorn-platform main branch
-            APP_VERSION=$(gh api repos/shoehorn-dev/shoehorn-platform/contents/version.json \
-              --jq '.content' | base64 -d | jq -r '.version')
-            echo "version=$APP_VERSION" >> "$GITHUB_OUTPUT"
-            echo "Fetched appVersion from shoehorn-platform: $APP_VERSION"
-          fi
-
-      - name: Determine chart name from tag
+      - name: Determine chart
         id: chart
         env:
-          TAG: ${{ steps.resolve-tag.outputs.tag }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+          INPUT_CHART: ${{ inputs.chart }}
         run: |
-          if [[ "$TAG" == shoehorn-k8s-agent-v* ]]; then
-            echo "name=shoehorn-k8s-agent" >> $GITHUB_OUTPUT
-            echo "version=${TAG#shoehorn-k8s-agent-v}" >> $GITHUB_OUTPUT
-            echo "tag_prefix=shoehorn-k8s-agent-v" >> $GITHUB_OUTPUT
-          elif [[ "$TAG" == shoehorn-v* ]]; then
-            echo "name=shoehorn" >> $GITHUB_OUTPUT
-            echo "version=${TAG#shoehorn-v}" >> $GITHUB_OUTPUT
-            echo "tag_prefix=shoehorn-v" >> $GITHUB_OUTPUT
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            CHART="$INPUT_CHART"
           else
-            echo "Unknown tag format: $TAG"
+            # repository_dispatch: the event type is release-<chart>
+            CHART="${EVENT_ACTION#release-}"
+          fi
+          case "$CHART" in
+            shoehorn|shoehorn-k8s-agent) ;;
+            *) echo "Unknown chart: '$CHART'" >&2; exit 1 ;;
+          esac
+          echo "name=$CHART" >> "$GITHUB_OUTPUT"
+          echo "tag_prefix=${CHART}-v" >> "$GITHUB_OUTPUT"
+          echo "Chart: $CHART"
+
+      - name: Resolve version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          PAYLOAD_VERSION: ${{ github.event.client_payload.version }}
+          CHART: ${{ steps.chart.outputs.name }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="$INPUT_VERSION"
+            echo "Using version override: $VERSION"
+          elif [ -n "$PAYLOAD_VERSION" ]; then
+            VERSION="$PAYLOAD_VERSION"
+            echo "Using version from repository_dispatch payload: $VERSION"
+          elif [ "$CHART" = "shoehorn" ]; then
+            VERSION=$(gh api repos/shoehorn-dev/shoehorn-platform/contents/version.json \
+              --jq '.content' | base64 -d | jq -r '.version')
+            echo "Resolved shoehorn version from shoehorn-platform: $VERSION"
+          elif [ "$CHART" = "shoehorn-k8s-agent" ]; then
+            VERSION=$(git ls-remote --tags --sort=-v:refname \
+              https://github.com/shoehorn-dev/shoehorn-k8s-agents \
+              | grep -oE 'refs/tags/v?[0-9]+\.[0-9]+\.[0-9]+$' \
+              | head -1 | sed -E 's#refs/tags/v?##')
+            echo "Resolved shoehorn-k8s-agent version from shoehorn-k8s-agents tags: $VERSION"
+          else
+            echo "Cannot resolve version for chart: $CHART" >&2
             exit 1
           fi
+
+          VERSION="${VERSION#v}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            echo "Could not resolve a version for $CHART" >&2
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=${CHART}-v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION"
 
       - name: Generate changelog from commits
         id: changelog
         env:
-          CURRENT_TAG: ${{ steps.resolve-tag.outputs.tag }}
+          CURRENT_TAG: ${{ steps.version.outputs.tag }}
           TAG_PREFIX: ${{ steps.chart.outputs.tag_prefix }}
           CHART: ${{ steps.chart.outputs.name }}
         run: |
@@ -201,18 +206,17 @@ jobs:
 
       - name: Update Chart.yaml version and changelog
         env:
-          APP_VERSION: ${{ steps.app-version.outputs.version }}
           CHART_NAME: ${{ steps.chart.outputs.name }}
-          CHART_VERSION: ${{ steps.chart.outputs.version }}
+          VERSION: ${{ steps.version.outputs.version }}
           AH_CHANGES_FILE: ${{ steps.changelog.outputs.ah_changes_file }}
         run: |
           CHART_FILE="${CHART_NAME}/Chart.yaml"
 
-          sed -i "s/^version:.*/version: ${CHART_VERSION}/" "$CHART_FILE"
-          sed -i "s/^appVersion:.*/appVersion: \"${APP_VERSION}\"/" "$CHART_FILE"
+          sed -i "s/^version:.*/version: ${VERSION}/" "$CHART_FILE"
+          sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" "$CHART_FILE"
 
-          echo "Chart version: ${CHART_VERSION}"
-          echo "App version:   ${APP_VERSION}"
+          echo "Chart version: ${VERSION}"
+          echo "App version:   ${VERSION}"
 
           python3 - "$CHART_FILE" "$AH_CHANGES_FILE" <<'PYEOF'
           import sys, re
@@ -284,11 +288,11 @@ jobs:
       - name: Create GitHub Release with changelog
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          CURRENT_TAG: ${{ steps.resolve-tag.outputs.tag }}
+          CURRENT_TAG: ${{ steps.version.outputs.tag }}
           PREV_TAG: ${{ steps.changelog.outputs.prev_tag }}
           CHANGELOG: ${{ steps.changelog.outputs.changelog }}
           CHART_NAME: ${{ steps.chart.outputs.name }}
-          CHART_VERSION: ${{ steps.chart.outputs.version }}
+          CHART_VERSION: ${{ steps.version.outputs.version }}
         run: |
           BODY="## Changelog"$'\n\n'
 
@@ -301,14 +305,17 @@ jobs:
           BODY+="${CHANGELOG}"
           BODY+=$'\n'"## Installation"$'\n\n'
           BODY+='```bash'$'\n'
-          BODY+="helm install shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/${CHART_NAME} --version ${CHART_VERSION}"$'\n'
+          BODY+="helm install ${CHART_NAME} oci://ghcr.io/shoehorn-dev/helm-charts/${CHART_NAME} --version ${CHART_VERSION}"$'\n'
           BODY+='```'$'\n\n'
           BODY+="## Upgrade"$'\n\n'
           BODY+='```bash'$'\n'
-          BODY+="helm upgrade shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/${CHART_NAME} --version ${CHART_VERSION}"$'\n'
+          BODY+="helm upgrade ${CHART_NAME} oci://ghcr.io/shoehorn-dev/helm-charts/${CHART_NAME} --version ${CHART_VERSION}"$'\n'
           BODY+='```'$'\n'
 
+          # Creates the tag at the checked-out commit. No standalone tag push
+          # exists, so this cannot re-trigger the workflow.
           gh release create "$CURRENT_TAG" \
+            --target "$GITHUB_SHA" \
             ${CHART_NAME}-*.tgz \
             --title "${CHART_NAME} ${CHART_VERSION}" \
             --notes "$BODY"
