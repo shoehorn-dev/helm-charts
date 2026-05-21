@@ -6,8 +6,11 @@ global:
   domain: idp.example.com
   storageClass: ""
 
-  # Comma-separated IPs/CIDRs allowed to send X-Forwarded-* identity headers.
-  # Empty = forwarded headers are ignored (fail-closed).
+  # Comma-separated proxy IPs/CIDRs the API trusts for X-Forwarded-For and
+  # X-Forwarded-Proto. Set this to the source range your ingress traffic
+  # arrives from so request logs, rate limiting, and audit records show the
+  # real client IP instead of the proxy's. Empty means the API treats the
+  # proxy's own IP as the client IP. See the chart README, "Operational notes".
   trustedProxies: ""
 
   # OpenTelemetry tracing
