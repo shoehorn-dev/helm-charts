@@ -154,6 +154,15 @@ smtp:
     name: ""
     key: ""
 
+# Notification secrets stored as Kubernetes Secrets.
+# Reference one from a subscription with secret://<name>.
+notifications:
+  secrets: []
+  # - name: slack_prod
+  #   secretRef:
+  #     name: shoehorn-notif-secrets
+  #     key: slack-prod
+
 # API Gateway
 api:
   name: api
