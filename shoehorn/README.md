@@ -261,6 +261,21 @@ global:
 
 Redpanda uses pod anti-affinity, so each replica needs its own node. On 1- or 2-node clusters the third replica stays `Pending`. Set `redpanda.replicas: 1` for small clusters, or scale the node pool first.
 
+### Real client IPs need `global.trustedProxies`
+
+The API runs behind your ingress controller, so every request reaches it with the proxy's IP as the source. To recover the real client IP it reads the `X-Forwarded-For` and `X-Forwarded-Proto` headers, but only from sources listed in `global.trustedProxies`. Without that allowlist a client could spoof those headers.
+
+Leave it empty and the API uses the proxy's IP as the client IP. Rate limiting then buckets every caller together, and request logs and audit records all show the proxy instead of the caller. Login and authorization still work; only IP attribution is affected.
+
+Set it to the range your ingress traffic comes from. For Traefik or another in-cluster ingress controller, that's the pod network CIDR:
+
+```yaml
+global:
+  trustedProxies: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+```
+
+Malformed entries and catch-all ranges (`0.0.0.0/0`, `::/0`) are dropped at startup, with a warning in the API log. A catch-all would trust every source and defeat the check.
+
 ## Troubleshooting
 
 ```bash
