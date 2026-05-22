@@ -15,6 +15,15 @@ data:
   SHOEHORN_LOG_FORMAT: {{ .Values.agent.logFormat | quote }}
   SHOEHORN_BATCH_INTERVAL: {{ .Values.agent.batchInterval | quote }}
   SHOEHORN_BATCH_SIZE: {{ .Values.agent.batchSize | quote }}
+  {{- if .Values.agent.eventChannelSize }}
+  SHOEHORN_EVENT_CHANNEL_SIZE: {{ .Values.agent.eventChannelSize | quote }}
+  {{- end }}
+  {{- if .Values.agent.batchChannelSize }}
+  SHOEHORN_BATCH_CHANNEL_SIZE: {{ .Values.agent.batchChannelSize | quote }}
+  {{- end }}
+  {{- if .Values.agent.resyncPeriod }}
+  SHOEHORN_RESYNC_PERIOD: {{ .Values.agent.resyncPeriod | quote }}
+  {{- end }}
   SHOEHORN_PUSH_RETRIES: {{ .Values.agent.pushRetries | quote }}
   SHOEHORN_PUSH_TIMEOUT: {{ .Values.agent.pushTimeout | quote }}
   SHOEHORN_HEARTBEAT_INTERVAL: {{ .Values.agent.heartbeatInterval | quote }}

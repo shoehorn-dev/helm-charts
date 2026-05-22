@@ -43,6 +43,17 @@ agent:
   batchInterval: 30s
   batchSize: 100
 
+  # Channel buffers between the watcher, batcher, and pusher. Raise these on
+  # large clusters where the informer's resync floods the event channel and
+  # shoehorn_k8s_watcher_events_dropped_total starts climbing. Empty = default.
+  eventChannelSize: ""
+  batchChannelSize: ""
+
+  # How often the informer re-lists from cache. The default (10m) is fine for
+  # small and medium clusters; raise it on clusters with thousands of resources
+  # so a resync burst does not overflow eventChannelSize. Empty = default.
+  resyncPeriod: ""
+
   # Push configuration
   pushRetries: 3
   pushTimeout: 30s
