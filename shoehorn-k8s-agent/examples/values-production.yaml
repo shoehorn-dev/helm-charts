@@ -26,6 +26,13 @@ agent:
   batchInterval: 30s
   batchSize: 200
 
+  # Channel buffers + informer resync, sized for >10k resources. Watch the
+  # shoehorn_k8s_watcher_events_dropped_total counter; if it climbs, raise
+  # eventChannelSize or stretch resyncPeriod so the resync burst spreads out.
+  eventChannelSize: 5000
+  batchChannelSize: 100
+  resyncPeriod: 30m
+
   # Reliability settings
   pushRetries: 5
   pushTimeout: 60s
