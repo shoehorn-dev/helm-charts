@@ -80,6 +80,26 @@
           "default": 100,
           "minimum": 1
         },
+        "eventChannelSize": {
+          "description": "Buffer between watcher and batcher. Raise on large clusters when shoehorn_k8s_watcher_events_dropped_total climbs. Empty = code default (2000).",
+          "oneOf": [
+            { "type": "string", "pattern": "^$|^[0-9]+$" },
+            { "type": "integer", "minimum": 10, "maximum": 100000 }
+          ]
+        },
+        "batchChannelSize": {
+          "description": "Buffer between batcher and pusher. Empty = code default (50).",
+          "oneOf": [
+            { "type": "string", "pattern": "^$|^[0-9]+$" },
+            { "type": "integer", "minimum": 1, "maximum": 1000 }
+          ]
+        },
+        "resyncPeriod": {
+          "description": "How often the informer re-lists from cache. Raise on large clusters so a resync burst does not overflow eventChannelSize. Empty = code default (10m).",
+          "type": "string",
+          "pattern": "^$|^[0-9]+(s|m|h)$",
+          "examples": ["10m", "30m", "1h"]
+        },
         "pushRetries": {
           "type": "integer",
           "description": "Number of push retries",
