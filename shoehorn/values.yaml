@@ -145,13 +145,19 @@ service:
   type: ClusterIP
   annotations: {}
 
-# SMTP (notifications, alerts).
+# SMTP for notification subscriptions, alerts, and the in-app feedback /
+# bug-report button (top bar). Leave disabled if you don't want Shoehorn
+# sending mail.
 smtp:
   enabled: false
   host: ""
   port: 587
   username: ""
   from: ""
+  # Address that receives in-app feedback and bug reports, usually a team
+  # alias like platform-team@example.com. If left empty, reports go to
+  # feedback@shoehorn.dev (the Shoehorn team), so set your own unless that's
+  # what you want.
   feedbackEmail: ""
   passwordSecretRef:
     name: ""
