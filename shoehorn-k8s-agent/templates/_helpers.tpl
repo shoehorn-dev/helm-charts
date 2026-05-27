@@ -69,18 +69,21 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
-Image name - constructs full image path from registry/repository:tag
+Image name - constructs full image path from registry/repository:tag.
+User-supplied image.tag is used verbatim. Fallback to Chart.AppVersion
+is prefixed with "v" to match the release workflow's tag format
+(images are published as v0.4.42, not 0.4.42).
 */}}
 {{- define "shoehorn-agent.image" -}}
-{{- $tag := .Values.image.tag | default .Chart.AppVersion }}
+{{- $tag := .Values.image.tag | default (printf "v%s" .Chart.AppVersion) }}
 {{- printf "%s/%s:%s" .Values.image.registry .Values.image.repository $tag }}
 {{- end }}
 
 {{/*
-Netobserver image - constructs full image path from registry/repository:tag
+Netobserver image - same fallback rule as shoehorn-agent.image.
 */}}
 {{- define "shoehorn-agent.netobserverImage" -}}
-{{- $tag := .Values.netobserver.image.tag | default .Chart.AppVersion }}
+{{- $tag := .Values.netobserver.image.tag | default (printf "v%s" .Chart.AppVersion) }}
 {{- printf "%s/%s:%s" .Values.netobserver.image.registry .Values.netobserver.image.repository $tag }}
 {{- end }}
 

@@ -244,7 +244,10 @@ Return the proper image name
 {{- define "shoehorn.image" -}}
 {{- $registry := .Values.image.registry -}}
 {{- $repository := .Values.image.repository -}}
-{{- $tag := .Values.image.tag | default .Chart.AppVersion -}}
+{{/* User-supplied image.tag is used verbatim. Fallback to Chart.AppVersion
+     is prefixed with "v" to match the release workflow's tag format
+     (images are published as v0.5.22, not 0.5.22). */}}
+{{- $tag := .Values.image.tag | default (printf "v%s" .Chart.AppVersion) -}}
 {{- printf "%s/%s:%s" $registry $repository $tag -}}
 {{- end }}
 

@@ -433,7 +433,10 @@
         "port": { "type": "integer", "default": 587 },
         "username": { "type": "string" },
         "from": { "type": "string" },
-        "feedbackEmail": { "type": "string" },
+        "feedbackEmail": {
+          "type": "string",
+          "description": "Address that receives in-app feedback and bug reports. Usually a team alias. If empty, reports go to feedback@shoehorn.dev (the Shoehorn team)."
+        },
         "passwordSecretRef": {
           "$ref": "#/$defs/secretKeyRef",
           "description": "SMTP password. Required when smtp.enabled is true."
