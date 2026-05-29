@@ -6,7 +6,7 @@ metadata:
   labels:
     {{- include "shoehorn.forge.labels" . | nindent 4 }}
   annotations:
-    {{- include "shoehorn.serviceAnnotations" .Values.forge.annotations | nindent 4 }}
+    {{- include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.forge.annotations) | nindent 4 }}
 spec:
   {{- if not .Values.forge.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount.forge }}
@@ -18,7 +18,7 @@ spec:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap-backend.yaml") . | sha256sum }}
-        {{- include "shoehorn.serviceAnnotations" .Values.forge.annotations | nindent 8 }}
+        {{- include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.forge.annotations) | nindent 8 }}
       labels:
         {{- include "shoehorn.forge.selectorLabels" . | nindent 8 }}
     spec:

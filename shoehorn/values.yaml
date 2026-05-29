@@ -6,6 +6,12 @@ global:
   domain: idp.example.com
   storageClass: ""
 
+  # Catalog annotations (shoehorn.dev/ prefixed) applied to every workload.
+  # Per-service annotations override these per key.
+  annotations: {}
+    # owner: platform-team
+    # tier: tier1
+
   # Comma-separated proxy IPs/CIDRs the API trusts for X-Forwarded-For and
   # X-Forwarded-Proto. Set this to the source range your ingress traffic
   # arrives from so request logs, rate limiting, and audit records show the
@@ -70,9 +76,10 @@ image:
   pullPolicy: IfNotPresent
   tag: "v0.5.21"
 
-# Service catalog annotations (prefixed with shoehorn.dev/) are configured per
-# service below. Supported keys: team, repositoryUrl, slackChannel, tier, tags,
-# links, runbooks, licenses, definitionUrl, changelog-path, relations.
+# Service catalog annotations (prefixed with shoehorn.dev/) are set per service
+# below, or chart-wide via global.annotations (per-service keys win). Supported
+# keys: team, repositoryUrl, slackChannel, tier, tags, links, runbooks,
+# licenses, definitionUrl, changelog-path, relations.
 
 # Have the chart create docker-registry secrets from values, instead of
 # referencing existing ones via global.imagePullSecrets.
@@ -449,6 +456,7 @@ auth:
 
 # Cerbos (always deployed; required by the platform).
 cerbos:
+  annotations: {}
   image:
     repository: shoehorned/shoehorn-cerbos
     tag: ""
@@ -466,6 +474,7 @@ cerbos:
 # Set enabled: false and configure `external` to use a managed instance.
 postgresql:
   name: postgresql
+  annotations: {}
   enabled: true
   # Two-user model:
   #   superuserPasswordSecretRef → POSTGRES_PASSWORD (shoehorn_user, BYPASSRLS, migrations)
@@ -553,6 +562,7 @@ postgresql:
 # Set enabled: false and configure `external` to use Meilisearch Cloud or another instance.
 meilisearch:
   name: meilisearch
+  annotations: {}
   enabled: true
   # The master key is used by the in-cluster StatefulSet and as the search auth
   # token consumed by api/forge/crawler/worker.
@@ -618,6 +628,7 @@ meilisearch:
 # Set enabled: false and configure `external` to use ElastiCache, Redis Cloud, etc.
 valkey:
   name: valkey
+  annotations: {}
   enabled: true
   passwordSecretRef:
     name: ""
@@ -673,6 +684,7 @@ valkey:
 # Set enabled: false and configure `external` to use Confluent Cloud, MSK, Redpanda Cloud, etc.
 redpanda:
   name: redpanda
+  annotations: {}
   enabled: true
   image:
     repository: redpandadata/redpanda
@@ -725,6 +737,7 @@ redpanda:
 # Kroki: diagram rendering for TechDocs (PlantUML, C4, BlockDiag, BPMN, ...).
 # Mermaid/Nomnoml/GraphViz render client-side and don't need this.
 kroki:
+  annotations: {}
   enabled: false
   image:
     repository: yuzutech/kroki

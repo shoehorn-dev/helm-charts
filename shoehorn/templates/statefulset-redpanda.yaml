@@ -46,6 +46,10 @@ metadata:
   labels:
     {{- include "shoehorn.labels" . | nindent 4 }}
     app.kubernetes.io/component: redpanda
+  {{- with (include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.redpanda.annotations)) }}
+  annotations:
+    {{- . | trim | nindent 4 }}
+  {{- end }}
 spec:
   serviceName: {{ include "shoehorn.fullname" . }}-redpanda
   replicas: {{ .Values.replicaCount.redpanda | default .Values.redpanda.replicas }}
@@ -55,6 +59,10 @@ spec:
       app.kubernetes.io/component: redpanda
   template:
     metadata:
+      {{- with (include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.redpanda.annotations)) }}
+      annotations:
+        {{- . | trim | nindent 8 }}
+      {{- end }}
       labels:
         {{- include "shoehorn.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: redpanda

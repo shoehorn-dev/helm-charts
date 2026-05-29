@@ -27,6 +27,10 @@ metadata:
   labels:
     {{- include "shoehorn.labels" . | nindent 4 }}
     app.kubernetes.io/component: meilisearch
+  {{- with (include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.meilisearch.annotations)) }}
+  annotations:
+    {{- . | trim | nindent 4 }}
+  {{- end }}
 spec:
   serviceName: {{ include "shoehorn.fullname" . }}-meilisearch
   replicas: 1
@@ -36,6 +40,10 @@ spec:
       app.kubernetes.io/component: meilisearch
   template:
     metadata:
+      {{- with (include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.meilisearch.annotations)) }}
+      annotations:
+        {{- . | trim | nindent 8 }}
+      {{- end }}
       labels:
         {{- include "shoehorn.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: meilisearch

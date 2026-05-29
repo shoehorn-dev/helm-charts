@@ -6,6 +6,10 @@ metadata:
   labels:
     {{- include "shoehorn.labels" . | nindent 4 }}
     app.kubernetes.io/component: cerbos
+  {{- with (include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.cerbos.annotations)) }}
+  annotations:
+    {{- . | trim | nindent 4 }}
+  {{- end }}
 spec:
   replicas: {{ .Values.cerbos.replicas | default 1 }}
   selector:
@@ -16,6 +20,7 @@ spec:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap-cerbos.yaml") . | sha256sum }}
+        {{- include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.cerbos.annotations) | nindent 8 }}
       labels:
         {{- include "shoehorn.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: cerbos

@@ -6,7 +6,7 @@ metadata:
   labels:
     {{- include "shoehorn.crawler.labels" . | nindent 4 }}
   annotations:
-    {{- include "shoehorn.serviceAnnotations" .Values.crawler.annotations | nindent 4 }}
+    {{- include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.crawler.annotations) | nindent 4 }}
 spec:
   {{- if not .Values.crawler.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount.crawler }}
@@ -18,7 +18,7 @@ spec:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap-backend.yaml") . | sha256sum }}
-        {{- include "shoehorn.serviceAnnotations" .Values.crawler.annotations | nindent 8 }}
+        {{- include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.crawler.annotations) | nindent 8 }}
       labels:
         {{- include "shoehorn.crawler.selectorLabels" . | nindent 8 }}
     spec:

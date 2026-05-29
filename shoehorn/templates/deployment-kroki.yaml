@@ -26,6 +26,10 @@ metadata:
   labels:
     {{- include "shoehorn.labels" . | nindent 4 }}
     app.kubernetes.io/component: kroki
+  {{- with (include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.kroki.annotations)) }}
+  annotations:
+    {{- . | trim | nindent 4 }}
+  {{- end }}
 spec:
   replicas: {{ .Values.kroki.replicas | default 1 }}
   selector:
@@ -34,6 +38,10 @@ spec:
       app.kubernetes.io/component: kroki
   template:
     metadata:
+      {{- with (include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.kroki.annotations)) }}
+      annotations:
+        {{- . | trim | nindent 8 }}
+      {{- end }}
       labels:
         {{- include "shoehorn.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: kroki

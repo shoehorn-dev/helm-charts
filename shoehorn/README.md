@@ -176,6 +176,7 @@ Key parameters:
 | `global.domain` | Hostname users reach Shoehorn at (no default — chart fails fast if unset, e.g. `idp.acme.internal`) | _(required)_ |
 | `global.organization.slug` | URL-safe org identifier (required) | `""` |
 | `global.storageClass` | Default storage class for PVCs | `""` |
+| `global.annotations` | Catalog annotations (`shoehorn.dev/` prefixed) applied to every workload; per-service `<svc>.annotations` keys override | `{}` |
 | `secret.defaultName` | Fallback Secret name for refs without `name:` | `""` |
 | `auth.provider` | `zitadel` or `okta` | `zitadel` |
 | `auth.audience` | Expected JWT audience; empty defaults to the provider's client_id | `""` |
