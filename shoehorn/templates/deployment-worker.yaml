@@ -6,7 +6,7 @@ metadata:
   labels:
     {{- include "shoehorn.worker.labels" . | nindent 4 }}
   annotations:
-    {{- include "shoehorn.serviceAnnotations" .Values.worker.annotations | nindent 4 }}
+    {{- include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.worker.annotations) | nindent 4 }}
 spec:
   {{- if not .Values.worker.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount.worker }}
@@ -18,7 +18,7 @@ spec:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap-backend.yaml") . | sha256sum }}
-        {{- include "shoehorn.serviceAnnotations" .Values.worker.annotations | nindent 8 }}
+        {{- include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.worker.annotations) | nindent 8 }}
       labels:
         {{- include "shoehorn.worker.selectorLabels" . | nindent 8 }}
     spec:

@@ -29,6 +29,7 @@ metadata:
     app.kubernetes.io/component: postgresql
   annotations:
     "helm.sh/resource-policy": keep
+    {{- include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.postgresql.annotations) | nindent 4 }}
 spec:
   serviceName: {{ include "shoehorn.fullname" . }}-postgresql
   replicas: {{ .Values.postgresql.replicas }}
@@ -40,6 +41,10 @@ spec:
       app.kubernetes.io/component: postgresql
   template:
     metadata:
+      {{- with (include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.postgresql.annotations)) }}
+      annotations:
+        {{- . | trim | nindent 8 }}
+      {{- end }}
       labels:
         {{- include "shoehorn.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: postgresql

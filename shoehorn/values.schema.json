@@ -18,6 +18,7 @@
           "type": "string",
           "description": "Kubernetes storage class for persistent volumes"
         },
+        "annotations": { "$ref": "#/$defs/catalogAnnotations" },
         "organization": {
           "type": "object",
           "description": "Organization/tenant configuration",
@@ -190,6 +191,7 @@
       "description": "Kroki diagram-rendering sidecar (used by TechDocs)",
       "additionalProperties": true,
       "properties": {
+        "annotations": { "$ref": "#/$defs/catalogAnnotations" },
         "enabled": { "type": "boolean", "default": false }
       }
     },
@@ -454,6 +456,7 @@
       "type": "object",
       "description": "PostgreSQL database configuration",
       "properties": {
+        "annotations": { "$ref": "#/$defs/catalogAnnotations" },
         "enabled": { "type": "boolean", "default": true },
         "superuserPasswordSecretRef": {
           "$ref": "#/$defs/secretKeyRef",
@@ -479,6 +482,7 @@
     "meilisearch": {
       "type": "object",
       "properties": {
+        "annotations": { "$ref": "#/$defs/catalogAnnotations" },
         "enabled": { "type": "boolean", "default": true },
         "masterKeySecretRef": {
           "$ref": "#/$defs/secretKeyRef",
@@ -500,6 +504,7 @@
     "valkey": {
       "type": "object",
       "properties": {
+        "annotations": { "$ref": "#/$defs/catalogAnnotations" },
         "enabled": { "type": "boolean", "default": true },
         "passwordSecretRef": {
           "$ref": "#/$defs/secretKeyRef",
@@ -520,6 +525,7 @@
     "redpanda": {
       "type": "object",
       "properties": {
+        "annotations": { "$ref": "#/$defs/catalogAnnotations" },
         "enabled": { "type": "boolean", "default": true },
         "external": {
           "type": "object",
@@ -543,6 +549,7 @@
       "type": "object",
       "description": "Cerbos authorization engine (always deployed)",
       "properties": {
+        "annotations": { "$ref": "#/$defs/catalogAnnotations" },
         "image": { "$ref": "#/$defs/imageConfig" },
         "replicas": { "type": "integer", "minimum": 1, "default": 1 },
         "resources": { "$ref": "#/$defs/resources" },
@@ -670,6 +677,19 @@
         }
       }
     },
+    "catalogAnnotations": {
+      "type": "object",
+      "description": "Service catalog annotations (shoehorn.dev/ prefixed)",
+      "properties": {
+        "team": { "type": "string" },
+        "repositoryUrl": { "type": "string" },
+        "slackChannel": { "type": "string" },
+        "tier": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Platinum"] },
+        "tags": { "type": "string" },
+        "definitionUrl": { "type": "string" }
+      },
+      "additionalProperties": { "type": "string" }
+    },
     "serviceConfig": {
       "type": "object",
       "properties": {
@@ -680,17 +700,7 @@
           "default": "info",
           "description": "Log level for this service. Overrides the chart default ('info')."
         },
-        "annotations": {
-          "type": "object",
-          "properties": {
-            "team": { "type": "string" },
-            "repositoryUrl": { "type": "string" },
-            "slackChannel": { "type": "string" },
-            "tier": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Platinum"] },
-            "tags": { "type": "string" },
-            "definitionUrl": { "type": "string" }
-          }
-        },
+        "annotations": { "$ref": "#/$defs/catalogAnnotations" },
         "image": { "$ref": "#/$defs/imageConfig" },
         "resources": { "$ref": "#/$defs/resources" },
         "env": { "type": "object", "additionalProperties": { "type": "string" } },

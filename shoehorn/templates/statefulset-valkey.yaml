@@ -27,6 +27,10 @@ metadata:
   labels:
     {{- include "shoehorn.labels" . | nindent 4 }}
     app.kubernetes.io/component: valkey
+  {{- with (include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.valkey.annotations)) }}
+  annotations:
+    {{- . | trim | nindent 4 }}
+  {{- end }}
 spec:
   serviceName: {{ include "shoehorn.fullname" . }}-valkey
   replicas: {{ .Values.valkey.replicas }}
@@ -36,6 +40,10 @@ spec:
       app.kubernetes.io/component: valkey
   template:
     metadata:
+      {{- with (include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.valkey.annotations)) }}
+      annotations:
+        {{- . | trim | nindent 8 }}
+      {{- end }}
       labels:
         {{- include "shoehorn.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: valkey

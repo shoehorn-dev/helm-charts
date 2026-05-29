@@ -49,17 +49,16 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Shoehorn-specific annotations for service catalog integration
-Takes a service's annotations map and prefixes all keys with "shoehorn.dev/"
-Usage: {{ include "shoehorn.serviceAnnotations" .Values.api.annotations }}
-Returns annotations in the format:
-  shoehorn.dev/<key>: <value>
+Service catalog annotations (shoehorn.dev/ prefixed).
+Merges global.annotations with a service's annotations (service wins per key).
+Usage: {{ include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.api.annotations) }}
 */}}
 {{- define "shoehorn.serviceAnnotations" -}}
-{{- if . -}}
-{{- range $key, $value := . }}
+{{- $global := .root.Values.global.annotations | default dict -}}
+{{- $service := .service | default dict -}}
+{{- $merged := merge (deepCopy $service) $global -}}
+{{- range $key, $value := $merged }}
 shoehorn.dev/{{ $key }}: {{ $value | quote }}
-{{- end }}
 {{- end }}
 {{- end }}
 

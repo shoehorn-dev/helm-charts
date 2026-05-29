@@ -6,7 +6,7 @@ metadata:
   labels:
     {{- include "shoehorn.eventbus.labels" . | nindent 4 }}
   annotations:
-    {{- include "shoehorn.serviceAnnotations" .Values.eventbus.annotations | nindent 4 }}
+    {{- include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.eventbus.annotations) | nindent 4 }}
 spec:
   {{- if not .Values.eventbus.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount.eventbus }}
@@ -18,7 +18,7 @@ spec:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap-backend.yaml") . | sha256sum }}
-        {{- include "shoehorn.serviceAnnotations" .Values.eventbus.annotations | nindent 8 }}
+        {{- include "shoehorn.serviceAnnotations" (dict "root" . "service" .Values.eventbus.annotations) | nindent 8 }}
       labels:
         {{- include "shoehorn.eventbus.selectorLabels" . | nindent 8 }}
     spec:
