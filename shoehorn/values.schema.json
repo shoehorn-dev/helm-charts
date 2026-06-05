@@ -684,7 +684,7 @@
         "team": { "type": "string" },
         "repositoryUrl": { "type": "string" },
         "slackChannel": { "type": "string" },
-        "tier": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Platinum"] },
+        "tier": { "type": "string", "enum": ["critical", "high", "medium", "low", "Bronze", "Silver", "Gold", "Platinum"] },
         "tags": { "type": "string" },
         "definitionUrl": { "type": "string" }
       },

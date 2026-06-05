@@ -10,7 +10,9 @@ global:
   # Per-service annotations override these per key.
   annotations: {}
     # owner: platform-team
-    # tier: tier1
+    # Service criticality: critical, high, medium, or low.
+    # Legacy metal aliases (platinum/gold/silver/bronze) are still accepted.
+    # tier: critical
 
   # Comma-separated proxy IPs/CIDRs the API trusts for X-Forwarded-For and
   # X-Forwarded-Proto. Set this to the source range your ingress traffic
@@ -186,7 +188,8 @@ api:
   annotations: {}
     # team: "platform-team"
     # repositoryUrl: "https://github.com/org/shoehorn-api"
-    # tier: "tier1"
+    # Service criticality: critical, high, medium, or low (metals are legacy-accepted).
+    # tier: "critical"
   image:
     repository: shoehorned/shoehorn-api
     tag: ""
