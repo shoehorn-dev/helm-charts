@@ -229,6 +229,19 @@ kubectl delete pod -n shoehorn shoehorn-postgresql-0
 
 The postgres image tag is pinned in `values.yaml` and tracks postgres releases, not platform releases.
 
+### Switching Redpanda to persistent storage recreates the StatefulSet
+
+`volumeClaimTemplates` is immutable on a StatefulSet. If a release runs Redpanda with `redpanda.persistence.enabled: false` (data on an `emptyDir`) and you switch it to `true`, `helm upgrade` fails: the API server rejects adding a volume claim to the existing StatefulSet.
+
+Delete the StatefulSet first, then upgrade. The `emptyDir` holds only in-flight events, so this loses nothing a normal pod restart wouldn't:
+
+```bash
+kubectl delete statefulset shoehorn-redpanda -n shoehorn
+helm upgrade shoehorn ... --values custom-values.yaml --wait
+```
+
+Redpanda comes back on a PVC and keeps its data across restarts. Producers (api, worker, crawler, forge) get connection errors during the recreate and reconnect once it is ready.
+
 ## Operational notes
 
 ### cert-manager bundling is unsupported
@@ -261,6 +274,12 @@ global:
 ### `redpanda.replicas: 3` needs 3+ nodes
 
 Redpanda uses pod anti-affinity, so each replica needs its own node. On 1- or 2-node clusters the third replica stays `Pending`. Set `redpanda.replicas: 1` for small clusters, or scale the node pool first.
+
+### Redpanda production mode and persistence
+
+`redpanda.developerMode` defaults to `false`, so Redpanda runs with fsync durability and the production checks on. Keep `redpanda.persistence.enabled: true` (the default) so the event bus survives pod restarts.
+
+Set `redpanda.developerMode: true` only for throwaway local or CI installs where losing the bus on restart is fine. The setting takes effect when the Redpanda pod next restarts.
 
 ### Real client IPs need `global.trustedProxies`
 
