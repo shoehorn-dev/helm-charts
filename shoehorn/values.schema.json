@@ -527,6 +527,7 @@
       "properties": {
         "annotations": { "$ref": "#/$defs/catalogAnnotations" },
         "enabled": { "type": "boolean", "default": true },
+        "developerMode": { "type": "boolean", "default": false },
         "external": {
           "type": "object",
           "properties": {

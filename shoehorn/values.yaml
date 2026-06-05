@@ -686,6 +686,8 @@ redpanda:
   name: redpanda
   annotations: {}
   enabled: true
+  # Keep false in production. true is for throwaway local installs only.
+  developerMode: false
   image:
     repository: redpandadata/redpanda
     tag: v26.1.6

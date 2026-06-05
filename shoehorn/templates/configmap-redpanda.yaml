@@ -48,7 +48,7 @@ data:
           port: 9092
           name: internal
           {{- end }}
-      developer_mode: true
+      developer_mode: {{ .Values.redpanda.developerMode | default false }}
       auto_create_topics_enabled: true
 
     {{- if .Values.redpanda.tls.enabled }}
