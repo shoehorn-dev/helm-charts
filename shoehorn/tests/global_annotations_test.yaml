@@ -19,7 +19,7 @@ set:
 tests:
   - it: applies global annotations to an app deployment (controller and pod)
     set:
-      global.annotations: { owner: platform-team, tier: Silver }
+      global.annotations: { owner: platform-team, tier: medium }
     template: templates/deployment-api.yaml
     asserts:
       - equal:
@@ -27,17 +27,17 @@ tests:
           value: platform-team
       - equal:
           path: spec.template.metadata.annotations["shoehorn.dev/tier"]
-          value: Silver
+          value: medium
 
   - it: lets a per-service annotation override the global one per key
     set:
-      global.annotations: { owner: platform-team, tier: Silver }
-      api.annotations: { team: api-team, tier: Gold }
+      global.annotations: { owner: platform-team, tier: medium }
+      api.annotations: { team: api-team, tier: high }
     template: templates/deployment-api.yaml
     asserts:
       - equal:
           path: metadata.annotations["shoehorn.dev/tier"]
-          value: Gold
+          value: high
       - equal:
           path: metadata.annotations["shoehorn.dev/owner"]
           value: platform-team
