@@ -78,6 +78,16 @@ annotations:
     - kind: added
       description: "redpanda.developerMode value (default false) to select Redpanda production or developer mode."
     - kind: added
+      description: "redpanda.topicPartitions value (default 1) to set the partition count for created topics; injected as REDPANDA_TOPIC_PARTITIONS on the eventbus service."
+    - kind: added
+      description: "redpanda.replicationFactor and topicRetentionMs/topicRetentionBytes/topicSegmentBytes/topicSegmentMs values to tune event-bus replication and disk retention; injected to the eventbus service."
+    - kind: changed
+      description: "redpanda.replicas now defaults to 1 (single broker). Set it and replicationFactor to 3 for a real cluster."
+    - kind: removed
+      description: "Dead redpanda.config.smp/memory values that were never rendered."
+    - kind: added
+      description: "Opt-in redpanda.networkPolicy.enabled to restrict the Kafka API to Shoehorn namespaces."
+    - kind: added
       description: Initial release of Shoehorn Helm chart
     - kind: added
       description: Event-driven microservice architecture (API, Web, EventBus, Worker, Crawler, Forge)

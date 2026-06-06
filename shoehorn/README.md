@@ -187,6 +187,11 @@ Key parameters:
 | `valkey.external.enabled` | Use external Redis/Valkey | `false` |
 | `meilisearch.external.enabled` | Use Meilisearch Cloud | `false` |
 | `redpanda.external.enabled` | Use external Kafka/Redpanda | `false` |
+| `redpanda.topicPartitions` | Partitions per topic (raise for multi-broker) | `1` |
+| `redpanda.replicationFactor` | Replication factor for created topics | `1` |
+| `redpanda.topicRetentionMs` | Topic retention window, ms | `86400000` |
+| `redpanda.topicRetentionBytes` | Topic retention cap per partition, bytes | `134217728` |
+| `redpanda.developerMode` | Run Redpanda in developer mode (no fsync) | `false` |
 | `smtp.enabled` | SMTP delivery | `false` |
 | `global.tracing.enabled` | OpenTelemetry tracing | `false` |
 | `global.mtls.enabled` | gRPC mTLS between services | `false` |
@@ -271,15 +276,27 @@ global:
     issuerKind: Issuer
 ```
 
-### `redpanda.replicas: 3` needs 3+ nodes
+### Scaling Redpanda past one broker
 
-Redpanda uses pod anti-affinity, so each replica needs its own node. On 1- or 2-node clusters the third replica stays `Pending`. Set `redpanda.replicas: 1` for small clusters, or scale the node pool first.
+`redpanda.replicas` defaults to `1` (single broker). To run a real cluster, set it to `3` and raise `redpanda.replicationFactor` to `3` so topics are actually replicated. Redpanda uses pod anti-affinity, so each replica needs its own node: on 1- or 2-node clusters the extra replicas stay `Pending`. Scale the node pool first.
 
 ### Redpanda production mode and persistence
 
 `redpanda.developerMode` defaults to `false`, so Redpanda runs with fsync durability and the production checks on. Keep `redpanda.persistence.enabled: true` (the default) so the event bus survives pod restarts.
 
 Set `redpanda.developerMode: true` only for throwaway local or CI installs where losing the bus on restart is fine. The setting takes effect when the Redpanda pod next restarts.
+
+`redpanda.topicPartitions` (default `1`) sets the partition count for topics the eventbus creates on startup. One partition fits a single broker. Raise it (with a matching `redpanda.replicationFactor`) only on a multi-broker cluster. Partition count applies to new topics only: existing topics keep theirs until recreated.
+
+`redpanda.topicRetentionMs`, `topicRetentionBytes`, `topicSegmentBytes`, and `topicSegmentMs` cap how much the event bus keeps on disk. Defaults hold roughly a day per topic with a 128 MiB-per-partition ceiling. The eventbus applies these to existing topics on startup, so changing them takes effect on the next eventbus restart without recreating topics. Tune retention down for tighter installs or up for longer replay/compliance windows.
+
+### Securing the event bus
+
+The event bus briefly carries user records (names, emails) on the way to the search index, and with persistence on, that data sits on the Redpanda PVC for the retention window. Two things worth setting in production:
+
+- **Encrypted storage.** Point `redpanda.persistence.storageClass` at a storage class that encrypts at rest.
+
+- **Network policy.** The Kafka API has no authentication, so any pod that can reach it can read or write topics. Set `redpanda.networkPolicy.enabled: true` to restrict ingress to Shoehorn's own namespaces. It needs a CNI that enforces NetworkPolicy (Cilium, Calico, etc.); on clusters without one it's a harmless no-op.
 
 ### Real client IPs need `global.trustedProxies`
 
