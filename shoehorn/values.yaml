@@ -686,6 +686,20 @@ redpanda:
   name: redpanda
   annotations: {}
   enabled: true
+  # Keep false in production. true is for throwaway local installs only.
+  developerMode: false
+  # Partitions per topic. 1 fits a single broker; raise for a multi-broker cluster.
+  topicPartitions: 1
+  # Replication factor for created topics. Keep at 1 for a single broker; raise to match a multi-broker cluster.
+  replicationFactor: 1
+  # Per-topic retention/segment caps. Keep disk bounded; tune for compliance or tighter installs.
+  topicRetentionMs: 86400000     # 1 day
+  topicRetentionBytes: 134217728 # 128 MiB per partition
+  topicSegmentBytes: 16777216    # 16 MiB
+  topicSegmentMs: 86400000       # force segment roll after 1 day so retention can prune idle topics
+  # Restrict the Kafka API to Shoehorn's own namespaces. Opt-in: needs a NetworkPolicy-aware CNI.
+  networkPolicy:
+    enabled: false
   image:
     repository: redpandadata/redpanda
     tag: v26.1.6
@@ -696,7 +710,8 @@ redpanda:
     enabled: true
     size: 20Gi
     storageClass: ""
-  replicas: 3
+  # Single broker by default. Raise only with a 3+ node cluster (needs matching replicationFactor and pod anti-affinity headroom).
+  replicas: 1
   podSecurityContext:
     fsGroup: 101
     runAsNonRoot: true
@@ -708,9 +723,6 @@ redpanda:
     readOnlyRootFilesystem: false
     runAsNonRoot: true
     runAsUser: 101
-  config:
-    smp: 1
-    memory: 512M
   livenessProbe:
     exec:
       command: [/bin/sh, -c, "rpk cluster health | grep -E 'Healthy:.+true'"]

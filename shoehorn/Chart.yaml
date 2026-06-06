@@ -2,7 +2,7 @@ apiVersion: v2
 name: shoehorn
 description: Intelligent Platform for Engineering - Internal Developer Platform
 type: application
-version: 0.1.0
+version: 0.2.0
 appVersion: "0.5.22"
 
 home: https://shoehorn.dev
@@ -71,6 +71,22 @@ annotations:
        url: https://shoehorn.dev/dashboard.png
 
   artifacthub.io/changes: |
+    - kind: changed
+      description: "Breaking: switching redpanda.persistence.enabled from false to true on an existing release requires deleting the Redpanda StatefulSet first, because volumeClaimTemplates is immutable. See Upgrading in the chart README."
+    - kind: changed
+      description: "Redpanda now runs in production mode by default (developer_mode off). Set redpanda.developerMode=true for throwaway local or CI installs. Takes effect on the next Redpanda restart."
+    - kind: added
+      description: "redpanda.developerMode value (default false) to select Redpanda production or developer mode."
+    - kind: added
+      description: "redpanda.topicPartitions value (default 1) to set the partition count for created topics; injected as REDPANDA_TOPIC_PARTITIONS on the eventbus service."
+    - kind: added
+      description: "redpanda.replicationFactor and topicRetentionMs/topicRetentionBytes/topicSegmentBytes/topicSegmentMs values to tune event-bus replication and disk retention; injected to the eventbus service."
+    - kind: changed
+      description: "redpanda.replicas now defaults to 1 (single broker). Set it and replicationFactor to 3 for a real cluster."
+    - kind: removed
+      description: "Dead redpanda.config.smp/memory values that were never rendered."
+    - kind: added
+      description: "Opt-in redpanda.networkPolicy.enabled to restrict the Kafka API to Shoehorn namespaces."
     - kind: added
       description: Initial release of Shoehorn Helm chart
     - kind: added
