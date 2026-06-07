@@ -3,6 +3,8 @@ release:
   name: test-release
   namespace: test-ns
 set:
+  # Chart refuses to default to :latest, so component renders need an explicit tag.
+  image.tag: 0.0.0-test
   global.domain: idp.acme.test
   global.organization.slug: acme
   auth.provider: zitadel

@@ -484,6 +484,11 @@
       "properties": {
         "annotations": { "$ref": "#/$defs/catalogAnnotations" },
         "enabled": { "type": "boolean", "default": true },
+        "extraArgs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Extra CLI flags appended to the meilisearch binary, e.g. [\"--experimental-dumpless-upgrade\"] for an in-place version migration. Clear once the upgrade task completes."
+        },
         "masterKeySecretRef": {
           "$ref": "#/$defs/secretKeyRef",
           "description": "Meilisearch master key. Required."
