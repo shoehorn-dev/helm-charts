@@ -2,7 +2,7 @@ apiVersion: v2
 name: shoehorn
 description: Intelligent Platform for Engineering - Internal Developer Platform
 type: application
-version: 0.5.22
+version: 0.5.23
 appVersion: "0.5.22"
 
 home: https://shoehorn.dev
@@ -71,6 +71,10 @@ annotations:
        url: https://shoehorn.dev/dashboard.png
 
   artifacthub.io/changes: |
+    - kind: added
+      description: "meilisearch.extraArgs to pass CLI flags to Meilisearch (e.g. --experimental-dumpless-upgrade for an in-place version migration). See Upgrading Meilisearch in the chart README."
+    - kind: changed
+      description: Updated redpanda, kroki, meilisearch and valkey default versions.
     - kind: changed
       description: "Breaking: switching redpanda.persistence.enabled from false to true on an existing release requires deleting the Redpanda StatefulSet first, because volumeClaimTemplates is immutable. See Upgrading in the chart README."
     - kind: changed

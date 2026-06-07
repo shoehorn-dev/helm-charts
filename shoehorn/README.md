@@ -247,6 +247,78 @@ helm upgrade shoehorn ... --values custom-values.yaml --wait
 
 Redpanda comes back on a PVC and keeps its data across restarts. Producers (api, worker, crawler, forge) get connection errors during the recreate and reconnect once it is ready.
 
+### Upgrading Meilisearch (in-place dumpless migration)
+
+Meilisearch won't start when its data directory was written by an older version. Boot a newer image (say v1.45.2) on a v1.43 volume and the pod crashloops with a "database version is incompatible" error until you migrate the data. The chart bumps the default `meilisearch.image.tag` with platform releases, so this applies any time a release moves the Meilisearch version.
+
+Dumpless migration does the conversion in place on the existing PVC. It's the simpler path, but it rewrites the data directory and there's no automatic rollback. Back up first.
+
+The flag rides on the `meilisearch` container through `meilisearch.extraArgs`, which is empty by default. Set it for the upgrade, then clear it.
+
+**1. Back up.** Trigger a Meilisearch snapshot, and snapshot the PVC if your storage supports it. The StatefulSet's PVC is `data-<release>-meilisearch-0` (for release `shoehorn`, `data-shoehorn-meilisearch-0`).
+
+```bash
+# Meilisearch-level snapshot (writes into /meili_data/snapshots on the PVC)
+kubectl -n shoehorn port-forward svc/shoehorn-meilisearch 7700:7700 &
+curl -X POST http://127.0.0.1:7700/snapshots -H "Authorization: Bearer $MEILI_MASTER_KEY"
+# Poll the returned taskUid until status is "succeeded"
+curl "http://127.0.0.1:7700/tasks/<taskUid>" -H "Authorization: Bearer $MEILI_MASTER_KEY"
+```
+
+```yaml
+# Volume-level snapshot (needs a CSI driver with VolumeSnapshot support)
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: meilisearch-pre-upgrade
+  namespace: shoehorn
+spec:
+  volumeSnapshotClassName: <your-snapshot-class>
+  source:
+    persistentVolumeClaimName: data-shoehorn-meilisearch-0
+```
+
+**2. Turn on the flag and upgrade.** The chart already defaults the new image tag; add `extraArgs` to your values file. A large index can take a while to migrate. Raise the startup budget too: the default is about 150s (`failureThreshold` 30 × `periodSeconds` 5), and the probe will kill the pod mid-migration if the conversion runs past it.
+
+```yaml
+meilisearch:
+  extraArgs:
+    - --experimental-dumpless-upgrade
+  startupProbe:
+    httpGet: { path: /health, port: 7700 }
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 180   # ~15 min, revert after the upgrade
+    timeoutSeconds: 3
+```
+
+```bash
+helm upgrade shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn \
+  --namespace shoehorn --values custom-values.yaml --wait
+```
+
+**3. Watch it finish.**
+
+```bash
+kubectl -n shoehorn logs -f shoehorn-meilisearch-0          # migration log lines
+kubectl -n shoehorn get pod shoehorn-meilisearch-0 -w        # wait for Running + Ready
+curl http://127.0.0.1:7700/version -H "Authorization: Bearer $MEILI_MASTER_KEY"  # confirm the version
+```
+
+Then run a search in the app and confirm results come back.
+
+**4. Clear the flag.** Once the pod is healthy on the new version the migration is done, and the flag has nothing left to do. Drop `meilisearch.extraArgs`, revert the `startupProbe` override, and upgrade again to keep it from running on every restart.
+
+```bash
+helm upgrade shoehorn ... --values custom-values.yaml --wait
+```
+
+**Rollback.** If the pod won't come up, roll the Helm release back and restore the data from the snapshot. Downgrading the image alone won't undo the migration. The PVC snapshot (or a fresh PVC restored from it) is how you get back to the old version.
+
+```bash
+helm rollback shoehorn <previous-revision> -n shoehorn
+```
+
 ## Operational notes
 
 ### cert-manager bundling is unsupported

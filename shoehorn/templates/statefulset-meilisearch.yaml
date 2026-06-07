@@ -70,6 +70,14 @@ spec:
           readOnlyRootFilesystem: true
         image: "{{ .Values.meilisearch.image.repository }}:{{ .Values.meilisearch.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- with .Values.meilisearch.extraArgs }}
+        # Image CMD is "meilisearch"; prepend it so these flags append to it.
+        args:
+          - meilisearch
+          {{- range . }}
+          - {{ . | quote }}
+          {{- end }}
+        {{- end }}
         ports:
         - name: http
           containerPort: 7700
