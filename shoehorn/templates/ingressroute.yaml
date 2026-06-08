@@ -74,6 +74,18 @@ spec:
           port: 8080
           passHostHeader: true
 
+    # MCP endpoints - served at API root, must beat the catch-all
+    - match: Host(`{{ .Values.global.domain }}`) && (Path(`/mcp`) || Path(`/.well-known/mcp`))
+      kind: Rule
+      priority: 100
+      middlewares:
+        - name: {{ include "shoehorn.fullname" . }}-headers
+      services:
+        - name: {{ include "shoehorn.fullname" . }}-api
+          namespace: {{ include "shoehorn.namespace.backend" . }}
+          port: 8080
+          passHostHeader: true
+
     # Web frontend - serves the SvelteKit application (lower priority catch-all)
     - match: Host(`{{ .Values.global.domain }}`)
       kind: Rule
