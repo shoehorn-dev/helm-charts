@@ -62,6 +62,10 @@ data:
   ENABLE_METRICS: "true"
   METRICS_PORT: "9090"
 
+  {{- if has "database" (.Values.auth.orgdata.providers | default list) }}
+  ORGDATA_DATABASE_URL: "in-cluster"
+  {{- end }}
+
   # GitHub
   {{- if .Values.api.env.GITHUB_ORGANIZATIONS }}
   GITHUB_ORGANIZATIONS: {{ .Values.api.env.GITHUB_ORGANIZATIONS | quote }}

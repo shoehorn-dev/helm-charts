@@ -40,6 +40,20 @@ spec:
                 port:
                   number: {{ .backend.service.port | default 4173 }}
           {{- end }}
+          - path: /mcp
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "shoehorn.fullname" $ }}-api
+                port:
+                  number: 8080
+          - path: /.well-known/mcp
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "shoehorn.fullname" $ }}-api
+                port:
+                  number: 8080
           {{- if or $.Values.kroki.enabled $.Values.kroki.external.enabled }}
           - path: /kroki
             pathType: Prefix

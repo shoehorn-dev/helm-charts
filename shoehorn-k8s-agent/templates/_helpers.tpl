@@ -139,6 +139,11 @@ SHOEHORN_GITOPS_ARGOCD_SERVER_URL: {{ .Values.agent.gitops.argocd.serverURL | qu
 SHOEHORN_GITOPS_FLUXCD_NAMESPACE: {{ .Values.agent.gitops.fluxcd.namespace | default "flux-system" | quote }}
 {{- end }}
 {{- end }}
+{{- if .Values.agent.helm.enabled }}
+SHOEHORN_HELM_ENABLED: "true"
+SHOEHORN_HELM_NAMESPACE: {{ .Values.agent.helm.namespace | default "" | quote }}
+SHOEHORN_HELM_INTERVAL: {{ .Values.agent.helm.interval | default "5m" | quote }}
+{{- end }}
 {{- end }}
 
 {{/*
