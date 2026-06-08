@@ -2,8 +2,8 @@ apiVersion: v2
 name: shoehorn
 description: Intelligent Platform for Engineering - Internal Developer Platform
 type: application
-version: 0.5.23
-appVersion: "0.5.22"
+version: 0.4.42
+appVersion: "0.5.3"
 
 home: https://shoehorn.dev
 icon: https://shoehorn.dev/maskot1.png
