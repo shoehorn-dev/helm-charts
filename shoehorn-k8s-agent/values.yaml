@@ -134,6 +134,20 @@ agent:
       # Namespace where FluxCD is installed
       namespace: flux-system
 
+  # Helm release detection
+  # When enabled, the agent reads helm.sh/release.v1 Secrets to surface Helm
+  # releases and the resources each one manages in the Shoehorn catalog.
+  # Enabling this grants the agent read access to Secrets (see clusterrole.yaml).
+  helm:
+    # Detect Helm releases (default: disabled)
+    enabled: false
+
+    # Namespace to scan for release Secrets, or "" for all namespaces
+    namespace: ""
+
+    # How often the agent rescans for releases (30s to 1h)
+    interval: 5m
+
   # Annotation-based monitoring configuration
   # Provides fine-grained control over which resources are monitored
   annotations:
