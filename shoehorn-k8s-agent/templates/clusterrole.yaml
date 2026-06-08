@@ -76,13 +76,13 @@ rules:
   # Read-only access to Secrets, required to detect Helm releases
   # (helm.sh/release.v1 Secrets). RBAC cannot scope by Secret type, so this
   # grants list on all Secrets in scope; the agent reads only release Secrets.
+  # Only "list" is granted: the collector lists release Secrets on a timer and
+  # never gets or watches individual Secrets.
   - apiGroups: [""]
     resources:
       - secrets
     verbs:
-      - get
       - list
-      - watch
   {{- end }}
 
   {{- if and .Values.agent.gitops.tool .Values.agent.gitops.watchAllNamespaces }}
