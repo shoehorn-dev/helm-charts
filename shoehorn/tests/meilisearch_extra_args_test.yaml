@@ -1,0 +1,44 @@
+suite: meilisearch.extraArgs rendering
+release:
+  name: test-release
+  namespace: test-ns
+templates:
+  - templates/statefulset-meilisearch.yaml
+set:
+  meilisearch.masterKeySecretRef:
+    name: my-search-secret
+    key: meili_key
+tests:
+  - it: renders no args by default so the image CMD runs unchanged
+    documentIndex: 1
+    asserts:
+      - isKind:
+          of: StatefulSet
+      - notExists:
+          path: spec.template.spec.containers[0].args
+
+  - it: prepends the meilisearch binary and appends extraArgs
+    documentIndex: 1
+    set:
+      meilisearch.extraArgs:
+        - --experimental-dumpless-upgrade
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args
+          value:
+            - meilisearch
+            - --experimental-dumpless-upgrade
+
+  - it: preserves arg order with multiple extra flags
+    documentIndex: 1
+    set:
+      meilisearch.extraArgs:
+        - --experimental-dumpless-upgrade
+        - --max-indexing-memory=2GiB
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args
+          value:
+            - meilisearch
+            - --experimental-dumpless-upgrade
+            - --max-indexing-memory=2GiB

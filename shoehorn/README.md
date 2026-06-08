@@ -187,6 +187,11 @@ Key parameters:
 | `valkey.external.enabled` | Use external Redis/Valkey | `false` |
 | `meilisearch.external.enabled` | Use Meilisearch Cloud | `false` |
 | `redpanda.external.enabled` | Use external Kafka/Redpanda | `false` |
+| `redpanda.topicPartitions` | Partitions per topic (raise for multi-broker) | `1` |
+| `redpanda.replicationFactor` | Replication factor for created topics | `1` |
+| `redpanda.topicRetentionMs` | Topic retention window, ms | `86400000` |
+| `redpanda.topicRetentionBytes` | Topic retention cap per partition, bytes | `134217728` |
+| `redpanda.developerMode` | Run Redpanda in developer mode (no fsync) | `false` |
 | `smtp.enabled` | SMTP delivery | `false` |
 | `global.tracing.enabled` | OpenTelemetry tracing | `false` |
 | `global.mtls.enabled` | gRPC mTLS between services | `false` |
@@ -229,6 +234,91 @@ kubectl delete pod -n shoehorn shoehorn-postgresql-0
 
 The postgres image tag is pinned in `values.yaml` and tracks postgres releases, not platform releases.
 
+### Switching Redpanda to persistent storage recreates the StatefulSet
+
+`volumeClaimTemplates` is immutable on a StatefulSet. If a release runs Redpanda with `redpanda.persistence.enabled: false` (data on an `emptyDir`) and you switch it to `true`, `helm upgrade` fails: the API server rejects adding a volume claim to the existing StatefulSet.
+
+Delete the StatefulSet first, then upgrade. The `emptyDir` holds only in-flight events, so this loses nothing a normal pod restart wouldn't:
+
+```bash
+kubectl delete statefulset shoehorn-redpanda -n shoehorn
+helm upgrade shoehorn ... --values custom-values.yaml --wait
+```
+
+Redpanda comes back on a PVC and keeps its data across restarts. Producers (api, worker, crawler, forge) get connection errors during the recreate and reconnect once it is ready.
+
+### Upgrading Meilisearch (in-place dumpless migration)
+
+Meilisearch won't start when its data directory was written by an older version. Boot a newer image (say v1.45.2) on a v1.43 volume and the pod crashloops with a "database version is incompatible" error until you migrate the data. The chart bumps the default `meilisearch.image.tag` with platform releases, so this applies any time a release moves the Meilisearch version.
+
+Dumpless migration does the conversion in place on the existing PVC. It's the simpler path, but it rewrites the data directory and there's no automatic rollback. Back up first.
+
+The flag rides on the `meilisearch` container through `meilisearch.extraArgs`, which is empty by default. Set it for the upgrade, then clear it.
+
+**1. Back up.** Trigger a Meilisearch snapshot, and snapshot the PVC if your storage supports it. The StatefulSet's PVC is `data-<release>-meilisearch-0` (for release `shoehorn`, `data-shoehorn-meilisearch-0`).
+
+```bash
+# Meilisearch-level snapshot (writes into /meili_data/snapshots on the PVC)
+kubectl -n shoehorn port-forward svc/shoehorn-meilisearch 7700:7700 &
+curl -X POST http://127.0.0.1:7700/snapshots -H "Authorization: Bearer $MEILI_MASTER_KEY"
+# Poll the returned taskUid until status is "succeeded"
+curl "http://127.0.0.1:7700/tasks/<taskUid>" -H "Authorization: Bearer $MEILI_MASTER_KEY"
+```
+
+```yaml
+# Volume-level snapshot (needs a CSI driver with VolumeSnapshot support)
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: meilisearch-pre-upgrade
+  namespace: shoehorn
+spec:
+  volumeSnapshotClassName: <your-snapshot-class>
+  source:
+    persistentVolumeClaimName: data-shoehorn-meilisearch-0
+```
+
+**2. Turn on the flag and upgrade.** The chart already defaults the new image tag; add `extraArgs` to your values file. A large index can take a while to migrate. Raise the startup budget too: the default is about 150s (`failureThreshold` 30 × `periodSeconds` 5), and the probe will kill the pod mid-migration if the conversion runs past it.
+
+```yaml
+meilisearch:
+  extraArgs:
+    - --experimental-dumpless-upgrade
+  startupProbe:
+    httpGet: { path: /health, port: 7700 }
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 180   # ~15 min, revert after the upgrade
+    timeoutSeconds: 3
+```
+
+```bash
+helm upgrade shoehorn oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn \
+  --namespace shoehorn --values custom-values.yaml --wait
+```
+
+**3. Watch it finish.**
+
+```bash
+kubectl -n shoehorn logs -f shoehorn-meilisearch-0          # migration log lines
+kubectl -n shoehorn get pod shoehorn-meilisearch-0 -w        # wait for Running + Ready
+curl http://127.0.0.1:7700/version -H "Authorization: Bearer $MEILI_MASTER_KEY"  # confirm the version
+```
+
+Then run a search in the app and confirm results come back.
+
+**4. Clear the flag.** Once the pod is healthy on the new version the migration is done, and the flag has nothing left to do. Drop `meilisearch.extraArgs`, revert the `startupProbe` override, and upgrade again to keep it from running on every restart.
+
+```bash
+helm upgrade shoehorn ... --values custom-values.yaml --wait
+```
+
+**Rollback.** If the pod won't come up, roll the Helm release back and restore the data from the snapshot. Downgrading the image alone won't undo the migration. The PVC snapshot (or a fresh PVC restored from it) is how you get back to the old version.
+
+```bash
+helm rollback shoehorn <previous-revision> -n shoehorn
+```
+
 ## Operational notes
 
 ### cert-manager bundling is unsupported
@@ -258,9 +348,27 @@ global:
     issuerKind: Issuer
 ```
 
-### `redpanda.replicas: 3` needs 3+ nodes
+### Scaling Redpanda past one broker
 
-Redpanda uses pod anti-affinity, so each replica needs its own node. On 1- or 2-node clusters the third replica stays `Pending`. Set `redpanda.replicas: 1` for small clusters, or scale the node pool first.
+`redpanda.replicas` defaults to `1` (single broker). To run a real cluster, set it to `3` and raise `redpanda.replicationFactor` to `3` so topics are actually replicated. Redpanda uses pod anti-affinity, so each replica needs its own node: on 1- or 2-node clusters the extra replicas stay `Pending`. Scale the node pool first.
+
+### Redpanda production mode and persistence
+
+`redpanda.developerMode` defaults to `false`, so Redpanda runs with fsync durability and the production checks on. Keep `redpanda.persistence.enabled: true` (the default) so the event bus survives pod restarts.
+
+Set `redpanda.developerMode: true` only for throwaway local or CI installs where losing the bus on restart is fine. The setting takes effect when the Redpanda pod next restarts.
+
+`redpanda.topicPartitions` (default `1`) sets the partition count for topics the eventbus creates on startup. One partition fits a single broker. Raise it (with a matching `redpanda.replicationFactor`) only on a multi-broker cluster. Partition count applies to new topics only: existing topics keep theirs until recreated.
+
+`redpanda.topicRetentionMs`, `topicRetentionBytes`, `topicSegmentBytes`, and `topicSegmentMs` cap how much the event bus keeps on disk. Defaults hold roughly a day per topic with a 128 MiB-per-partition ceiling. The eventbus applies these to existing topics on startup, so changing them takes effect on the next eventbus restart without recreating topics. Tune retention down for tighter installs or up for longer replay/compliance windows.
+
+### Securing the event bus
+
+The event bus briefly carries user records (names, emails) on the way to the search index, and with persistence on, that data sits on the Redpanda PVC for the retention window. Two things worth setting in production:
+
+- **Encrypted storage.** Point `redpanda.persistence.storageClass` at a storage class that encrypts at rest.
+
+- **Network policy.** The Kafka API has no authentication, so any pod that can reach it can read or write topics. Set `redpanda.networkPolicy.enabled: true` to restrict ingress to Shoehorn's own namespaces. It needs a CNI that enforces NetworkPolicy (Cilium, Calico, etc.); on clusters without one it's a harmless no-op.
 
 ### Real client IPs need `global.trustedProxies`
 

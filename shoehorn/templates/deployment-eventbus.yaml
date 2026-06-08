@@ -98,6 +98,18 @@ spec:
         # Redpanda/Kafka
         - name: REDPANDA_BROKERS
           value: {{ include "shoehorn.redpanda.brokers" . }}
+        - name: REDPANDA_TOPIC_PARTITIONS
+          value: {{ .Values.redpanda.topicPartitions | default 1 | int64 | quote }}
+        - name: REDPANDA_REPLICATION_FACTOR
+          value: {{ .Values.redpanda.replicationFactor | default 1 | int64 | quote }}
+        - name: REDPANDA_TOPIC_RETENTION_MS
+          value: {{ .Values.redpanda.topicRetentionMs | default 86400000 | int64 | quote }}
+        - name: REDPANDA_TOPIC_RETENTION_BYTES
+          value: {{ .Values.redpanda.topicRetentionBytes | default 134217728 | int64 | quote }}
+        - name: REDPANDA_TOPIC_SEGMENT_BYTES
+          value: {{ .Values.redpanda.topicSegmentBytes | default 16777216 | int64 | quote }}
+        - name: REDPANDA_TOPIC_SEGMENT_MS
+          value: {{ .Values.redpanda.topicSegmentMs | default 86400000 | int64 | quote }}
 
         volumeMounts:
         {{- include "shoehorn.grpcMtlsVolumeMounts" . | nindent 8 }}

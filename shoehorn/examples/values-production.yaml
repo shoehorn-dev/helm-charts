@@ -139,7 +139,7 @@ api:
   name: api
   annotations:
     team: "platform-team"
-    tier: "Gold"
+    tier: "high"
   image:
     repository: shoehorn-api
   resources:
@@ -190,7 +190,7 @@ web:
   name: web
   annotations:
     team: "platform-team"
-    tier: "Gold"
+    tier: "high"
   image:
     repository: shoehorn-web
   resources:

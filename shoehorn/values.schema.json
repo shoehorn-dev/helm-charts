@@ -484,6 +484,11 @@
       "properties": {
         "annotations": { "$ref": "#/$defs/catalogAnnotations" },
         "enabled": { "type": "boolean", "default": true },
+        "extraArgs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Extra CLI flags appended to the meilisearch binary, e.g. [\"--experimental-dumpless-upgrade\"] for an in-place version migration. Clear once the upgrade task completes."
+        },
         "masterKeySecretRef": {
           "$ref": "#/$defs/secretKeyRef",
           "description": "Meilisearch master key. Required."
@@ -527,6 +532,19 @@
       "properties": {
         "annotations": { "$ref": "#/$defs/catalogAnnotations" },
         "enabled": { "type": "boolean", "default": true },
+        "developerMode": { "type": "boolean", "default": false },
+        "topicPartitions": { "type": "integer", "minimum": 1, "maximum": 64, "default": 1 },
+        "replicationFactor": { "type": "integer", "minimum": 1, "maximum": 16, "default": 1 },
+        "topicRetentionMs": { "type": "integer", "minimum": 1, "default": 86400000 },
+        "topicRetentionBytes": { "type": "integer", "minimum": 1, "default": 134217728 },
+        "topicSegmentBytes": { "type": "integer", "minimum": 1, "default": 16777216 },
+        "topicSegmentMs": { "type": "integer", "minimum": 1, "default": 86400000 },
+        "networkPolicy": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false }
+          }
+        },
         "external": {
           "type": "object",
           "properties": {
@@ -535,14 +553,7 @@
           }
         },
         "resources": { "$ref": "#/$defs/resources" },
-        "persistence": { "$ref": "#/$defs/persistence" },
-        "config": {
-          "type": "object",
-          "properties": {
-            "smp": { "type": "integer", "default": 1 },
-            "memory": { "type": "string", "default": "512M" }
-          }
-        }
+        "persistence": { "$ref": "#/$defs/persistence" }
       }
     },
     "cerbos": {
@@ -684,7 +695,7 @@
         "team": { "type": "string" },
         "repositoryUrl": { "type": "string" },
         "slackChannel": { "type": "string" },
-        "tier": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Platinum"] },
+        "tier": { "type": "string", "enum": ["critical", "high", "medium", "low", "Bronze", "Silver", "Gold", "Platinum"] },
         "tags": { "type": "string" },
         "definitionUrl": { "type": "string" }
       },
