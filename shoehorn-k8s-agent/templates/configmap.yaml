@@ -56,6 +56,9 @@ data:
   {{- if .Values.agent.kubernetes.watchedKinds }}
   SHOEHORN_WATCHED_KINDS: {{ .Values.agent.kubernetes.watchedKinds | join "," | quote }}
   {{- end }}
+  {{- if ne .Values.agent.kubernetes.scopeMode "cluster" }}
+  SHOEHORN_SCOPE_MODE: {{ .Values.agent.kubernetes.scopeMode | quote }}
+  {{- end }}
   {{- if .Values.agent.annotations }}
   SHOEHORN_ANNOTATION_DEFAULT_BEHAVIOR: {{ .Values.agent.annotations.defaultBehavior | default "monitor-all" | quote }}
   SHOEHORN_ANNOTATION_DEFAULT_LEVEL: {{ .Values.agent.annotations.defaultLevel | default "basic" | quote }}

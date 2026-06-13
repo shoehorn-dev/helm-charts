@@ -1,0 +1,148 @@
+{{- if and .Values.rbac.create (eq .Values.agent.kubernetes.scopeMode "namespaces") -}}
+{{- $root := . -}}
+{{- range .Values.agent.kubernetes.namespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "shoehorn-agent.fullname" $root }}
+  namespace: {{ . }}
+  labels:
+    {{- include "shoehorn-agent.labels" $root | nindent 4 }}
+  annotations:
+    {{- include "shoehorn-agent.annotations" $root | nindent 4 }}
+rules:
+  # Read-only access to workload resources
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Read-only access to batch resources
+  - apiGroups: ["batch"]
+    resources:
+      - cronjobs
+      - jobs
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Read-only access to core resources (namespaced subset; namespaces and
+  # nodes are cluster-scoped and live in the -scoped ClusterRole)
+  - apiGroups: [""]
+    resources:
+      - pods
+      - services
+      - events
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Read-only access to networking resources
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - ingresses
+      - networkpolicies
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Read-only access to Cilium network policies (graceful skip if CRDs not installed)
+  - apiGroups: ["cilium.io"]
+    resources:
+      - ciliumnetworkpolicies
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Read-only access to pod metrics (metrics-server)
+  - apiGroups: ["metrics.k8s.io"]
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+
+  {{- if $root.Values.agent.helm.enabled }}
+  # Read-only access to Secrets, required to detect Helm releases
+  # (helm.sh/release.v1 Secrets). Only "list" is granted.
+  - apiGroups: [""]
+    resources:
+      - secrets
+    verbs:
+      - list
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "shoehorn-agent.fullname" $root }}
+  namespace: {{ . }}
+  labels:
+    {{- include "shoehorn-agent.labels" $root | nindent 4 }}
+  annotations:
+    {{- include "shoehorn-agent.annotations" $root | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "shoehorn-agent.fullname" $root }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "shoehorn-agent.serviceAccountName" $root }}
+    namespace: {{ $root.Release.Namespace }}
+{{- end }}
+{{- /*
+GitOps CRD access in scoped mode is handled by gitops-role.yaml, which already
+renders a namespaced Role in the tool's namespace whenever gitops.tool is set
+and watchAllNamespaces is false. No GitOps rules are duplicated here.
+*/}}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "shoehorn-agent.fullname" . }}-leases
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "shoehorn-agent.labels" . | nindent 4 }}
+  annotations:
+    {{- include "shoehorn-agent.annotations" . | nindent 4 }}
+rules:
+  # Leader election leases live in the agent's deployment namespace
+  - apiGroups: ["coordination.k8s.io"]
+    resources:
+      - leases
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "shoehorn-agent.fullname" . }}-leases
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "shoehorn-agent.labels" . | nindent 4 }}
+  annotations:
+    {{- include "shoehorn-agent.annotations" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "shoehorn-agent.fullname" . }}-leases
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "shoehorn-agent.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

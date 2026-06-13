@@ -103,6 +103,12 @@ agent:
     # Note: NetworkPolicy and CiliumNetworkPolicy informers are always-on (not configurable)
     # Example: ["Deployment", "StatefulSet", "Service", "Pod"]
     watchedKinds: []
+    # Informer scoping:
+    #   cluster    (default) cluster-wide watch, namespaces list filters in-process
+    #   namespaces one watch per entry in namespaces (requires a non-empty list);
+    #              RBAC becomes per-namespace Roles plus a minimal ClusterRole
+    #              (get on the listed namespaces, read-only nodes, Cilium CRD reads)
+    scopeMode: cluster
 
   # Resource usage metrics collection
   # Samples metrics-server to provide resource optimization insights

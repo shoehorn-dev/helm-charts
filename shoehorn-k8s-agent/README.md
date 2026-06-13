@@ -59,7 +59,7 @@ helm install shoehorn-k8s-agent oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn-
 
 When `existingSecret` is set, the chart references your Secret instead of creating one. Use `secretMappings` to override the key names if yours differ from the chart defaults.
 
-Four example values files ship with the chart:
+Example values files ship with the chart:
 
 | File | Use |
 |---|---|
@@ -67,6 +67,8 @@ Four example values files ship with the chart:
 | [`examples/values-production.yaml`](examples/values-production.yaml) | 3 replicas, anti-affinity, security hardening |
 | [`examples/values-filtered.yaml`](examples/values-filtered.yaml) | Namespace and resource filtering |
 | [`examples/values-annotations.yaml`](examples/values-annotations.yaml) | Annotation-based monitoring + Pod watching |
+| [`examples/values-large-cluster.yaml`](examples/values-large-cluster.yaml) | Tuned channel and rate limits for 200+ node clusters |
+| [`examples/values-scoped.yaml`](examples/values-scoped.yaml) | Namespace-scoped watching with per-namespace RBAC (one install per tenant) |
 
 ## Uninstalling the Chart
 
@@ -107,8 +109,11 @@ The chart fails template rendering if any of these are missing, with a clear err
 | `agent.kubernetes.excludeNamespaces` | Namespaces to skip | `[]` |
 | `agent.kubernetes.labelSelector` | Label selector filter | `""` |
 | `agent.kubernetes.watchedKinds` | Resource kinds to watch (empty = defaults, includes Pod) | `[]` |
+| `agent.kubernetes.scopeMode` | `cluster` (cluster-wide watch) or `namespaces` (one watch per namespace, per-namespace RBAC) | `cluster` |
 
 `namespaces` and `excludeNamespaces` are mutually exclusive: when `namespaces` is set, `excludeNamespaces` is ignored. NetworkPolicy and CiliumNetworkPolicy informers are always on and unaffected by `watchedKinds`.
+
+With `scopeMode: cluster` (the default), the agent watches the whole cluster and filters to `namespaces` in-process. With `scopeMode: namespaces` it runs one watch per entry in `namespaces` (which must be non-empty) and the chart swaps the cluster-wide ClusterRole for a Role in each watched namespace plus a minimal ClusterRole. Use it to run one install per tenant on a shared cluster. See [`examples/values-scoped.yaml`](examples/values-scoped.yaml).
 
 ### Monitoring levels
 
@@ -270,6 +275,14 @@ The chart creates a ClusterRole with read-only access:
 | `coordination.k8s.io` | leases | Leader election |
 
 When `agent.gitops.watchAllNamespaces=true`, additional CRD access is added for ArgoCD (`argoproj.io`) or FluxCD (`kustomize.toolkit.fluxcd.io`, `helm.toolkit.fluxcd.io`, `source.toolkit.fluxcd.io`). When `watchAllNamespaces=false`, the chart creates a namespaced `Role` instead, scoped to the tool's namespace.
+
+### Namespace-scoped RBAC
+
+With `agent.kubernetes.scopeMode: namespaces`, the cluster-wide ClusterRole is replaced by:
+
+- A `Role` plus `RoleBinding` in each watched namespace, carrying the workload, networking, Cilium, metrics, and (if `agent.helm.enabled`) Secret-list rules.
+- A `Role` plus `RoleBinding` for leader-election leases in the release namespace.
+- A minimal ClusterRole (`<release>-scoped`) granting `get` on the listed namespaces by name, read-only `nodes` (node count and provider detection), and read access to cluster-scoped Cilium policies. The node and Cilium rules are read-only and not tenant-sensitive; drop them from your copy if policy forbids cluster-scoped reads, and the agent degrades gracefully.
 
 ## Upgrading
 

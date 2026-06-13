@@ -190,6 +190,12 @@
               },
               "default": [],
               "examples": [["Deployment", "StatefulSet", "Service", "Pod"]]
+            },
+            "scopeMode": {
+              "type": "string",
+              "description": "Informer scoping. cluster (default): cluster-wide watch, namespaces filters in-process. namespaces: one watch per namespace entry (requires a non-empty namespaces list), with per-namespace Roles plus a minimal ClusterRole.",
+              "enum": ["cluster", "namespaces"],
+              "default": "cluster"
             }
           }
         },

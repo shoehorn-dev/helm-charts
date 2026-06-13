@@ -1,0 +1,15 @@
+# Namespace-scoped agent: watches only the listed namespaces, with
+# namespace-scoped RBAC. Use one install per tenant on a shared cluster.
+# Each install needs its own shoehorn.apiToken and shoehorn.cluster.id and
+# uses one cluster license slot.
+
+shoehorn:
+  cluster:
+    id: shared-aks-payments  # unique per scoped install
+
+agent:
+  kubernetes:
+    scopeMode: namespaces
+    namespaces:
+      - payments
+      - payments-staging
