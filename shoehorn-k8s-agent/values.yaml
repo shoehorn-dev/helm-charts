@@ -58,6 +58,12 @@ agent:
   # so a resync burst does not overflow eventChannelSize. Empty = default.
   resyncPeriod: ""
 
+  # Watcher rate limit (events/sec) and burst. Empty = defaults (100 and 200).
+  # Raise together with eventChannelSize on large clusters; watch
+  # shoehorn_k8s_watcher_events_dropped_total to confirm the new values hold.
+  rateLimit: ""
+  rateBurst: ""
+
   # Push configuration
   pushRetries: 3
   pushTimeout: 30s

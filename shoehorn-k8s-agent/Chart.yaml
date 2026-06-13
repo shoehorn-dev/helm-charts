@@ -55,3 +55,5 @@ annotations:
       description: "Image tag default now includes the 'v' prefix, fixing ImagePullBackOff when image.tag is not set"
     - kind: added
       description: "Optional cluster.provider, cluster.region, and cluster.environment values for enriching cluster identity in Shoehorn"
+    - kind: added
+      description: "agent.rateLimit and agent.rateBurst values to tune the watcher event rate on large clusters; examples/values-large-cluster.yaml preset for 200+ node clusters"

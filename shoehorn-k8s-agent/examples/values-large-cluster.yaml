@@ -1,0 +1,44 @@
+# Tuning preset for large clusters (roughly 200+ nodes or 5000+ pods).
+# Start here, then watch these two metrics; if either climbs, raise the
+# matching buffer another step:
+#   shoehorn_k8s_watcher_events_dropped_total  -> raise eventChannelSize / rateLimit
+#   shoehorn_batcher_batches_dropped_total     -> raise batchChannelSize
+#
+# Usage:
+#   helm install shoehorn-agent oci://ghcr.io/shoehorn-dev/charts/shoehorn-k8s-agent \
+#     -f values-large-cluster.yaml \
+#     --set shoehorn.apiURL=https://shoehorn.example.com \
+#     --set shoehorn.apiToken=$TOKEN \
+#     --set shoehorn.cluster.id=aks-prod-westeurope
+
+agent:
+  # A resync re-lists every watched object; on a big cluster the default 10m
+  # produces periodic event floods. 30m keeps reconciliation without the churn.
+  resyncPeriod: 30m
+
+  # Buffers sized for deploy waves on thousands of pods.
+  eventChannelSize: "10000"
+  batchChannelSize: "200"
+
+  # Let bursts through instead of dropping them; the batcher still smooths
+  # the push volume.
+  rateLimit: "500"
+  rateBurst: "2000"
+
+  # Bigger batches, same 30s cadence: fewer, larger pushes.
+  batchSize: 500
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# HA: leader election makes extra replicas cheap standbys.
+replicaCount: 2
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable:
+  minAvailable: 1

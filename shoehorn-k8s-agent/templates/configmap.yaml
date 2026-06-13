@@ -33,6 +33,12 @@ data:
   {{- if .Values.agent.resyncPeriod }}
   SHOEHORN_RESYNC_PERIOD: {{ .Values.agent.resyncPeriod | quote }}
   {{- end }}
+  {{- if .Values.agent.rateLimit }}
+  SHOEHORN_RATE_LIMIT: {{ .Values.agent.rateLimit | quote }}
+  {{- end }}
+  {{- if .Values.agent.rateBurst }}
+  SHOEHORN_RATE_BURST: {{ .Values.agent.rateBurst | quote }}
+  {{- end }}
   SHOEHORN_PUSH_RETRIES: {{ .Values.agent.pushRetries | quote }}
   SHOEHORN_PUSH_TIMEOUT: {{ .Values.agent.pushTimeout | quote }}
   SHOEHORN_HEARTBEAT_INTERVAL: {{ .Values.agent.heartbeatInterval | quote }}
