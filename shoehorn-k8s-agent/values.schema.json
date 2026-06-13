@@ -117,17 +117,17 @@
           "examples": ["10m", "30m", "1h"]
         },
         "rateLimit": {
-          "description": "Watcher rate limit in events/sec. Raise on large clusters when shoehorn_k8s_watcher_events_dropped_total climbs. Empty = code default (100).",
+          "description": "Watcher rate limit in events/sec (1-10000). Raise on large clusters when shoehorn_k8s_watcher_events_dropped_total climbs. Empty = code default (100).",
           "oneOf": [
             { "type": "string", "pattern": "^$|^[0-9]+$" },
-            { "type": "integer", "minimum": 1, "maximum": 100000 }
+            { "type": "integer", "minimum": 1, "maximum": 10000 }
           ]
         },
         "rateBurst": {
-          "description": "Watcher rate burst (token bucket capacity). Raise together with rateLimit. Empty = code default (200).",
+          "description": "Watcher rate burst (token bucket capacity, 1-20000). Raise together with rateLimit. Empty = code default (200).",
           "oneOf": [
             { "type": "string", "pattern": "^$|^[0-9]+$" },
-            { "type": "integer", "minimum": 1, "maximum": 200000 }
+            { "type": "integer", "minimum": 1, "maximum": 20000 }
           ]
         },
         "pushRetries": {
