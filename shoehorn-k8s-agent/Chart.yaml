@@ -53,3 +53,5 @@ annotations:
   artifacthub.io/changes: |
     - kind: fixed
       description: "Image tag default now includes the 'v' prefix, fixing ImagePullBackOff when image.tag is not set"
+    - kind: added
+      description: "Optional cluster.provider, cluster.region, and cluster.environment values for enriching cluster identity in Shoehorn"

@@ -43,7 +43,8 @@
             "provider": {
               "type": "string",
               "description": "Cloud provider. Leave empty to auto-detect from node metadata (AKS, EKS, GKE, UpCloud).",
-              "examples": ["azure", "aws", "gcp"]
+              "pattern": "^[a-z0-9-]*$",
+              "examples": ["azure", "aws", "gcp", "upcloud"]
             },
             "region": {
               "type": "string",
@@ -53,7 +54,7 @@
             "environment": {
               "type": "string",
               "description": "Deployment environment. Never auto-detected.",
-              "examples": ["production", "staging"]
+              "examples": ["production", "staging", "dev"]
             }
           }
         }

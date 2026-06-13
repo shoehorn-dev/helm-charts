@@ -94,6 +94,9 @@ The chart fails template rendering if any of these are missing, with a clear err
 |---|---|---|
 | `shoehorn.cluster.name` | Display name | falls back to `cluster.id` |
 | `shoehorn.cluster.dashboardURL` | Link to K8s dashboard, ArgoCD UI, etc. | `""` |
+| `shoehorn.cluster.provider` | Cloud provider (auto-detected if empty) | `""` |
+| `shoehorn.cluster.region` | Cloud region (auto-detected if empty) | `""` |
+| `shoehorn.cluster.environment` | Deployment environment, e.g. production, staging | `""` |
 | `annotations.shoehorn.team` | Team owner annotation (`shoehorn.dev/team`) | `""` |
 
 ### Watching
