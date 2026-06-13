@@ -1,0 +1,110 @@
+# Shoehorn with Microsoft Entra ID: Reference Values
+# ===================================================
+# Minimal working configuration for deploying Shoehorn against a Microsoft
+# Entra ID tenant, using Entra for both authentication (OIDC) and orgdata
+# sync (user/team directory via Microsoft Graph).
+#
+# Before applying, complete the Entra setup steps at:
+#   https://docs.shoehorn.dev/integrations/entra-id
+# Register a single-tenant app, expose an API (scope access_as_user), add the
+# groups claim, and grant the Graph permissions User.Read.All +
+# GroupMember.Read.All with admin consent.
+#
+# Entra orgdata reuses the same app registration and client secret as auth, so
+# there's only one credential to create (entra_client_secret), no separate
+# API token.
+#
+# Usage:
+#   # postgres_password and db_password must be URL-safe (they get embedded
+#   # in DATABASE_URL). Use `openssl rand -hex`, not `-base64`. Base64 produces
+#   # `/` characters that break the connection-string parser at the first one.
+#   kubectl create secret generic shoehorn-auth-secrets -n shoehorn \
+#     --from-literal=entra_client_secret='<client-secret>' \
+#     --from-literal=auth_encryption_key="$(openssl rand -base64 32)" \
+#     --from-literal=secrets_encryption_key="$(openssl rand -base64 32)" \
+#     --from-literal=jwt_secret="$(openssl rand -hex 32)" \
+#     --from-literal=postgres_password="$(openssl rand -hex 24)" \
+#     --from-literal=db_password="$(openssl rand -hex 24)" \
+#     --from-literal=valkey_password='<valkey-password>' \
+#     --from-literal=meilisearch_master_key="$(openssl rand -base64 32)"
+#
+#   helm install shoehorn ./shoehorn -n shoehorn --create-namespace \
+#     -f ./shoehorn/examples/values-entraid.yaml
+#
+# CHANGE_ME: review every value marked below before deploying.
+
+global:
+  # CHANGE_ME: your Shoehorn hostname (used for the Entra redirect-URI allowlist)
+  domain: idp.acme.internal
+
+  organization:
+    # CHANGE_ME
+    name: "Acme Corp"
+    slug: "acme-corp"
+
+# Point the chart at the Kubernetes Secret you created above.
+# defaultName sets the fallback `name:` for every *SecretRef below. Each
+# ref then only needs to specify which `key:` inside this Secret holds the
+# credential.
+secret:
+  defaultName: shoehorn-auth-secrets
+
+# Authentication: Microsoft Entra ID (OIDC)
+# ─────────────────────────────────────────
+# auth.provider = "entra-id" triggers values.schema.json's conditional
+# require on auth.entraId.{tenantId,clientId}. Helm refuses to install if
+# either is empty. tenantId and clientId are public identifiers (not secrets);
+# only clientSecretRef points at a Secret key.
+auth:
+  provider: entra-id
+
+  entraId:
+    # CHANGE_ME: your directory (tenant) GUID from the Entra app registration.
+    tenantId: 00000000-0000-0000-0000-000000000000
+    # CHANGE_ME: the app registration's Application (client) ID.
+    clientId: 00000000-0000-0000-0000-000000000000
+
+    # OIDC client secret. Required for Entra auth, and reused for orgdata sync.
+    clientSecretRef:
+      key: entra_client_secret
+
+  # Org data sync. Microsoft Graph is the user/team source of truth, reached
+  # with the same app registration and client secret as auth above.
+  orgdata:
+    enabled: true
+    providers: ["entra-id"]
+    primaryProvider: "entra-id"
+
+  # Required session keys. All three resolve against secret.defaultName.
+  session:
+    maxAge: "8h"
+    jwtSecretRef:
+      key: jwt_secret
+    encryptionKeyRef:
+      key: auth_encryption_key
+    secretsEncryptionKeyRef:
+      key: secrets_encryption_key
+
+  csrf:
+    enabled: true
+
+# Infrastructure credentials. Same shoehorn-auth-secrets Secret, different keys.
+postgresql:
+  superuserPasswordSecretRef:
+    key: postgres_password
+  passwordSecretRef:
+    key: db_password
+
+valkey:
+  passwordSecretRef:
+    key: valkey_password
+
+meilisearch:
+  masterKeySecretRef:
+    key: meilisearch_master_key
+
+# Image configuration. The chart ships with `image.tag` set to the release
+# version, so this block only needs an entry when pinning to a different tag
+# or pointing at a mirror.
+# image:
+#   tag: "v0.5.21"
