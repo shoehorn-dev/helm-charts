@@ -1,4 +1,7 @@
 {{- if and .Values.rbac.create (eq .Values.agent.kubernetes.scopeMode "namespaces") -}}
+{{- if and (eq .Values.agent.kubernetes.scopeMode "namespaces") .Values.agent.gitops.tool .Values.agent.gitops.watchAllNamespaces }}
+{{- fail "agent.kubernetes.scopeMode=namespaces is incompatible with agent.gitops.watchAllNamespaces=true: set watchAllNamespaces=false so the per-namespace gitops Role is created, or use cluster scope mode" }}
+{{- end }}
 {{- $root := . -}}
 {{- range .Values.agent.kubernetes.namespaces }}
 ---

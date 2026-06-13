@@ -59,3 +59,5 @@ annotations:
       description: "agent.rateLimit and agent.rateBurst values to tune the watcher event rate on large clusters; examples/values-large-cluster.yaml preset for 200+ node clusters"
     - kind: added
       description: "agent.kubernetes.scopeMode: namespaces for namespace-scoped watching with per-namespace Roles plus a minimal ClusterRole; examples/values-scoped.yaml preset for one-install-per-tenant on shared clusters"
+    - kind: security
+      description: "Tightened scoped-mode RBAC: removed the unused ciliumclusterwidenetworkpolicies grant and dropped node get (list-only); scoped mode now fails fast when combined with gitops.watchAllNamespaces=true"

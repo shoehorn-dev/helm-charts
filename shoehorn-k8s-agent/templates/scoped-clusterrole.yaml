@@ -20,25 +20,15 @@ rules:
     verbs:
       - get
   # Node count (heartbeat) and provider detection. The agent only lists nodes,
-  # it never watches them, so get+list is the complete set (intentionally
-  # tighter than cluster mode's get/list/watch). Read-only, not
-  # tenant-sensitive. Remove if your policy forbids it; the agent degrades
+  # it never gets one by name and never watches them, so list is the complete
+  # set (intentionally tighter than cluster mode's get/list/watch). Read-only,
+  # not tenant-sensitive. Remove if your policy forbids it; the agent degrades
   # gracefully (heartbeat omits nodeCount, provider stays unset).
   - apiGroups: [""]
     resources:
       - nodes
     verbs:
-      - get
       - list
-  # Cilium clusterwide network policies are a cluster-scoped CRD. Read-only,
-  # graceful skip if the CRD is not installed.
-  - apiGroups: ["cilium.io"]
-    resources:
-      - ciliumclusterwidenetworkpolicies
-    verbs:
-      - get
-      - list
-      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

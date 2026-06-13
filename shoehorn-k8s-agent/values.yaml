@@ -153,9 +153,12 @@ agent:
   # Helm release detection
   # When enabled, the agent reads helm.sh/release.v1 Secrets to surface Helm
   # releases and the resources each one manages in the Shoehorn catalog.
-  # Enabling this grants the agent read access to Secrets (see clusterrole.yaml).
   helm:
     # Detect Helm releases (default: disabled)
+    # SECURITY: enabling this grants the agent read access to the contents of
+    # ALL Secrets in the watched namespaces (Kubernetes list on secrets returns
+    # secret data, not just names), not only Helm release secrets. Leave off
+    # unless you need Helm release discovery.
     enabled: false
 
     # Namespace to scan for release Secrets, or "" for all namespaces
