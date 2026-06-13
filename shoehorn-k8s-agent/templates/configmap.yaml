@@ -11,6 +11,15 @@ data:
   SHOEHORN_CLUSTER_ID: {{ .Values.shoehorn.cluster.id | required "shoehorn.cluster.id is required" | quote }}
   SHOEHORN_CLUSTER_NAME: {{ .Values.shoehorn.cluster.name | default .Values.shoehorn.cluster.id | quote }}
   SHOEHORN_DASHBOARD_URL: {{ .Values.shoehorn.cluster.dashboardURL | quote }}
+  {{- if .Values.shoehorn.cluster.provider }}
+  SHOEHORN_PROVIDER: {{ .Values.shoehorn.cluster.provider | quote }}
+  {{- end }}
+  {{- if .Values.shoehorn.cluster.region }}
+  SHOEHORN_REGION: {{ .Values.shoehorn.cluster.region | quote }}
+  {{- end }}
+  {{- if .Values.shoehorn.cluster.environment }}
+  SHOEHORN_ENVIRONMENT: {{ .Values.shoehorn.cluster.environment | quote }}
+  {{- end }}
   SHOEHORN_LOG_LEVEL: {{ .Values.agent.logLevel | quote }}
   SHOEHORN_LOG_FORMAT: {{ .Values.agent.logFormat | quote }}
   SHOEHORN_BATCH_INTERVAL: {{ .Values.agent.batchInterval | quote }}

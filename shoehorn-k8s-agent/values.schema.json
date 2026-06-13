@@ -39,6 +39,21 @@
               "type": "string",
               "description": "Dashboard URL for cluster (K8s Dashboard, ArgoCD, FluxCD, etc.)",
               "examples": ["https://k8s-dashboard.example.com"]
+            },
+            "provider": {
+              "type": "string",
+              "description": "Cloud provider. Leave empty to auto-detect from node metadata (AKS, EKS, GKE, UpCloud).",
+              "examples": ["azure", "aws", "gcp"]
+            },
+            "region": {
+              "type": "string",
+              "description": "Cloud region. Leave empty to auto-detect from node metadata.",
+              "examples": ["eastus", "us-east-1", "europe-north1"]
+            },
+            "environment": {
+              "type": "string",
+              "description": "Deployment environment. Never auto-detected.",
+              "examples": ["production", "staging"]
             }
           }
         }

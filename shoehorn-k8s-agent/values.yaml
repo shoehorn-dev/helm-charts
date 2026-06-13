@@ -27,6 +27,12 @@ shoehorn:
     name: ""
     # Dashboard URL for cluster (K8s Dashboard, ArgoCD, FluxCD, etc.) - optional
     dashboardURL: ""
+    # Cluster metadata shown in Shoehorn. Leave empty to auto-detect provider
+    # and region from node metadata (works on AKS, EKS, GKE, UpCloud).
+    provider: ""
+    region: ""
+    # Environment is never auto-detected. Example: production, staging
+    environment: ""
 
 # Agent configuration
 agent:
