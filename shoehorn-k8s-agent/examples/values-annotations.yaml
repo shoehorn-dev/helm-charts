@@ -54,8 +54,10 @@ agent:
     # defaultBehavior: monitor-none
 
     # Default monitoring level for resources without shoehorn.dev/monitoring-level
-    # Options: basic (low overhead), detailed (medium), full (high, requires metrics-server)
-    defaultLevel: basic
+    # All levels read from the pod the agent already watches, so a higher level
+    # adds no extra API calls, only a slightly larger push payload.
+    # Options: basic, detailed, full (default)
+    defaultLevel: full
 
 # Standard configuration
 resources:
@@ -115,25 +117,25 @@ resources:
 # Monitoring Levels Explained:
 # ---
 #
-# basic (default):
+# All levels read from the pod the agent already watches. A higher level adds no
+# extra API calls or watches, only a slightly larger push payload per workload.
+#
+# basic:
 #   - Pod status and phase
 #   - Ready condition
 #   - Owner references
-#   - Overhead: Low
-#   - Use for: Production monitoring
 #
 # detailed:
 #   - All basic fields
 #   - Container restart counts
 #   - Container states (waiting/running/terminated)
 #   - Pod conditions (Ready, PodScheduled, Initialized, ContainersReady)
-#   - Overhead: Medium
-#   - Use for: Troubleshooting unhealthy workloads
 #
-# full:
+# full (default):
 #   - All detailed fields
 #   - CPU and memory requests/limits per container
 #   - QoS class (Guaranteed, Burstable, BestEffort)
-#   - Pod-level metrics (requires metrics-server)
-#   - Overhead: High
-#   - Use for: Performance optimization, capacity planning
+#
+# Live CPU/memory usage is separate from these levels. It comes from the
+# agent.metrics setting (and the shoehorn.dev/collect-pod-metrics annotation),
+# requires metrics-server, and degrades gracefully when it is not present.

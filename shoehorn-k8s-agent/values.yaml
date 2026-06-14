@@ -178,11 +178,17 @@ agent:
     defaultBehavior: monitor-all
 
     # Default monitoring level for resources without shoehorn.dev/monitoring-level
+    # All levels read from the pod object the agent already watches, so a higher
+    # level adds no extra Kubernetes API calls or watches, only a slightly larger
+    # push payload. "full" is the default so the Shoehorn UI has the data it needs
+    # without per-workload annotations.
     # Options:
-    #   - "basic": Workload status, replica counts, image info (default, lowest overhead)
-    #   - "detailed": Basic + restart counts, container states, pod events (medium overhead)
-    #   - "full": Detailed + CPU/memory metrics, resource recommendations (highest overhead)
-    defaultLevel: basic
+    #   - "basic": Workload status, replica counts, image info
+    #   - "detailed": Basic + restart counts, container states, pod conditions
+    #   - "full" (default): Detailed + resource requests/limits and QoS class
+    # Note: live CPU/memory usage is a separate setting (agent.metrics) and is not
+    # controlled by this level.
+    defaultLevel: full
 
 # Image configuration
 image:
