@@ -80,14 +80,6 @@ is prefixed with "v" to match the release workflow's tag format
 {{- end }}
 
 {{/*
-Netobserver image - same fallback rule as shoehorn-agent.image.
-*/}}
-{{- define "shoehorn-agent.netobserverImage" -}}
-{{- $tag := .Values.netobserver.image.tag | default (printf "v%s" .Chart.AppVersion) }}
-{{- printf "%s/%s:%s" .Values.netobserver.image.registry .Values.netobserver.image.repository $tag }}
-{{- end }}
-
-{{/*
 ConfigMap data for checksum calculation.
 Must mirror configmap.yaml exactly so pod restarts on any config change.
 */}}

@@ -14,9 +14,6 @@
 {{- if .Values.agent.gitops.tool }}
  ▸ GitOps     {{ .Values.agent.gitops.tool }}
 {{- end }}
-{{- if .Values.netobserver.enabled }}
- ▸ NetObserver enabled
-{{- end }}
 
  ▸ Verify   kubectl get pods -l app.kubernetes.io/name={{ include "shoehorn-agent.name" . }} -n {{ .Release.Namespace }}
  ▸ Logs     kubectl logs -l app.kubernetes.io/name={{ include "shoehorn-agent.name" . }} -n {{ .Release.Namespace }} -f

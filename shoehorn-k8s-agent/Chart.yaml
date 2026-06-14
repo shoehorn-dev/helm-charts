@@ -2,7 +2,7 @@ apiVersion: v2
 name: shoehorn-k8s-agent
 description: Kubernetes agent for Shoehorn, the Intelligent Developer Platform. Discovers and syncs workloads.
 type: application
-version: 0.5.001
+version: 0.6.0
 appVersion: "0.5.001"
 
 home: https://shoehorn.dev
@@ -51,6 +51,8 @@ annotations:
     - url: https://artifacthub.io/packages/helm/shoehorn/shoehorn
 
   artifacthub.io/changes: |
+    - kind: removed
+      description: "Network observer DaemonSet and its netobserver.* values removed. Service relationships are now inferred on the platform from cluster specs, routes, and network policies, so the eBPF observer is no longer needed. NetworkPolicy and CiliumNetworkPolicy coverage is unaffected: the main agent still watches them."
     - kind: fixed
       description: "Image tag default now includes the 'v' prefix, fixing ImagePullBackOff when image.tag is not set"
     - kind: added

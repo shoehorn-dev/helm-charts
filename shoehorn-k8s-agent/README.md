@@ -16,7 +16,7 @@ helm install shoehorn-k8s-agent oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn-
 
 ## Introduction
 
-This chart deploys the Shoehorn Kubernetes agent on a Kubernetes cluster using [Helm](https://helm.sh). The agent runs as a Deployment with leader election for HA. An optional eBPF DaemonSet (`netobserver`) captures pod-to-pod TCP flows for service dependency mapping.
+This chart deploys the Shoehorn Kubernetes agent on a Kubernetes cluster using [Helm](https://helm.sh). The agent runs as a Deployment with leader election for HA.
 
 The agent image is published to [`docker.io/shoehorned/shoehorn-k8s-agent`](https://hub.docker.com/r/shoehorned/shoehorn-k8s-agent). The chart is published to `oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn-k8s-agent`.
 
@@ -28,7 +28,6 @@ The agent image is published to [`docker.io/shoehorned/shoehorn-k8s-agent`](http
 - metrics-server (optional, for `full` monitoring level)
 - ArgoCD or FluxCD installed (optional, for GitOps integration)
 - Cilium CNI (optional, for `CiliumNetworkPolicy` visibility)
-- Linux kernel 5.2+ with BTF (`CONFIG_DEBUG_INFO_BTF=y`) on nodes if `netobserver.enabled=true`
 
 ## Installing the Chart
 
@@ -162,20 +161,6 @@ Without leader election, multiple replicas would emit duplicate events.
 
 GitOps watching is independent of workload watching. Enable one without changing the other. FluxCD doesn't need a token (the agent watches `Kustomization` and `HelmRelease` CRDs directly).
 
-### Network Observer (eBPF)
-
-Optional DaemonSet that captures pod-to-pod TCP connections.
-
-| Parameter | Description | Default |
-|---|---|---|
-| `netobserver.enabled` | Deploy the DaemonSet | `false` |
-| `netobserver.flushInterval` | Aggregation flush | `60s` |
-| `netobserver.intraClusterOnly` | Only intra-cluster flows | `true` |
-| `netobserver.excludePorts` | Ports to skip | `443,5432,6379,3306,27017` |
-| `netobserver.namespaces` / `excludeNamespaces` | Namespace filter | `[]` |
-
-Gracefully no-ops if eBPF loading fails.
-
 ### Resources and image
 
 | Parameter | Default |
@@ -253,12 +238,6 @@ helm install shoehorn-k8s-agent oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn-
 ```
 
 No token needed. Add `--set agent.gitops.watchAllNamespaces=true` if Flux resources are spread across tenant namespaces.
-
-### Enable network flow capture
-
-```bash
---set netobserver.enabled=true
-```
 
 ## RBAC
 
