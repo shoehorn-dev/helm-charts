@@ -120,34 +120,21 @@ agent:
     # Rolling window size in hours (168 = 7 days)
     windowHours: 168
 
-  # GitOps integration configuration
+  # GitOps integration. Enable ONE tool. Drift detection needs only `enabled`
+  # plus in-cluster RBAC (granted automatically); the ArgoCD serverURL/token are
+  # OPTIONAL and only power the Sync/Refresh buttons + deep-link in the Shoehorn UI.
   gitops:
-    # GitOps tool to use: "argocd", "fluxcd", or "" (disabled)
+    # Legacy explicit override. Leave "" and use <tool>.enabled instead.
     tool: ""
-
-    # Watch all namespaces for GitOps CRDs
-    # false (default): Only watch the configured namespace (namespace-scoped RBAC, least privilege)
-    # true: Watch all namespaces (adds ClusterRole rules for CRD access)
     watchAllNamespaces: false
-
-    # How often the agent polls for pending GitOps commands (sync/refresh) from the UI
     commandPollInterval: 30s
-
-    # ArgoCD configuration (used when tool: argocd)
     argocd:
-      # Namespace where ArgoCD is installed
+      enabled: false        # <-- the one knob to turn on ArgoCD
       namespace: argocd
-      # ArgoCD API server URL for sync/refresh commands (optional)
-      # Required to enable Sync/Refresh buttons in the Shoehorn UI
-      # Example: https://argocd.example.com
-      serverURL: ""
-      # ArgoCD API token for sync commands (optional, stored as a Kubernetes Secret)
-      # Generate with: argocd account generate-token --account shoehorn
-      token: ""
-
-    # FluxCD configuration (used when tool: fluxcd)
+      serverURL: ""         # optional (UI Sync/Refresh + deep-link only)
+      token: ""             # optional (UI Sync/Refresh only); stored as a Secret
     fluxcd:
-      # Namespace where FluxCD is installed
+      enabled: false        # <-- the one knob to turn on Flux
       namespace: flux-system
 
   # Helm release detection

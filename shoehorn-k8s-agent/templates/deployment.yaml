@@ -52,7 +52,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            {{- if and (eq (.Values.agent.gitops.tool | default "") "argocd") (or .Values.agent.gitops.argocd.token (and .Values.shoehorn.existingSecret (hasKey .Values.shoehorn.secretMappings "SHOEHORN_GITOPS_ARGOCD_TOKEN"))) }}
+            {{- if and (eq (include "shoehorn-agent.gitopsTool" .) "argocd") (or .Values.agent.gitops.argocd.token (and .Values.shoehorn.existingSecret (hasKey .Values.shoehorn.secretMappings "SHOEHORN_GITOPS_ARGOCD_TOKEN"))) }}
             - name: SHOEHORN_GITOPS_ARGOCD_TOKEN
               valueFrom:
                 secretKeyRef:

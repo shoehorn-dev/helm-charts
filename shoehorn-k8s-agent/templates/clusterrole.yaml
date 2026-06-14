@@ -85,9 +85,9 @@ rules:
       - list
   {{- end }}
 
-  {{- if and .Values.agent.gitops.tool .Values.agent.gitops.watchAllNamespaces }}
+  {{- if and (include "shoehorn-agent.gitopsTool" .) .Values.agent.gitops.watchAllNamespaces }}
   # GitOps CRD access (cluster-wide, enabled because gitops.watchAllNamespaces=true)
-  {{- if eq .Values.agent.gitops.tool "argocd" }}
+  {{- if eq (include "shoehorn-agent.gitopsTool" .) "argocd" }}
   - apiGroups: ["argoproj.io"]
     resources:
       - applications
@@ -96,7 +96,7 @@ rules:
       - list
       - watch
   {{- end }}
-  {{- if eq .Values.agent.gitops.tool "fluxcd" }}
+  {{- if eq (include "shoehorn-agent.gitopsTool" .) "fluxcd" }}
   - apiGroups: ["kustomize.toolkit.fluxcd.io"]
     resources:
       - kustomizations

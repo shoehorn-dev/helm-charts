@@ -11,8 +11,11 @@
  ▸ Cluster    {{ .Values.shoehorn.cluster.id }}
  ▸ API        {{ .Values.shoehorn.apiURL }}
  ▸ Replicas   {{ .Values.replicaCount }}
-{{- if .Values.agent.gitops.tool }}
- ▸ GitOps     {{ .Values.agent.gitops.tool }}
+{{- $tool := include "shoehorn-agent.gitopsTool" . }}
+{{- if $tool }}
+ ▸ GitOps     {{ $tool }} (watchAllNamespaces={{ .Values.agent.gitops.watchAllNamespaces }})
+              Drift will appear in Operations once apps sync. For UI Sync/Refresh, also set
+              agent.gitops.argocd.serverURL + token.
 {{- end }}
 
  ▸ Verify   kubectl get pods -l app.kubernetes.io/name={{ include "shoehorn-agent.name" . }} -n {{ .Release.Namespace }}

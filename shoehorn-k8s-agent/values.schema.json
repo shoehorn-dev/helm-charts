@@ -216,8 +216,13 @@
             },
             "argocd": {
               "type": "object",
-              "description": "ArgoCD-specific configuration (used when tool: argocd)",
+              "description": "ArgoCD-specific configuration",
               "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable ArgoCD GitOps integration. The primary switch — no need to set agent.gitops.tool.",
+                  "default": false
+                },
                 "namespace": {
                   "type": "string",
                   "description": "Namespace where ArgoCD is installed",
@@ -226,19 +231,24 @@
                 },
                 "serverURL": {
                   "type": "string",
-                  "description": "ArgoCD API server URL for sync/refresh commands. Required to enable action buttons in the UI.",
+                  "description": "ArgoCD API server URL. Optional — only powers Sync/Refresh buttons and deep-link in the Shoehorn UI.",
                   "examples": ["https://argocd.example.com"]
                 },
                 "token": {
                   "type": "string",
-                  "description": "ArgoCD API token for sync commands (stored as a Kubernetes Secret). Generate with: argocd account generate-token"
+                  "description": "ArgoCD API token for sync commands. Optional — stored as a Kubernetes Secret. Generate with: argocd account generate-token"
                 }
               }
             },
             "fluxcd": {
               "type": "object",
-              "description": "FluxCD-specific configuration (used when tool: fluxcd)",
+              "description": "FluxCD-specific configuration",
               "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable FluxCD GitOps integration. The primary switch — no need to set agent.gitops.tool.",
+                  "default": false
+                },
                 "namespace": {
                   "type": "string",
                   "description": "Namespace where FluxCD is installed",

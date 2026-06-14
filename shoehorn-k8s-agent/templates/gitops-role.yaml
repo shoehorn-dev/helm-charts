@@ -1,8 +1,9 @@
-{{- if and .Values.rbac.create .Values.agent.gitops.tool (not .Values.agent.gitops.watchAllNamespaces) -}}
+{{- $tool := include "shoehorn-agent.gitopsTool" . -}}
+{{- if and .Values.rbac.create $tool (not .Values.agent.gitops.watchAllNamespaces) -}}
 {{- $namespace := "" -}}
-{{- if eq .Values.agent.gitops.tool "argocd" -}}
+{{- if eq $tool "argocd" -}}
 {{- $namespace = .Values.agent.gitops.argocd.namespace | default "argocd" -}}
-{{- else if eq .Values.agent.gitops.tool "fluxcd" -}}
+{{- else if eq $tool "fluxcd" -}}
 {{- $namespace = .Values.agent.gitops.fluxcd.namespace | default "flux-system" -}}
 {{- else -}}
 {{- $namespace = "argocd" -}}
@@ -22,7 +23,7 @@ metadata:
   annotations:
     {{- include "shoehorn-agent.annotations" . | nindent 4 }}
 rules:
-  {{- if eq .Values.agent.gitops.tool "argocd" }}
+  {{- if eq $tool "argocd" }}
   - apiGroups: ["argoproj.io"]
     resources:
       - applications
@@ -31,7 +32,7 @@ rules:
       - list
       - watch
   {{- end }}
-  {{- if eq .Values.agent.gitops.tool "fluxcd" }}
+  {{- if eq $tool "fluxcd" }}
   - apiGroups: ["kustomize.toolkit.fluxcd.io"]
     resources:
       - kustomizations
