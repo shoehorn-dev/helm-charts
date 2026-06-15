@@ -120,17 +120,18 @@ SHOEHORN_ANNOTATION_DEFAULT_LEVEL: {{ .Values.agent.annotations.defaultLevel | d
 SHOEHORN_METRICS_SAMPLE_INTERVAL: {{ .Values.agent.metrics.sampleInterval | default "5m" | quote }}
 SHOEHORN_METRICS_WINDOW_HOURS: {{ .Values.agent.metrics.windowHours | default 168 | quote }}
 {{- end }}
-{{- if .Values.agent.gitops.tool }}
-SHOEHORN_GITOPS_TOOL: {{ .Values.agent.gitops.tool | quote }}
+{{- $tool := include "shoehorn-agent.gitopsTool" . -}}
+{{- if $tool }}
+SHOEHORN_GITOPS_TOOL: {{ $tool | quote }}
 SHOEHORN_GITOPS_WATCH_ALL_NAMESPACES: {{ .Values.agent.gitops.watchAllNamespaces | toString | quote }}
-SHOEHORN_GITOPS_COMMAND_POLL_INTERVAL: {{ .Values.agent.gitops.commandPollInterval | default "10s" | quote }}
-{{- if eq .Values.agent.gitops.tool "argocd" }}
+SHOEHORN_GITOPS_COMMAND_POLL_INTERVAL: {{ .Values.agent.gitops.commandPollInterval | default "30s" | quote }}
+{{- if eq $tool "argocd" }}
 SHOEHORN_GITOPS_ARGOCD_NAMESPACE: {{ .Values.agent.gitops.argocd.namespace | default "argocd" | quote }}
 {{- if .Values.agent.gitops.argocd.serverURL }}
 SHOEHORN_GITOPS_ARGOCD_SERVER_URL: {{ .Values.agent.gitops.argocd.serverURL | quote }}
 {{- end }}
 {{- end }}
-{{- if eq .Values.agent.gitops.tool "fluxcd" }}
+{{- if eq $tool "fluxcd" }}
 SHOEHORN_GITOPS_FLUXCD_NAMESPACE: {{ .Values.agent.gitops.fluxcd.namespace | default "flux-system" | quote }}
 {{- end }}
 {{- end }}
@@ -170,9 +171,44 @@ Secret data for checksum calculation (only when chart manages the secret).
 {{- define "shoehorn-agent.secret" -}}
 {{- if not .Values.shoehorn.existingSecret -}}
 api-token: {{ .Values.shoehorn.apiToken | required "shoehorn.apiToken is required (or set shoehorn.existingSecret)" | quote }}
-{{- if and (eq (.Values.agent.gitops.tool | default "") "argocd") .Values.agent.gitops.argocd.token }}
+{{- if and (eq (include "shoehorn-agent.gitopsTool" .) "argocd") .Values.agent.gitops.argocd.token }}
 argocd-token: {{ .Values.agent.gitops.argocd.token | quote }}
 {{- end }}
 {{- end -}}
 {{- end }}
+
+{{/*
+Resolve the effective GitOps tool. Precedence:
+  1. explicit legacy override: .Values.agent.gitops.tool (if non-empty)
+  2. per-tool enable booleans: argocd.enabled / fluxcd.enabled
+  3. "" (disabled)
+*/}}
+{{- define "shoehorn-agent.gitopsTool" -}}
+{{- $g := .Values.agent.gitops -}}
+{{- if $g.tool -}}
+{{- $g.tool -}}
+{{- else if $g.argocd.enabled -}}
+argocd
+{{- else if $g.fluxcd.enabled -}}
+fluxcd
+{{- end -}}
+{{- end -}}
+
+{{/*
+Validate GitOps config. Call once from a template that always renders
+(e.g. top of configmap.yaml). Fails the render with an actionable message.
+*/}}
+{{- define "shoehorn-agent.gitopsValidate" -}}
+{{- $g := .Values.agent.gitops -}}
+{{- $tool := include "shoehorn-agent.gitopsTool" . -}}
+{{- if and $g.argocd.enabled $g.fluxcd.enabled -}}
+{{- fail "agent.gitops: enable only one of argocd.enabled / fluxcd.enabled" -}}
+{{- end -}}
+{{- if and $g.tool (not (has $g.tool (list "argocd" "fluxcd"))) -}}
+{{- fail (printf "agent.gitops.tool must be \"argocd\", \"fluxcd\", or \"\" (got %q)" $g.tool) -}}
+{{- end -}}
+{{- if and (or $g.argocd.serverURL $g.argocd.token) (ne $tool "argocd") -}}
+{{- fail "agent.gitops.argocd.serverURL/token are set but ArgoCD is not enabled — set agent.gitops.argocd.enabled=true (these creds are optional and only power the UI Sync/Refresh actions)" -}}
+{{- end -}}
+{{- end -}}
 

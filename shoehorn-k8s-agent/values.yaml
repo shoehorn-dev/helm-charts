@@ -120,34 +120,21 @@ agent:
     # Rolling window size in hours (168 = 7 days)
     windowHours: 168
 
-  # GitOps integration configuration
+  # GitOps integration. Enable ONE tool. Drift detection needs only `enabled`
+  # plus in-cluster RBAC (granted automatically); the ArgoCD serverURL/token are
+  # OPTIONAL and only power the Sync/Refresh buttons + deep-link in the Shoehorn UI.
   gitops:
-    # GitOps tool to use: "argocd", "fluxcd", or "" (disabled)
+    # Legacy explicit override. Leave "" and use <tool>.enabled instead.
     tool: ""
-
-    # Watch all namespaces for GitOps CRDs
-    # false (default): Only watch the configured namespace (namespace-scoped RBAC, least privilege)
-    # true: Watch all namespaces (adds ClusterRole rules for CRD access)
     watchAllNamespaces: false
-
-    # How often the agent polls for pending GitOps commands (sync/refresh) from the UI
     commandPollInterval: 30s
-
-    # ArgoCD configuration (used when tool: argocd)
     argocd:
-      # Namespace where ArgoCD is installed
+      enabled: false        # <-- the one knob to turn on ArgoCD
       namespace: argocd
-      # ArgoCD API server URL for sync/refresh commands (optional)
-      # Required to enable Sync/Refresh buttons in the Shoehorn UI
-      # Example: https://argocd.example.com
-      serverURL: ""
-      # ArgoCD API token for sync commands (optional, stored as a Kubernetes Secret)
-      # Generate with: argocd account generate-token --account shoehorn
-      token: ""
-
-    # FluxCD configuration (used when tool: fluxcd)
+      serverURL: ""         # optional (UI Sync/Refresh + deep-link only)
+      token: ""             # optional (UI Sync/Refresh only); stored as a Secret
     fluxcd:
-      # Namespace where FluxCD is installed
+      enabled: false        # <-- the one knob to turn on Flux
       namespace: flux-system
 
   # Helm release detection
@@ -167,6 +154,21 @@ agent:
     # How often the agent rescans for releases (30s to 1h)
     interval: 5m
 
+  # Connected resources resolution
+  # When enabled, the agent resolves and pushes SA, RoleBindings, ClusterRoleBindings,
+  # Services, ConfigMaps, Secrets (key names only, never values), and PVCs that each
+  # workload depends on at runtime.
+  connected:
+    # Resolve connected resources per workload (default: disabled)
+    # SECURITY: enabling this grants the agent read access to the contents of
+    # ALL Secrets in the watched namespaces (Kubernetes list on secrets returns
+    # secret data, not just names). The agent only ever transmits Secret key
+    # names and never the values, but the granted RBAC still allows reading them.
+    # It also grants list on ServiceAccounts, RoleBindings, ClusterRoleBindings,
+    # Roles, ClusterRoles, ConfigMaps, and PVCs. Leave off unless you need
+    # connected-resource discovery.
+    enabled: false
+
   # Annotation-based monitoring configuration
   # Provides fine-grained control over which resources are monitored
   annotations:
@@ -178,11 +180,17 @@ agent:
     defaultBehavior: monitor-all
 
     # Default monitoring level for resources without shoehorn.dev/monitoring-level
+    # All levels read from the pod object the agent already watches, so a higher
+    # level adds no extra Kubernetes API calls or watches, only a slightly larger
+    # push payload. "full" is the default so the Shoehorn UI has the data it needs
+    # without per-workload annotations.
     # Options:
-    #   - "basic": Workload status, replica counts, image info (default, lowest overhead)
-    #   - "detailed": Basic + restart counts, container states, pod events (medium overhead)
-    #   - "full": Detailed + CPU/memory metrics, resource recommendations (highest overhead)
-    defaultLevel: basic
+    #   - "basic": Workload status, replica counts, image info
+    #   - "detailed": Basic + restart counts, container states, pod conditions
+    #   - "full" (default): Detailed + resource requests/limits and QoS class
+    # Note: live CPU/memory usage is a separate setting (agent.metrics) and is not
+    # controlled by this level.
+    defaultLevel: full
 
 # Image configuration
 image:
