@@ -154,6 +154,21 @@ agent:
     # How often the agent rescans for releases (30s to 1h)
     interval: 5m
 
+  # Connected resources resolution
+  # When enabled, the agent resolves and pushes SA, RoleBindings, ClusterRoleBindings,
+  # Services, ConfigMaps, Secrets (key names only, never values), and PVCs that each
+  # workload depends on at runtime.
+  connected:
+    # Resolve connected resources per workload (default: disabled)
+    # SECURITY: enabling this grants the agent read access to the contents of
+    # ALL Secrets in the watched namespaces (Kubernetes list on secrets returns
+    # secret data, not just names). The agent only ever transmits Secret key
+    # names and never the values, but the granted RBAC still allows reading them.
+    # It also grants list on ServiceAccounts, RoleBindings, ClusterRoleBindings,
+    # Roles, ClusterRoles, ConfigMaps, and PVCs. Leave off unless you need
+    # connected-resource discovery.
+    enabled: false
+
   # Annotation-based monitoring configuration
   # Provides fine-grained control over which resources are monitored
   annotations:
