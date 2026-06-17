@@ -15,7 +15,6 @@ shoehorn:
   cluster:
     id: "prod-cluster"
     name: "Production Kubernetes"
-    dashboardURL: "https://k8s-dashboard.example.com"
 
 # Agent configuration with annotation-based monitoring
 agent:
