@@ -87,7 +87,6 @@ Must mirror configmap.yaml exactly so pod restarts on any config change.
 SHOEHORN_API_ENDPOINT: {{ .Values.shoehorn.apiURL | required "shoehorn.apiURL is required" | quote }}
 SHOEHORN_CLUSTER_ID: {{ .Values.shoehorn.cluster.id | required "shoehorn.cluster.id is required" | quote }}
 SHOEHORN_CLUSTER_NAME: {{ .Values.shoehorn.cluster.name | default .Values.shoehorn.cluster.id | quote }}
-SHOEHORN_DASHBOARD_URL: {{ .Values.shoehorn.cluster.dashboardURL | quote }}
 SHOEHORN_LOG_LEVEL: {{ .Values.agent.logLevel | quote }}
 SHOEHORN_LOG_FORMAT: {{ .Values.agent.logFormat | quote }}
 SHOEHORN_BATCH_INTERVAL: {{ .Values.agent.batchInterval | quote }}

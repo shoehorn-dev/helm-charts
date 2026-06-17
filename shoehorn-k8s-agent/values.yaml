@@ -25,8 +25,6 @@ shoehorn:
     id: ""
     # Human-readable cluster name (optional, defaults to cluster.id)
     name: ""
-    # Dashboard URL for cluster (K8s Dashboard, ArgoCD, FluxCD, etc.) - optional
-    dashboardURL: ""
     # Cluster metadata shown in Shoehorn
     provider: ""  # auto-detected from node metadata (AKS, EKS, GKE, UpCloud)
     region: ""    # auto-detected from node metadata; e.g. westeurope, eu-north-1
