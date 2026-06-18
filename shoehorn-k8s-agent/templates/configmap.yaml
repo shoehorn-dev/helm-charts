@@ -87,3 +87,6 @@ data:
   SHOEHORN_HELM_NAMESPACE: {{ .Values.agent.helm.namespace | default "" | quote }}
   SHOEHORN_HELM_INTERVAL: {{ .Values.agent.helm.interval | default "5m" | quote }}
   {{- end }}
+  {{- if .Values.agent.connected.enabled }}
+  SHOEHORN_CONNECTED_ENABLED: "true"
+  {{- end }}
