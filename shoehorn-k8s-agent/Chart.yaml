@@ -2,7 +2,7 @@ apiVersion: v2
 name: shoehorn-k8s-agent
 description: Kubernetes agent for Shoehorn, the Intelligent Developer Platform. Discovers and syncs workloads.
 type: application
-version: 0.6.0
+version: 0.6.1
 appVersion: "0.5.001"
 
 home: https://shoehorn.dev
