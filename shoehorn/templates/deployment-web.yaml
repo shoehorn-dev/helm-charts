@@ -65,6 +65,8 @@ spec:
           mountPath: /var/run
         - name: nginx-tmp
           mountPath: /tmp
+        - name: nginx-lib-tmp
+          mountPath: /var/lib/nginx/tmp
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -85,5 +87,8 @@ spec:
         emptyDir:
           sizeLimit: 1Mi
       - name: nginx-tmp
+        emptyDir:
+          sizeLimit: 1Mi
+      - name: nginx-lib-tmp
         emptyDir:
           sizeLimit: 1Mi
