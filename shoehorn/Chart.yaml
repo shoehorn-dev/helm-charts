@@ -2,8 +2,8 @@ apiVersion: v2
 name: shoehorn
 description: Intelligent Platform for Engineering - Internal Developer Platform
 type: application
-version: 0.4.43
-appVersion: "0.5.3"
+version: 0.5.100
+appVersion: "0.6.0"
 
 home: https://shoehorn.dev
 icon: https://shoehorn.dev/maskot1.png
@@ -71,6 +71,12 @@ annotations:
        url: https://shoehorn.dev/dashboard.png
 
   artifacthub.io/changes: |
+    - kind: fixed
+      description: "Web pod could crash-loop under readOnlyRootFilesystem because nginx writes to /var/lib/nginx/tmp; added a writable nginx-lib-tmp emptyDir mount."
+    - kind: added
+      description: "MCP endpoints (/mcp and /.well-known/mcp) routed to the API service via Ingress and IngressRoute."
+    - kind: added
+      description: "ORGDATA_DATABASE_URL is now set when \"database\" is included in auth.orgdata.providers, enabling org data sync from the in-cluster database."
     - kind: added
       description: "meilisearch.extraArgs to pass CLI flags to Meilisearch (e.g. --experimental-dumpless-upgrade for an in-place version migration). See Upgrading Meilisearch in the chart README."
     - kind: changed
