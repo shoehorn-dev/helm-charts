@@ -2,8 +2,8 @@ apiVersion: v2
 name: shoehorn-k8s-agent
 description: Kubernetes agent for Shoehorn, the Intelligent Developer Platform. Discovers and syncs workloads.
 type: application
-version: 0.6.1
-appVersion: "0.5.001"
+version: 0.5.100
+appVersion: "0.6.0"
 
 home: https://shoehorn.dev
 icon: https://shoehorn.dev/maskot1.png
@@ -51,6 +51,16 @@ annotations:
     - url: https://artifacthub.io/packages/helm/shoehorn/shoehorn
 
   artifacthub.io/changes: |
+    - kind: removed
+      description: "Dashboard URL references removed from configuration and documentation."
+    - kind: changed
+      description: "agent.annotations.defaultLevel now defaults to 'full' (was 'basic'), giving the Shoehorn UI resource requests/limits and QoS class without per-workload annotations. All levels read from the pod object the agent already watches, so this adds no extra API calls, only a slightly larger push payload."
+    - kind: added
+      description: "agent.gitops.argocd.enabled and agent.gitops.fluxcd.enabled as the primary GitOps switch, resolved through a single internal helper. The legacy agent.gitops.tool value still works and renders byte-identically. A validation guard now fails the render when ArgoCD credentials are set without ArgoCD enabled, or when both tools are enabled, instead of silently doing nothing. agent.gitops.argocd.serverURL/token are now optional (only used for UI Sync/Refresh actions)."
+    - kind: fixed
+      description: "commandPollInterval default drift: chart default is now 30s, matching the documented value (was rendering 10s)."
+    - kind: added
+      description: "agent.connected.enabled to resolve connected resources (Services, ConfigMaps, Secrets, PVCs) per workload. SECURITY: enabling this grants the agent read access to Secret values in watched namespaces (Kubernetes list on secrets returns data, not just names); the agent only ever transmits Secret key names. Disabled by default."
     - kind: removed
       description: "Network observer DaemonSet and its netobserver.* values removed. Service relationships are now inferred on the platform from cluster specs, routes, and network policies, so the eBPF observer is no longer needed. NetworkPolicy and CiliumNetworkPolicy coverage is unaffected: the main agent still watches them."
     - kind: fixed
