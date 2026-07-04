@@ -290,6 +290,9 @@ worker:
   env:
     GRPC_PORT: "9085"
     HTTP_PORT: "8085"
+    # Days rbac_audit_log rows are kept before the worker's daily retention job
+    # deletes them. Clamped to a 7-day floor if set lower.
+    AUDIT_LOG_RETENTION_DAYS: "90"
   livenessProbe:
     httpGet: { path: /healthz, port: 8085 }
     initialDelaySeconds: 20
@@ -342,6 +345,13 @@ cloudProviders:
     tokenSecretRef:
       name: ""
       key: ""
+
+# Kubernetes agent push ingestion (pod/entity/instance processing on the api service)
+k8s:
+  # Hours a dead pod's events are kept before cleanupOldPodEventsInTx purges
+  # them. Clamped to [2, 168]. Events with no involved_object_uid get 2x this
+  # window before their hard age-cap delete (decision Q2).
+  podEventRetentionHours: 48
 
 # Forge (workflow engine and scaffolding)
 forge:
@@ -574,7 +584,7 @@ meilisearch:
     key: meilisearch_master_key
   image:
     repository: getmeili/meilisearch
-    tag: "v1.45.2"
+    tag: "v1.48.3"
   # Extra CLI flags appended to the meilisearch binary. Empty for normal
   # operation. For an in-place data migration across a Meilisearch version
   # bump, set ["--experimental-dumpless-upgrade"], run helm upgrade, then

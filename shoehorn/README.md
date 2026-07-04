@@ -249,7 +249,7 @@ Redpanda comes back on a PVC and keeps its data across restarts. Producers (api,
 
 ### Upgrading Meilisearch (in-place dumpless migration)
 
-Meilisearch won't start when its data directory was written by an older version. Boot a newer image (say v1.45.2) on a v1.43 volume and the pod crashloops with a "database version is incompatible" error until you migrate the data. The chart bumps the default `meilisearch.image.tag` with platform releases, so this applies any time a release moves the Meilisearch version.
+Meilisearch won't start when its data directory was written by an older version. Boot a newer image (say v1.48.3) on a v1.45 volume and the pod crashloops with a "database version is incompatible" error until you migrate the data. The chart bumps the default `meilisearch.image.tag` with platform releases, so this applies any time a release moves the Meilisearch version.
 
 Dumpless migration does the conversion in place on the existing PVC. It's the simpler path, but it rewrites the data directory and there's no automatic rollback. Back up first.
 

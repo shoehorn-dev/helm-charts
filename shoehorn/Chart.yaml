@@ -71,6 +71,8 @@ annotations:
        url: https://shoehorn.dev/dashboard.png
 
   artifacthub.io/changes: |
+    - kind: changed
+      description: "Updated the default Meilisearch version to v1.48.3, which includes the CVE-2026-57823 and CVE-2026-57824 security fixes. Upgrading an existing install migrates search data in place; see Upgrading Meilisearch in the chart README."
     - kind: fixed
       description: "Web pod could crash-loop under readOnlyRootFilesystem because nginx writes to /var/lib/nginx/tmp; added a writable nginx-lib-tmp emptyDir mount."
     - kind: added
