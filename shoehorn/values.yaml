@@ -207,6 +207,10 @@ api:
     # GITHUB_CONCURRENT_REPOS: "5"
     # GITHUB_CACHE_TTL_MINUTES: "15"
     # DEBUG_GITHUB_API: "false"
+    # Manifest mirror (preview, off by default). Registers the MCP k8s_object
+    # accessor and accepts sanitized ArgoCD Application manifests from the agent.
+    # Pair with the shoehorn-k8s-agent chart manifestMirror.enabled.
+    # MANIFEST_MIRROR_ENABLED: "true"
   livenessProbe:
     httpGet: { path: /healthz, port: 8080 }
     initialDelaySeconds: 30

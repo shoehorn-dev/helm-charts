@@ -105,6 +105,11 @@ data:
   GITHUB_SECURITY_DEPENDABOT_ENABLED: "true"
   {{- end }}
 
+  # Manifest mirror (preview, off by default). Absent = platform default false.
+  {{- if hasKey .Values.api.env "MANIFEST_MIRROR_ENABLED" }}
+  MANIFEST_MIRROR_ENABLED: {{ .Values.api.env.MANIFEST_MIRROR_ENABLED | quote }}
+  {{- end }}
+
   # SMTP
   {{- if .Values.smtp.enabled }}
   SMTP_ENABLED: "true"

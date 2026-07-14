@@ -167,6 +167,17 @@ agent:
     # connected-resource discovery.
     enabled: false
 
+  # Manifest mirror (preview, off by default)
+  # When enabled, the agent sanitizes ArgoCD Application manifests and mirrors
+  # them to the platform so they are queryable through the MCP k8s_object accessor.
+  # Requires agent.gitops.argocd.enabled: it reuses the ArgoCD Application watch,
+  # so it needs NO extra RBAC. managedFields, the last-applied-configuration
+  # annotation, and any secret-shaped content are stripped before the manifest
+  # leaves the cluster. Has no effect unless the platform also enables the
+  # accessor (shoehorn chart MANIFEST_MIRROR_ENABLED).
+  manifestMirror:
+    enabled: false
+
   # Annotation-based monitoring configuration
   # Provides fine-grained control over which resources are monitored
   annotations:
