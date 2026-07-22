@@ -230,6 +230,17 @@
         "forge": { "type": "integer", "minimum": 1, "default": 1 }
       }
     },
+    "mcp": {
+      "type": "object",
+      "description": "MCP endpoint settings",
+      "properties": {
+        "resourceUrl": {
+          "type": "string",
+          "description": "Canonical MCP endpoint URL advertised in RFC 9728 Protected Resource Metadata. Empty derives https://<global.domain>/mcp.",
+          "default": ""
+        }
+      }
+    },
     "auth": {
       "type": "object",
       "description": "Authentication provider configuration",
@@ -341,6 +352,18 @@
           "type": "object",
           "properties": {
             "enabled": { "type": "boolean", "default": true }
+          }
+        },
+        "mcp": {
+          "type": "object",
+          "description": "MCP OAuth resource server. Off by default; personal access tokens remain the primary /mcp auth path.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "audience": {
+              "type": "string",
+              "description": "Expected audience for MCP bearer tokens. Empty auto-derives a per-provider default.",
+              "default": ""
+            }
           }
         }
       },
