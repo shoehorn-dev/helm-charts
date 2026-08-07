@@ -111,6 +111,11 @@ data:
   POD_EVENT_RETENTION_HOURS: {{ .Values.api.env.POD_EVENT_RETENTION_HOURS | quote }}
   {{- end }}
 
+  # Manifest mirror (preview, off by default). Absent = platform default false.
+  {{- if hasKey .Values.api.env "MANIFEST_MIRROR_ENABLED" }}
+  MANIFEST_MIRROR_ENABLED: {{ .Values.api.env.MANIFEST_MIRROR_ENABLED | quote }}
+  {{- end }}
+
   # SMTP
   {{- if .Values.smtp.enabled }}
   SMTP_ENABLED: "true"

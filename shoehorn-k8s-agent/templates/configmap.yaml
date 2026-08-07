@@ -90,3 +90,6 @@ data:
   {{- if .Values.agent.connected.enabled }}
   SHOEHORN_CONNECTED_ENABLED: "true"
   {{- end }}
+  {{- if .Values.agent.manifestMirror.enabled }}
+  SHOEHORN_MANIFEST_MIRROR_ENABLED: "true"
+  {{- end }}
