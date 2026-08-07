@@ -2,7 +2,7 @@ apiVersion: v2
 name: shoehorn
 description: Intelligent Platform for Engineering - Internal Developer Platform
 type: application
-version: 0.5.101
+version: 0.5.102
 appVersion: "0.6.0"
 
 home: https://shoehorn.dev
@@ -71,8 +71,12 @@ annotations:
        url: https://shoehorn.dev/dashboard.png
 
   artifacthub.io/changes: |
+    - kind: changed
+      description: "auth.mcp.enabled now defaults to true: MCP clients can sign in with an OIDC bearer token from your IdP out of the box. Personal access tokens keep working, and an install that cannot resolve its audience or public MCP URL logs a warning and stays on tokens only instead of failing to start. Set auth.mcp.enabled=false to opt out."
+    - kind: fixed
+      description: "MCP_OAUTH_ENABLED is now always rendered, true or false. Previously the false case emitted nothing, so auth.mcp.enabled=false would have been overridden by the platform default."
     - kind: added
-      description: "auth.mcp.enabled and auth.mcp.audience to turn on the MCP OAuth resource-server leg (off by default; personal access tokens keep working either way)."
+      description: "auth.mcp.enabled and auth.mcp.audience to turn on the MCP OAuth resource-server leg (personal access tokens keep working either way)."
     - kind: added
       description: "mcp.resourceUrl to override the canonical MCP endpoint URL advertised in RFC 9728 Protected Resource Metadata (empty derives https://<domain>/mcp)."
     - kind: added

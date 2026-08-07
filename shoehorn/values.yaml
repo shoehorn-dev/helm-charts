@@ -458,11 +458,17 @@ auth:
     providers: []                   # e.g. ["okta", "zitadel"]
     primaryProvider: ""             # used for conflict resolution
 
-  # MCP OAuth resource server (preview, off by default). Lets MCP clients
-  # authenticate against /mcp with an OIDC bearer token from your IdP.
-  # Personal access tokens keep working either way.
+  # MCP OAuth resource server. Lets MCP clients authenticate against /mcp with
+  # an OIDC bearer token from your IdP. Personal access tokens keep working
+  # either way, so turning this off never breaks an existing MCP setup.
+  #
+  # On by default since the 2026-07-28 MCP spec became final. If the audience
+  # or the public MCP URL can't be resolved, the platform logs a warning and
+  # keeps serving personal access tokens only rather than failing to start.
+  # Setting this to true explicitly turns that warning into a startup error,
+  # which is what you want once you rely on OAuth.
   mcp:
-    enabled: false
+    enabled: true
     # Expected audience for MCP bearer tokens. Empty auto-derives from the
     # active provider: zitadel uses the project ID, entra-id accepts both
     # api://<client-id> and the bare client ID, okta on the default
