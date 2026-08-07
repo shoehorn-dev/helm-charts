@@ -104,6 +104,12 @@ data:
   {{- else }}
   GITHUB_SECURITY_DEPENDABOT_ENABLED: "true"
   {{- end }}
+  {{- if hasKey .Values.api.env "MCP_DOCS_RANKING_SCORE_THRESHOLD" }}
+  MCP_DOCS_RANKING_SCORE_THRESHOLD: {{ .Values.api.env.MCP_DOCS_RANKING_SCORE_THRESHOLD | quote }}
+  {{- end }}
+  {{- if hasKey .Values.api.env "POD_EVENT_RETENTION_HOURS" }}
+  POD_EVENT_RETENTION_HOURS: {{ .Values.api.env.POD_EVENT_RETENTION_HOURS | quote }}
+  {{- end }}
 
   # SMTP
   {{- if .Values.smtp.enabled }}

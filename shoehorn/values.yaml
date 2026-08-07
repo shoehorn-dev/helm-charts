@@ -207,6 +207,8 @@ api:
     # GITHUB_CONCURRENT_REPOS: "5"
     # GITHUB_CACHE_TTL_MINUTES: "15"
     # DEBUG_GITHUB_API: "false"
+    # MCP_DOCS_RANKING_SCORE_THRESHOLD: "0.2"   # docs ranking cutoff, "0" disables
+    # POD_EVENT_RETENTION_HOURS: "48"           # dead-pod event retention, clamped 2-168
   livenessProbe:
     httpGet: { path: /healthz, port: 8080 }
     initialDelaySeconds: 30
@@ -455,6 +457,27 @@ auth:
     enabled: false
     providers: []                   # e.g. ["okta", "zitadel"]
     primaryProvider: ""             # used for conflict resolution
+
+  # MCP OAuth resource server (preview, off by default). Lets MCP clients
+  # authenticate against /mcp with an OIDC bearer token from your IdP.
+  # Personal access tokens keep working either way.
+  mcp:
+    enabled: false
+    # Expected audience for MCP bearer tokens. Empty auto-derives from the
+    # active provider: zitadel uses the project ID, entra-id accepts both
+    # api://<client-id> and the bare client ID, okta on the default
+    # authorization server uses api://default. Set explicitly when fronting
+    # MCP with a dedicated Okta custom authorization server.
+    audience: ""
+
+
+# MCP endpoint.
+mcp:
+  # Canonical MCP endpoint URL advertised in the RFC 9728 Protected Resource
+  # Metadata document when auth.mcp.enabled is on. Empty derives
+  # https://<global.domain>/mcp. Set only when the public MCP endpoint
+  # differs from that, e.g. behind a path-rewriting proxy.
+  resourceUrl: ""
 
 
 # Cerbos (always deployed; required by the platform).
