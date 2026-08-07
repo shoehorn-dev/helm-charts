@@ -135,6 +135,22 @@ spec:
         - name: AUTH_AUDIENCE
           value: {{ .Values.auth.audience | quote }}
         {{- end }}
+        {{- with .Values.auth.mcp }}
+        {{- if .enabled }}
+        - name: MCP_OAUTH_ENABLED
+          value: "true"
+        {{- if .audience }}
+        - name: MCP_AUTH_AUDIENCE
+          value: {{ .audience | quote }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- with .Values.mcp }}
+        {{- if .resourceUrl }}
+        - name: MCP_RESOURCE_URL
+          value: {{ .resourceUrl | quote }}
+        {{- end }}
+        {{- end }}
 
         # Bootstrap admin (first login gets tenant:admin if no roles in DB).
         {{- if .Values.rbac.roleAssignment }}
