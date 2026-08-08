@@ -74,8 +74,14 @@ spec:
           port: 8080
           passHostHeader: true
 
-    # MCP endpoints - served at API root, must beat the catch-all
-    - match: Host(`{{ .Values.global.domain }}`) && (Path(`/mcp`) || Path(`/.well-known/mcp`))
+    # MCP endpoints - served at API root, must beat the catch-all.
+    # The two oauth-protected-resource paths are the RFC 9728 discovery
+    # document MCP clients fetch after a 401. Without them the WWW-Authenticate
+    # challenge points at a URL that falls through to the web app, and OAuth
+    # sign-in cannot complete. Both forms are served: the root path is what the
+    # challenge advertises, the /mcp-suffixed path is what a client following
+    # RFC 9728 section 3.1 constructs on its own.
+    - match: Host(`{{ .Values.global.domain }}`) && (Path(`/mcp`) || Path(`/.well-known/mcp`) || Path(`/.well-known/oauth-protected-resource`) || Path(`/.well-known/oauth-protected-resource/mcp`))
       kind: Rule
       priority: 100
       middlewares:

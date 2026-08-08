@@ -54,6 +54,28 @@ spec:
                 name: {{ include "shoehorn.fullname" $ }}-api
                 port:
                   number: 8080
+          {{- /*
+            RFC 9728 discovery document. MCP clients fetch this after a 401 to
+            find the authorization server. Without it the WWW-Authenticate
+            challenge points at a URL that falls through to the web app and
+            OAuth sign-in cannot complete. Both forms: the root path is what
+            the challenge advertises, the /mcp-suffixed path is what a client
+            following RFC 9728 section 3.1 builds itself.
+          */}}
+          - path: /.well-known/oauth-protected-resource
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "shoehorn.fullname" $ }}-api
+                port:
+                  number: 8080
+          - path: /.well-known/oauth-protected-resource/mcp
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "shoehorn.fullname" $ }}-api
+                port:
+                  number: 8080
           {{- if or $.Values.kroki.enabled $.Values.kroki.external.enabled }}
           - path: /kroki
             pathType: Prefix
