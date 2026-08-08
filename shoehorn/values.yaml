@@ -209,6 +209,10 @@ api:
     # DEBUG_GITHUB_API: "false"
     # MCP_DOCS_RANKING_SCORE_THRESHOLD: "0.2"   # docs ranking cutoff, "0" disables
     # POD_EVENT_RETENTION_HOURS: "48"           # dead-pod event retention, clamped 2-168
+    # Manifest mirror (preview, off by default). Registers the MCP k8s_object
+    # accessor and accepts sanitized ArgoCD Application manifests from the agent.
+    # Pair with the shoehorn-k8s-agent chart manifestMirror.enabled.
+    # MANIFEST_MIRROR_ENABLED: "true"
   livenessProbe:
     httpGet: { path: /healthz, port: 8080 }
     initialDelaySeconds: 30
