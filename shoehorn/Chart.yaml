@@ -2,7 +2,7 @@ apiVersion: v2
 name: shoehorn
 description: Intelligent Platform for Engineering - Internal Developer Platform
 type: application
-version: 0.5.103
+version: 0.5.104
 appVersion: "0.6.0"
 
 home: https://shoehorn.dev
@@ -71,6 +71,10 @@ annotations:
        url: https://shoehorn.dev/dashboard.png
 
   artifacthub.io/changes: |
+    - kind: fixed
+      description: "Forge crash-looped on installs using auth.provider entra-id. The forge deployment got ENTRA_TENANT_ID and ENTRA_CLIENT_ID but never ENTRA_CLIENT_SECRET, which the service requires at startup, so browser sign-in worked while Forge never came up."
+    - kind: added
+      description: "examples/values-entraid.yaml, a reference values file for running Shoehorn against Microsoft Entra ID for both sign-in and org data sync."
     - kind: changed
       description: "auth.mcp.enabled now defaults to true: MCP clients can sign in with an OIDC bearer token from your IdP out of the box. Personal access tokens keep working, and an install that cannot resolve its audience or public MCP URL logs a warning and stays on tokens only instead of failing to start. Set auth.mcp.enabled=false to opt out."
     - kind: fixed
