@@ -27,10 +27,27 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
-      # Wait for infrastructure services to be ready
+      # Wait for infrastructure services to be ready.
+      # The worker talks to Postgres from its first scheduler tick but does not
+      # run migrations; only the api does. This gate covers reachability, not
+      # schema version: during a rolling upgrade the old api keeps serving while
+      # the new migration has not run, so nothing observable from here proves the
+      # schema matches the binary. Jobs that read a newly added column handle
+      # that themselves (see internal/k8sgc, which skips a cycle on SQLSTATE
+      # 42703 instead of erroring).
+      - name: wait-for-postgresql
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z {{ include "shoehorn.postgresql.host" . }} {{ include "shoehorn.postgresql.port" . }}; do echo waiting for postgresql; sleep 2; done;']
       - name: wait-for-redpanda
         image: busybox:1.36
         command: ['sh', '-c', 'until nc -z {{ include "shoehorn.redpanda.host" . }} {{ include "shoehorn.redpanda.port" . }}; do echo waiting for redpanda; sleep 2; done;']
+      # The api runs migrations before it starts serving, so on a fresh install
+      # or a scale-up this also means the schema is ready. It does NOT mean that
+      # on a rolling upgrade: the old api answers on this port while the new
+      # migration is still pending. Same gate crawler and forge already use.
+      - name: wait-for-api
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z {{ include "shoehorn.fullname" . }}-api 8080; do echo waiting for api; sleep 2; done;']
       containers:
       - name: worker
         securityContext:
