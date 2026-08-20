@@ -161,6 +161,7 @@ spec:
           value: {{ .Values.auth.entraId.tenantId | quote }}
         - name: ENTRA_CLIENT_ID
           value: {{ .Values.auth.entraId.clientId | quote }}
+        {{- include "shoehorn.secretRef" (dict "env" "ENTRA_CLIENT_SECRET" "ref" .Values.auth.entraId.clientSecretRef "root" .) | nindent 8 }}
         {{- if .Values.auth.entraId.authority }}
         - name: ENTRA_AUTHORITY
           value: {{ .Values.auth.entraId.authority | quote }}
