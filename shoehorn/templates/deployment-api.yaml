@@ -135,6 +135,26 @@ spec:
         - name: AUTH_AUDIENCE
           value: {{ .Values.auth.audience | quote }}
         {{- end }}
+        {{- with .Values.auth.mcp }}
+        {{- /*
+          Always emit MCP_OAUTH_ENABLED, both true and false. Omitting it on
+          the false branch would hand the decision to the platform's own
+          default, which is on: auth.mcp.enabled=false would then silently
+          enable OAuth and this values file would misreport the running state.
+        */}}
+        - name: MCP_OAUTH_ENABLED
+          value: {{ .enabled | quote }}
+        {{- if .audience }}
+        - name: MCP_AUTH_AUDIENCE
+          value: {{ .audience | quote }}
+        {{- end }}
+        {{- end }}
+        {{- with .Values.mcp }}
+        {{- if .resourceUrl }}
+        - name: MCP_RESOURCE_URL
+          value: {{ .resourceUrl | quote }}
+        {{- end }}
+        {{- end }}
 
         # Bootstrap admin (first login gets tenant:admin if no roles in DB).
         {{- if .Values.rbac.roleAssignment }}

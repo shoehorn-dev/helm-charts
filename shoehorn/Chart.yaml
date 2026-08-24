@@ -2,7 +2,7 @@ apiVersion: v2
 name: shoehorn
 description: Intelligent Platform for Engineering - Internal Developer Platform
 type: application
-version: 0.5.100
+version: 0.5.105
 appVersion: "0.6.0"
 
 home: https://shoehorn.dev
@@ -73,6 +73,20 @@ annotations:
   artifacthub.io/changes: |
     - kind: changed
       description: "Updated the default Meilisearch version to v1.48.3, which includes the CVE-2026-57823 and CVE-2026-57824 security fixes. Upgrading an existing install migrates search data in place; see Upgrading Meilisearch in the chart README."
+    - kind: fixed
+      description: "Forge crash-looped on installs using auth.provider entra-id. The forge deployment got ENTRA_TENANT_ID and ENTRA_CLIENT_ID but never ENTRA_CLIENT_SECRET, which the service requires at startup, so browser sign-in worked while Forge never came up."
+    - kind: added
+      description: "examples/values-entraid.yaml, a reference values file for running Shoehorn against Microsoft Entra ID for both sign-in and org data sync."
+    - kind: changed
+      description: "auth.mcp.enabled now defaults to true: MCP clients can sign in with an OIDC bearer token from your IdP out of the box. Personal access tokens keep working, and an install that cannot resolve its audience or public MCP URL logs a warning and stays on tokens only instead of failing to start. Set auth.mcp.enabled=false to opt out."
+    - kind: fixed
+      description: "MCP_OAUTH_ENABLED is now always rendered, true or false. Previously the false case emitted nothing, so auth.mcp.enabled=false would have been overridden by the platform default."
+    - kind: added
+      description: "auth.mcp.enabled and auth.mcp.audience to turn on the MCP OAuth resource-server leg (personal access tokens keep working either way)."
+    - kind: added
+      description: "mcp.resourceUrl to override the canonical MCP endpoint URL advertised in RFC 9728 Protected Resource Metadata (empty derives https://<domain>/mcp)."
+    - kind: added
+      description: "api.env pass-through for MCP_DOCS_RANKING_SCORE_THRESHOLD and POD_EVENT_RETENTION_HOURS; absent keys fall back to compiled platform defaults."
     - kind: fixed
       description: "Web pod could crash-loop under readOnlyRootFilesystem because nginx writes to /var/lib/nginx/tmp; added a writable nginx-lib-tmp emptyDir mount."
     - kind: added
