@@ -64,6 +64,9 @@ spec:
         envFrom:
         - configMapRef:
             name: {{ include "shoehorn.fullname" . }}-backend
+        - configMapRef:
+            name: {{ include "shoehorn.fullname" . }}-backend-overrides
+            optional: true
         env:
         - name: LOG_LEVEL
           value: {{ .Values.worker.logLevel | default "info" | quote }}
