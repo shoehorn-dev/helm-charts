@@ -89,6 +89,17 @@ data:
   DEBUG_GITHUB_API: {{ .Values.api.env.DEBUG_GITHUB_API | quote }}
   {{- end }}
 
+  # RBAC audit log retention (worker's scheduler-gated retention job)
+  {{- if .Values.worker.env.AUDIT_LOG_RETENTION_DAYS }}
+  AUDIT_LOG_RETENTION_DAYS: {{ .Values.worker.env.AUDIT_LOG_RETENTION_DAYS | quote }}
+  {{- end }}
+
+  # Pod event retention (api's k8s agent push-processing cleanup; keeps
+  # overnight on-call diagnosis window from getting purged too early)
+  {{- if .Values.k8s.podEventRetentionHours }}
+  POD_EVENT_RETENTION_HOURS: {{ .Values.k8s.podEventRetentionHours | quote }}
+  {{- end }}
+
   {{- if hasKey .Values.api.env "GITHUB_SECURITY_CODEQL_ENABLED" }}
   GITHUB_SECURITY_CODEQL_ENABLED: {{ .Values.api.env.GITHUB_SECURITY_CODEQL_ENABLED | quote }}
   {{- else }}

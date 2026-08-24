@@ -71,6 +71,8 @@ annotations:
        url: https://shoehorn.dev/dashboard.png
 
   artifacthub.io/changes: |
+    - kind: changed
+      description: "Updated the default Meilisearch version to v1.48.3, which includes the CVE-2026-57823 and CVE-2026-57824 security fixes. Upgrading an existing install migrates search data in place; see Upgrading Meilisearch in the chart README."
     - kind: fixed
       description: "Forge crash-looped on installs using auth.provider entra-id. The forge deployment got ENTRA_TENANT_ID and ENTRA_CLIENT_ID but never ENTRA_CLIENT_SECRET, which the service requires at startup, so browser sign-in worked while Forge never came up."
     - kind: added
