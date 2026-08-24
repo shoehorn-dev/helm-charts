@@ -2,7 +2,7 @@ apiVersion: v2
 name: shoehorn
 description: Intelligent Platform for Engineering - Internal Developer Platform
 type: application
-version: 0.5.105
+version: 0.5.106
 appVersion: "0.6.0"
 
 home: https://shoehorn.dev
@@ -71,6 +71,8 @@ annotations:
        url: https://shoehorn.dev/dashboard.png
 
   artifacthub.io/changes: |
+    - kind: fixed
+      description: "POD_EVENT_RETENTION_HOURS could be written twice into the backend ConfigMap on installs that set api.env.POD_EVENT_RETENTION_HOURS, because the new k8s.podEventRetentionHours value added a second copy. It is now emitted once, with api.env taking precedence when both are set."
     - kind: changed
       description: "Updated the default Meilisearch version to v1.48.3, which includes the CVE-2026-57823 and CVE-2026-57824 security fixes. Upgrading an existing install migrates search data in place; see Upgrading Meilisearch in the chart README."
     - kind: fixed
