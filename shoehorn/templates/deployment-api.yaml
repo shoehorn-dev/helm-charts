@@ -148,6 +148,14 @@ spec:
         - name: MCP_AUTH_AUDIENCE
           value: {{ .audience | quote }}
         {{- end }}
+        {{- if .clientId }}
+        - name: MCP_OAUTH_CLIENT_ID
+          value: {{ .clientId | quote }}
+        {{- end }}
+        {{- if .callbackPort }}
+        - name: MCP_OAUTH_CALLBACK_PORT
+          value: {{ .callbackPort | quote }}
+        {{- end }}
         {{- end }}
         {{- with .Values.mcp }}
         {{- if .resourceUrl }}
