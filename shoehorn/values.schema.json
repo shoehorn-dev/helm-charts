@@ -356,13 +356,25 @@
         },
         "mcp": {
           "type": "object",
-          "description": "MCP OAuth resource server. Off by default; personal access tokens remain the primary /mcp auth path.",
+          "description": "MCP OAuth resource server. On by default; personal access tokens keep working either way.",
           "properties": {
-            "enabled": { "type": "boolean", "default": false },
+            "enabled": { "type": "boolean", "default": true },
             "audience": {
               "type": "string",
               "description": "Expected audience for MCP bearer tokens. Empty auto-derives a per-provider default.",
               "default": ""
+            },
+            "clientId": {
+              "type": "string",
+              "description": "OAuth application registered in your IdP for MCP clients to authenticate as. Required before the MCP setup page can offer company login, because no supported IdP allows a client to register itself.",
+              "default": ""
+            },
+            "callbackPort": {
+              "type": "integer",
+              "description": "Loopback port the client listens on for the sign-in redirect. Must match the redirect URI registered in your IdP exactly, port included.",
+              "minimum": 1,
+              "maximum": 65535,
+              "default": 8080
             }
           }
         }

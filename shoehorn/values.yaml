@@ -489,6 +489,17 @@ auth:
     # authorization server uses api://default. Set explicitly when fronting
     # MCP with a dedicated Okta custom authorization server.
     audience: ""
+    # OAuth application an admin registered in the IdP for MCP clients to
+    # authenticate as. Required before the MCP setup page can offer company
+    # login: no IdP Shoehorn supports allows a client to register itself
+    # (Entra has no registration endpoint, Okta's is credential-gated,
+    # Zitadel's is off by default), so with this empty the page keeps
+    # offering personal access tokens only.
+    clientId: ""
+    # Loopback port the client listens on for the sign-in redirect. Must match
+    # the redirect URI registered in the IdP, which matches exactly, port
+    # included. 8080 is the value used in the setup docs.
+    callbackPort: 8080
 
 
 # MCP endpoint.
