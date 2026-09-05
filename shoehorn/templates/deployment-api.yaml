@@ -288,6 +288,15 @@ spec:
         {{- include "shoehorn.secretRef" (dict "env" (printf "NOTIFICATIONS_SECRET_%s" (.name | upper)) "ref" .secretRef "root" $) | nindent 8 }}
         {{- end }}
 
+        # Cloud providers
+        {{- if .Values.cloudProviders.upcloud.enabled }}
+        {{- include "shoehorn.secretRef" (dict "env" "UPCLOUD_TOKEN" "ref" .Values.cloudProviders.upcloud.tokenSecretRef "root" . "optional" true) | nindent 8 }}
+        {{- with .Values.cloudProviders.upcloud.apiBaseUrl }}
+        - name: UPCLOUD_API_BASE_URL
+          value: {{ . | quote }}
+        {{- end }}
+        {{- end }}
+
         volumeMounts:
         {{- include "shoehorn.extraVolumeMounts" . | nindent 8 }}
         {{- include "shoehorn.grpcMtlsVolumeMounts" . | nindent 8 }}

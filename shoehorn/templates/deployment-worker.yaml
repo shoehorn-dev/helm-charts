@@ -109,6 +109,19 @@ spec:
           value: {{ .Values.global.mtls.caFile | quote }}
         {{- end }}
 
+        # UpCloud: this flag alone is what registers the cloud-discovery janitor
+        # (cmd/worker/wiring.go gates SetCloudJanitorJob on it). Without it the
+        # janitor never registers, so entities the provider sync tombstoned as
+        # end-of-life are never hard-deleted and accumulate indefinitely.
+        #
+        # Deliberately no UPCLOUD_TOKEN here: the janitor is pure database
+        # cleanup (NewJanitor takes db, logger, rlsHelper, eventBus) and never
+        # calls the UpCloud API. Only the crawler needs the credential.
+        {{- if .Values.cloudProviders.upcloud.enabled }}
+        - name: CLOUD_PROVIDER_UPCLOUD_ENABLED
+          value: "true"
+        {{- end }}
+
         {{- if .Values.global.mtls.enabled }}
         volumeMounts:
         {{- include "shoehorn.grpcMtlsVolumeMounts" . | nindent 8 }}
