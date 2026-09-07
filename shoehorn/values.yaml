@@ -697,7 +697,7 @@ valkey:
     key: valkey_password
   image:
     repository: valkey/valkey
-    tag: "9.1.0"
+    tag: "9.1.2"
   replicas: 1
   resources:
     requests: { cpu: 100m, memory: 256Mi }
@@ -764,7 +764,7 @@ redpanda:
     enabled: false
   image:
     repository: redpandadata/redpanda
-    tag: v26.1.9
+    tag: v26.1.17
   resources:
     requests: { cpu: 500m, memory: 1Gi }
     limits:   { cpu: 2000m, memory: 4Gi }
