@@ -71,6 +71,8 @@ annotations:
        url: https://shoehorn.dev/dashboard.png
 
   artifacthub.io/changes: |
+    - kind: changed
+      description: "Updated the default Valkey version to 9.1.2 and Redpanda to v26.1.17. Both are patch releases on the lines the chart already ships; Valkey 9.1.2 carries upstream security fixes. No values change is needed."
     - kind: fixed
       description: "POD_EVENT_RETENTION_HOURS could be written twice into the backend ConfigMap on installs that set api.env.POD_EVENT_RETENTION_HOURS, because the new k8s.podEventRetentionHours value added a second copy. It is now emitted once, with api.env taking precedence when both are set."
     - kind: changed
