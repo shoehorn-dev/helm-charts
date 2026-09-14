@@ -2,7 +2,7 @@ apiVersion: v2
 name: shoehorn-k8s-agent
 description: Kubernetes agent for Shoehorn, the Intelligent Developer Platform. Discovers and syncs workloads.
 type: application
-version: 0.5.101
+version: 0.5.102
 appVersion: "0.6.0"
 
 home: https://shoehorn.dev
@@ -51,6 +51,8 @@ annotations:
     - url: https://artifacthub.io/packages/helm/shoehorn/shoehorn
 
   artifacthub.io/changes: |
+    - kind: added
+      description: "agent.kubernetes.apiQPS and agent.kubernetes.apiBurst set the agent's Kubernetes API client rate limit. Empty keeps the agent's default of 50 requests/sec with a burst of 100, up from client-go's 5/10, which made pushes with connected resources take minutes. A negative apiQPS turns client-side limiting off. examples/values-large-cluster.yaml sets 200/400."
     - kind: added
       description: "terminationGracePeriodSeconds, default 45. On shutdown the agent pushes its last batch for up to 25 seconds and only then releases its leader lease; the Kubernetes default of 30 seconds could kill it mid-push and drop that batch."
     - kind: changed

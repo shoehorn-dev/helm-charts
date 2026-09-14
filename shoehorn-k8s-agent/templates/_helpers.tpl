@@ -111,6 +111,9 @@ SHOEHORN_WATCHED_KINDS: {{ .Values.agent.kubernetes.watchedKinds | join "," | qu
 {{- if ne .Values.agent.kubernetes.scopeMode "cluster" }}
 SHOEHORN_SCOPE_MODE: {{ .Values.agent.kubernetes.scopeMode | quote }}
 {{- end }}
+{{- with include "shoehorn-agent.kubeAPILimitsEnv" . | trim }}
+{{ . }}
+{{- end }}
 {{- if .Values.agent.annotations }}
 SHOEHORN_ANNOTATION_DEFAULT_BEHAVIOR: {{ .Values.agent.annotations.defaultBehavior | default "monitor-all" | quote }}
 SHOEHORN_ANNOTATION_DEFAULT_LEVEL: {{ .Values.agent.annotations.defaultLevel | default "basic" | quote }}
@@ -138,6 +141,23 @@ SHOEHORN_GITOPS_FLUXCD_NAMESPACE: {{ .Values.agent.gitops.fluxcd.namespace | def
 SHOEHORN_HELM_ENABLED: "true"
 SHOEHORN_HELM_NAMESPACE: {{ .Values.agent.helm.namespace | default "" | quote }}
 SHOEHORN_HELM_INTERVAL: {{ .Values.agent.helm.interval | default "5m" | quote }}
+{{- end }}
+{{- end }}
+
+{{/*
+Kubernetes API client rate limit env, shared by configmap.yaml and the config
+checksum above. Each key renders only when its value is set, so the agent's own
+default applies otherwise. Any set value renders, 0 included: the agent refuses
+an invalid value at startup instead of silently falling back to its default.
+*/}}
+{{- define "shoehorn-agent.kubeAPILimitsEnv" -}}
+{{- $qps := .Values.agent.kubernetes.apiQPS -}}
+{{- $burst := .Values.agent.kubernetes.apiBurst -}}
+{{- if and (not (kindIs "invalid" $qps)) (ne (toString $qps) "") }}
+SHOEHORN_K8S_API_QPS: {{ toString $qps | quote }}
+{{- end }}
+{{- if and (not (kindIs "invalid" $burst)) (ne (toString $burst) "") }}
+SHOEHORN_K8S_API_BURST: {{ toString $burst | quote }}
 {{- end }}
 {{- end }}
 

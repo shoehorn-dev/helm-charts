@@ -28,6 +28,15 @@ agent:
   # Bigger batches, same 30s cadence: fewer, larger pushes.
   batchSize: 500
 
+  kubernetes:
+    # With connected resources on, a push makes about 2 + 7 x (namespaces in
+    # the push) Kubernetes API calls, one at a time. A 500-event batch across
+    # 150 namespaces is about 1050 calls. At the agent default of 50/s the
+    # limiter alone spreads them over about 19s, against a 20s shutdown window,
+    # before any API server response time. At 200/s the limiter wait is about 3s.
+    apiQPS: "200"
+    apiBurst: "400"
+
 resources:
   requests:
     cpu: 100m
