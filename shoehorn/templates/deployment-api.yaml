@@ -40,7 +40,7 @@ spec:
         command: ['sh', '-c', 'until nc -z {{ include "shoehorn.redpanda.host" . }} {{ include "shoehorn.redpanda.port" . }}; do echo waiting for redpanda; sleep 2; done;']
       # Run database migrations before starting the API
       - name: migrate
-        image: {{ include "shoehorn.componentImage" (dict "component" .Values.api "Values" .Values) }}
+        image: {{ include "shoehorn.componentImage" (dict "component" .Values.api "Values" .Values "Chart" .Chart) }}
         command: ["/api", "--migrate-only"]
         env:
         {{- include "shoehorn.secretRef" (dict "env" "POSTGRES_PASSWORD" "ref" .Values.postgresql.superuserPasswordSecretRef "root" .) | nindent 8 }}
@@ -59,7 +59,7 @@ spec:
       - name: api
         securityContext:
           {{- toYaml .Values.securityContext | nindent 12 }}
-        image: {{ include "shoehorn.componentImage" (dict "component" .Values.api "Values" .Values) }}
+        image: {{ include "shoehorn.componentImage" (dict "component" .Values.api "Values" .Values "Chart" .Chart) }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - name: http

@@ -68,7 +68,7 @@ spec:
           readOnlyRootFilesystem: false
           runAsNonRoot: true
           runAsUser: 999
-        image: {{ include "shoehorn.componentImage" (dict "component" .Values.postgresql "Values" .Values) }}
+        image: {{ include "shoehorn.componentImage" (dict "component" .Values.postgresql "Values" .Values "Chart" .Chart) }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - name: postgres

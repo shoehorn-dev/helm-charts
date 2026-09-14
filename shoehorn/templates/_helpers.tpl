@@ -253,7 +253,12 @@ Return the proper image name
 {{/*
 Return the proper component image name.
 
-Tag precedence:    component.image.tag > .Values.image.tag.
+Tag precedence:    component.image.tag > .Values.image.tag > Chart.AppVersion.
+  The AppVersion fallback is prefixed with "v" to match the release workflow's
+  tag format (images are published as v0.6.0, not 0.6.0), matching
+  "shoehorn.image" above. It exists because the release workflow rewrites
+  Chart.yaml only: a hardcoded default in values.yaml goes stale the moment a
+  release ships and silently installs an older platform than the chart claims.
 Registry handling:
   - If component.image.repository already starts with a registry host
     (first path segment contains `.` or `:`, e.g. `ghcr.io/foo/bar` or
@@ -267,7 +272,7 @@ Shoehorn does not publish a `:latest` tag. Render fails if no tag is set.
 */}}
 {{- define "shoehorn.componentImage" -}}
 {{- $componentRepo := .component.image.repository -}}
-{{- $tag := .component.image.tag | default .Values.image.tag -}}
+{{- $tag := .component.image.tag | default .Values.image.tag | default (printf "v%s" .Chart.AppVersion) -}}
 {{- if not $tag -}}
 {{- fail (printf "shoehorn.componentImage: no tag set for %s. Set component.image.tag or .Values.image.tag (Shoehorn does not publish :latest)." $componentRepo) -}}
 {{- end -}}

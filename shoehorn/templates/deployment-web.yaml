@@ -39,7 +39,7 @@ spec:
           readOnlyRootFilesystem: true
           runAsNonRoot: true
           runAsUser: 65532
-        image: {{ include "shoehorn.componentImage" (dict "component" .Values.web "Values" .Values) }}
+        image: {{ include "shoehorn.componentImage" (dict "component" .Values.web "Values" .Values "Chart" .Chart) }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - name: http
