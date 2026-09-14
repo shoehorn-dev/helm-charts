@@ -108,8 +108,14 @@ The chart fails template rendering if any of these are missing, with a clear err
 | `agent.kubernetes.labelSelector` | Label selector filter | `""` |
 | `agent.kubernetes.watchedKinds` | Resource kinds to watch (empty = defaults, includes Pod) | `[]` |
 | `agent.kubernetes.scopeMode` | `cluster` (cluster-wide watch) or `namespaces` (one watch per namespace, per-namespace RBAC) | `cluster` |
+| `agent.kubernetes.apiQPS` | Kubernetes API requests per second for the agent's client (empty = agent default 50; negative turns client-side limiting off) | `""` |
+| `agent.kubernetes.apiBurst` | Kubernetes API request burst (empty = agent default 100) | `""` |
 
 `namespaces` and `excludeNamespaces` are mutually exclusive: when `namespaces` is set, `excludeNamespaces` is ignored. NetworkPolicy and CiliumNetworkPolicy informers are always on and unaffected by `watchedKinds`.
+
+`apiQPS` and `apiBurst` limit the agent's own Kubernetes API calls. They are separate from `agent.rateLimit`, which limits how many watched events a second enter the agent.
+- With connected resources on, a push makes about 2 + 7 × (namespaces in the push) calls, one at a time. A push therefore takes the limiter's wait plus every call's response time.
+- On clusters with many namespaces, raise the limit so a large push finishes quickly, and inside the agent's 20-second shutdown window. The API server's priority and fairness still protect the server.
 
 With `scopeMode: cluster` (the default), the agent watches the whole cluster and filters to `namespaces` in-process. With `scopeMode: namespaces` it runs one watch per entry in `namespaces` (which must be non-empty) and the chart swaps the cluster-wide ClusterRole for a Role in each watched namespace plus a minimal ClusterRole. Use it to run one install per tenant on a shared cluster. See [`examples/values-scoped.yaml`](examples/values-scoped.yaml).
 

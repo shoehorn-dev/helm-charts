@@ -191,6 +191,20 @@
               "description": "Informer scoping. cluster (default): cluster-wide watch, namespaces filters in-process. namespaces: one watch per namespace entry (requires a non-empty namespaces list), with per-namespace Roles plus a minimal ClusterRole.",
               "enum": ["cluster", "namespaces"],
               "default": "cluster"
+            },
+            "apiQPS": {
+              "description": "Kubernetes API requests/sec for the agent's client (at most 10000). A negative value turns client-side limiting off; 0 is refused, because client-go would read it as 5/s. Empty = agent default (50).",
+              "oneOf": [
+                { "type": "string", "pattern": "^$|^-(0*[1-9][0-9]*(\\.[0-9]+)?|0*\\.[0-9]*[1-9][0-9]*)$|^([1-9][0-9]{0,3}(\\.[0-9]+)?|10000(\\.0+)?|0?\\.[0-9]*[1-9][0-9]*)$" },
+                { "type": "number", "maximum": 10000, "not": { "const": 0 } }
+              ]
+            },
+            "apiBurst": {
+              "description": "Kubernetes API request burst for the agent's client (1-20000). Empty = agent default (100).",
+              "oneOf": [
+                { "type": "string", "pattern": "^$|^([1-9][0-9]{0,3}|1[0-9]{4}|20000)$" },
+                { "type": "integer", "minimum": 1, "maximum": 20000 }
+              ]
             }
           }
         },

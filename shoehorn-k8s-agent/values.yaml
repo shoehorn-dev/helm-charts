@@ -107,6 +107,13 @@ agent:
     #              RBAC becomes per-namespace Roles plus a minimal ClusterRole
     #              (get on the listed namespaces, read-only nodes, Cilium CRD reads)
     scopeMode: cluster
+    # Rate limit for the agent's own Kubernetes API calls: requests/sec and
+    # burst. Empty = agent defaults (50 and 100). A negative apiQPS turns
+    # client-side limiting off. With connected resources on, a push makes about
+    # 2 + 7 x (namespaces in the push) calls; raise these on clusters with many
+    # namespaces (see examples/values-large-cluster.yaml).
+    apiQPS: ""
+    apiBurst: ""
 
   # Resource usage metrics collection
   # Samples metrics-server to provide resource optimization insights
