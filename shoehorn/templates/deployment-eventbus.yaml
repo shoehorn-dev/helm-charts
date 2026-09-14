@@ -35,7 +35,7 @@ spec:
       - name: eventbus
         securityContext:
           {{- toYaml .Values.securityContext | nindent 12 }}
-        image: {{ include "shoehorn.componentImage" (dict "component" .Values.eventbus "Values" .Values) }}
+        image: {{ include "shoehorn.componentImage" (dict "component" .Values.eventbus "Values" .Values "Chart" .Chart) }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - name: http

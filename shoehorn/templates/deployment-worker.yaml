@@ -52,7 +52,7 @@ spec:
       - name: worker
         securityContext:
           {{- toYaml .Values.securityContext | nindent 12 }}
-        image: {{ include "shoehorn.componentImage" (dict "component" .Values.worker "Values" .Values) }}
+        image: {{ include "shoehorn.componentImage" (dict "component" .Values.worker "Values" .Values "Chart" .Chart) }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - name: http

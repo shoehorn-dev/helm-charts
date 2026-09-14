@@ -41,7 +41,7 @@ spec:
       - name: forge
         securityContext:
           {{- toYaml .Values.securityContext | nindent 12 }}
-        image: {{ include "shoehorn.componentImage" (dict "component" .Values.forge "Values" .Values) }}
+        image: {{ include "shoehorn.componentImage" (dict "component" .Values.forge "Values" .Values "Chart" .Chart) }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - name: http

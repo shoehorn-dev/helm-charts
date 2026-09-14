@@ -71,6 +71,8 @@ annotations:
        url: https://shoehorn.dev/dashboard.png
 
   artifacthub.io/changes: |
+    - kind: fixed
+      description: "A default install pulled the v0.5.3 images whatever the chart version, because image.tag was hardcoded in values.yaml while the release workflow rewrites Chart.yaml only. The tag now follows the chart's appVersion, so the 0.7.0 chart installs the 0.7.0 platform. Set image.tag yourself only to pin a specific build; per-service tags and image.tag both still take precedence."
     - kind: changed
       description: "Updated the default Valkey version to 9.1.2 and Redpanda to v26.1.17. Both are patch releases on the lines the chart already ships; Valkey 9.1.2 carries upstream security fixes. No values change is needed."
     - kind: fixed
