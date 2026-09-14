@@ -90,6 +90,6 @@ data:
   {{- if .Values.agent.connected.enabled }}
   SHOEHORN_CONNECTED_ENABLED: "true"
   {{- end }}
-  {{- if .Values.agent.manifestMirror.enabled }}
-  SHOEHORN_MANIFEST_MIRROR_ENABLED: "true"
-  {{- end }}
+  {{- /* Always rendered: the agent's own default is on, so omitting the key
+         would not turn the mirror off. */}}
+  SHOEHORN_MANIFEST_MIRROR_ENABLED: {{ .Values.agent.manifestMirror.enabled | quote }}

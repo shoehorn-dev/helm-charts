@@ -1,0 +1,40 @@
+suite: worker Valkey address
+templates:
+  - templates/deployment-worker.yaml
+  # The worker's checksum/config annotation includes the backend ConfigMap.
+  - templates/configmap-backend.yaml
+release:
+  name: test-release
+  namespace: test-ns
+set:
+  # Chart refuses to default to :latest, so component renders need an explicit tag.
+  image.tag: 0.0.0-test
+  global.domain: idp.acme.test
+  auth.provider: zitadel
+  auth.zitadel.projectId: test
+  auth.zitadel.clientId: test
+  auth.zitadel.externalUrl: https://example.test
+  secret.defaultName: shoehorn-shared
+tests:
+  # The worker reads VALKEY_ADDR and falls back to valkey:6379. The chart gave
+  # it only VALKEY_HOST and VALKEY_PORT, so it never reached the release's
+  # Valkey and its distributed scheduler and identity caching ran without it.
+  - it: points the worker at an external Valkey
+    template: templates/deployment-worker.yaml
+    set:
+      valkey.external.enabled: true
+      valkey.external.host: valkey.example.test
+      valkey.external.port: 6380
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VALKEY_ADDR
+            value: valkey.example.test:6380
+
+  - it: points the worker at the release's own Valkey by default
+    template: templates/deployment-worker.yaml
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name == "VALKEY_ADDR")].value
+          pattern: ^test-release-.*valkey\.test-ns\.svc\.cluster\.local:6379$

@@ -167,16 +167,16 @@ agent:
     # connected-resource discovery.
     enabled: false
 
-  # Manifest mirror (preview, off by default)
-  # When enabled, the agent sanitizes ArgoCD Application manifests and mirrors
-  # them to the platform so they are queryable through the MCP k8s_object accessor.
-  # Requires agent.gitops.argocd.enabled: it reuses the ArgoCD Application watch,
+  # Manifest mirror (on by default)
+  # The agent sanitizes ArgoCD Application manifests and mirrors them to the
+  # platform so they are queryable through the MCP k8s_object accessor.
+  # Needs agent.gitops.argocd.enabled: it reuses the ArgoCD Application watch,
   # so it needs NO extra RBAC. managedFields, the last-applied-configuration
   # annotation, and any secret-shaped content are stripped before the manifest
-  # leaves the cluster. Has no effect unless the platform also enables the
-  # accessor (shoehorn chart MANIFEST_MIRROR_ENABLED).
+  # leaves the cluster. Nothing is stored until the platform also enables the
+  # mirror (shoehorn chart MANIFEST_MIRROR_ENABLED). Set false to turn it off.
   manifestMirror:
-    enabled: false
+    enabled: true
 
   # Annotation-based monitoring configuration
   # Provides fine-grained control over which resources are monitored
@@ -281,6 +281,11 @@ podDisruptionBudget:
   #   minAvailable: 2  # Ensures 2/3 pods always available
   maxUnavailable: 0
   minAvailable:
+
+# Seconds Kubernetes waits after SIGTERM before killing the agent. On shutdown
+# the agent releases its leader lease, then waits up to 25 seconds for its last
+# batch to reach the platform; the Kubernetes default of 30 left no margin.
+terminationGracePeriodSeconds: 45
 
 # Leader election configuration
 leaderElection:

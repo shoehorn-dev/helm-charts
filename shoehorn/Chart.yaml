@@ -2,7 +2,7 @@ apiVersion: v2
 name: shoehorn
 description: Intelligent Platform for Engineering - Internal Developer Platform
 type: application
-version: 0.5.106
+version: 0.5.107
 appVersion: "0.6.0"
 
 home: https://shoehorn.dev
@@ -73,6 +73,8 @@ annotations:
   artifacthub.io/changes: |
     - kind: fixed
       description: "A default install pulled the v0.5.3 images whatever the chart version, because image.tag was hardcoded in values.yaml while the release workflow rewrites Chart.yaml only. The tag now follows the chart's appVersion, so the 0.7.0 chart installs the 0.7.0 platform. Set image.tag yourself only to pin a specific build; per-service tags and image.tag both still take precedence."
+    - kind: fixed
+      description: "The worker never reached the release's Valkey. It reads VALKEY_ADDR, which the chart did not set, so it fell back to valkey:6379 and its distributed scheduler and identity provider caching ran without Valkey. The worker now gets VALKEY_ADDR built the same way as the api."
     - kind: changed
       description: "Updated the default Valkey version to 9.1.2 and Redpanda to v26.1.17. Both are patch releases on the lines the chart already ships; Valkey 9.1.2 carries upstream security fixes. No values change is needed."
     - kind: fixed
