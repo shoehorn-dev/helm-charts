@@ -157,6 +157,7 @@ Without leader election, multiple replicas would emit duplicate events.
 | `agent.gitops.argocd.token` | ArgoCD API token (pass via `--set`, never check in) | `""` |
 | `agent.gitops.fluxcd.namespace` | | `flux-system` |
 | `agent.gitops.commandPollInterval` | How often to poll Shoehorn for pending commands | `10s` |
+| `agent.manifestMirror.enabled` | Send sanitized ArgoCD Application manifests to Shoehorn for MCP. Secrets, env values and credential-bearing fields are stripped in the cluster first. Nothing is stored until the platform sets `MANIFEST_MIRROR_ENABLED`. Set `false` to stop sending | `true` |
 
 GitOps watching is independent of workload watching. Enable one without changing the other. FluxCD doesn't need a token (the agent watches `Kustomization` and `HelmRelease` CRDs directly).
 
@@ -179,6 +180,7 @@ GitOps watching is independent of workload watching. Enable one without changing
 | `agent.heartbeatInterval` | `5m` |
 | `agent.metrics.sampleInterval` | `5m` |
 | `agent.metrics.windowHours` | `168` (7 days) |
+| `terminationGracePeriodSeconds` | `45` (the agent pushes its last batch for up to 25s, then releases its lease) |
 
 ## Common scenarios
 

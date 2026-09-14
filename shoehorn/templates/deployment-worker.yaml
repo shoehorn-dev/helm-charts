@@ -83,7 +83,10 @@ spec:
           value: {{ include "shoehorn.postgresql.host" . }}
         {{- include "shoehorn.secretRef" (dict "env" "DB_PASSWORD" "ref" .Values.postgresql.passwordSecretRef "root" .) | nindent 8 }}
 
-        # Valkey/Redis (secret only, host/port in ConfigMap)
+        # Valkey/Redis. The worker reads VALKEY_ADDR, not the ConfigMap's
+        # VALKEY_HOST/VALKEY_PORT, so it is built here as for the api.
+        - name: VALKEY_ADDR
+          value: "{{ include "shoehorn.valkey.host" . }}:{{ include "shoehorn.valkey.port" . }}"
         {{- include "shoehorn.secretRef" (dict "env" "VALKEY_PASSWORD" "ref" .Values.valkey.passwordSecretRef "root" .) | nindent 8 }}
 
         # Meilisearch (secret only, host/port/protocol in ConfigMap)

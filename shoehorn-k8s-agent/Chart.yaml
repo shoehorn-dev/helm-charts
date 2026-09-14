@@ -2,7 +2,7 @@ apiVersion: v2
 name: shoehorn-k8s-agent
 description: Kubernetes agent for Shoehorn, the Intelligent Developer Platform. Discovers and syncs workloads.
 type: application
-version: 0.5.100
+version: 0.5.101
 appVersion: "0.6.0"
 
 home: https://shoehorn.dev
@@ -51,6 +51,10 @@ annotations:
     - url: https://artifacthub.io/packages/helm/shoehorn/shoehorn
 
   artifacthub.io/changes: |
+    - kind: added
+      description: "terminationGracePeriodSeconds, default 45. On shutdown the agent pushes its last batch for up to 25 seconds and only then releases its leader lease; the Kubernetes default of 30 seconds could kill it mid-push and drop that batch."
+    - kind: changed
+      description: "agent.manifestMirror.enabled now defaults to true, matching the agent. SHOEHORN_MANIFEST_MIRROR_ENABLED is always rendered, so setting it to false turns the mirror off; before, false rendered nothing and the agent's own default applied. Nothing is stored until the platform also sets MANIFEST_MIRROR_ENABLED."
     - kind: removed
       description: "Dashboard URL references removed from configuration and documentation."
     - kind: changed

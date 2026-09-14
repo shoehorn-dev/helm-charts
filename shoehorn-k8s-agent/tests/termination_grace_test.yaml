@@ -1,0 +1,28 @@
+suite: termination grace period
+templates:
+  - templates/deployment.yaml
+release:
+  name: test-release
+  namespace: test-ns
+set:
+  shoehorn.apiURL: https://shoehorn.example.test
+  shoehorn.cluster.id: test-cluster
+  shoehorn.apiToken: test-token
+tests:
+  # On shutdown the agent releases its leader lease, then waits up to 25
+  # seconds for the last batch to reach the platform. The Kubernetes default
+  # of 30 seconds left no room for the lease release or a slow platform, and
+  # a SIGKILL mid-flush drops the final batch.
+  - it: gives the agent time to flush its last batch by default
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 45
+
+  - it: takes a custom grace period
+    set:
+      terminationGracePeriodSeconds: 90
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 90
