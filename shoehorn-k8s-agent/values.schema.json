@@ -127,14 +127,20 @@
         },
         "pushRetries": {
           "type": "integer",
-          "description": "Number of push retries",
+          "description": "Number of push retries after the startup full sync (0-10, the agent rejects more). The startup full sync's pushes are retried until Shoehorn accepts them.",
           "default": 3,
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 10
+        },
+        "fullSyncMaxWait": {
+          "description": "How long the startup full sync may wait for Shoehorn before it gives up and withholds its completion, 1m to 24h in minutes or hours (the agent rejects anything outside that range). Empty = agent default (15m).",
+          "type": "string",
+          "pattern": "^$|^(([1-9]|[1-9][0-9]|[1-9][0-9][0-9]|1[0-3][0-9][0-9]|14[0-3][0-9]|1440)m|([1-9]|1[0-9]|2[0-4])h)$"
         },
         "pushTimeout": {
           "type": "string",
-          "description": "Push timeout",
-          "pattern": "^[0-9]+(s|m)$",
+          "description": "Push timeout, 1s to 5m (the agent rejects anything outside that range)",
+          "pattern": "^(([1-9]|[1-9][0-9]|[1-2][0-9][0-9]|300)s|[1-5]m)$",
           "default": "30s"
         },
         "heartbeatInterval": {

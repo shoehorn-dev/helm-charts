@@ -62,8 +62,15 @@ agent:
   rateLimit: ""
   rateBurst: ""
 
-  # Push configuration
+  # Push configuration. pushRetries limits the retries of pushes after the
+  # startup full sync; the startup full sync's pushes are retried until Shoehorn
+  # accepts them, for up to fullSyncMaxWait.
   pushRetries: 3
+  # How long the startup full sync may wait for Shoehorn before it gives up and
+  # withholds its completion. While it waits, the agent keeps every change to a
+  # watched object in memory, so this bounds memory growth during an outage.
+  # 1m to 24h. Empty = the agent's default (15m).
+  fullSyncMaxWait: ""
   pushTimeout: 30s
 
   # Heartbeat configuration
@@ -290,8 +297,9 @@ podDisruptionBudget:
   minAvailable:
 
 # Seconds Kubernetes waits after SIGTERM before killing the agent. On shutdown
-# the agent releases its leader lease, then waits up to 25 seconds for its last
-# batch to reach the platform; the Kubernetes default of 30 left no margin.
+# the agent waits up to 25 seconds for its last batch to reach the platform and
+# only then releases its leader lease, so a standby never pushes at the same
+# time; it exits within 40 seconds. The Kubernetes default of 30 left no margin.
 terminationGracePeriodSeconds: 45
 
 # Leader election configuration

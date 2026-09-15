@@ -42,6 +42,9 @@ data:
   {{- end }}
   SHOEHORN_PUSH_RETRIES: {{ .Values.agent.pushRetries | quote }}
   SHOEHORN_PUSH_TIMEOUT: {{ .Values.agent.pushTimeout | quote }}
+  {{- if .Values.agent.fullSyncMaxWait }}
+  SHOEHORN_FULL_SYNC_MAX_WAIT: {{ .Values.agent.fullSyncMaxWait | quote }}
+  {{- end }}
   SHOEHORN_HEARTBEAT_INTERVAL: {{ .Values.agent.heartbeatInterval | quote }}
   SHOEHORN_HEALTH_PORT: {{ .Values.agent.healthPort | quote }}
   SHOEHORN_IN_CLUSTER: "true"

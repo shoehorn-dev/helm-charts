@@ -37,6 +37,15 @@ agent:
     apiQPS: "200"
     apiBurst: "400"
 
+# Memory grows with the watched objects, because the agent keeps a copy of each.
+# In a test with Deployments and Pods the size of a test cluster's, the agent's
+# Go heap held about 15 MiB per 1,000 objects after the startup list, and peaked
+# at about 30 MiB per 1,000 during it: about 600 MiB at 20,000 objects, or about
+# 740 MiB with connected resources on across 200 namespaces. Container memory
+# runs above the heap, so the 512Mi limit below is too small at 20,000 objects;
+# raise it for a cluster that size. The startup list waits for Shoehorn instead
+# of dropping workloads, so the buffers above no longer decide whether it
+# completes.
 resources:
   requests:
     cpu: 100m
