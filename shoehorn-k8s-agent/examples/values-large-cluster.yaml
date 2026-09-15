@@ -37,6 +37,11 @@ agent:
     apiQPS: "200"
     apiBurst: "400"
 
+# Memory grows with the watched objects. In a test, the agent's startup list of
+# 20,000 Deployments and Pods peaked at about 150 MiB of Go heap, and about
+# 230 MiB with connected resources on across 200 namespaces; container memory
+# runs above that, so the chart's default 150Mi limit is too small at this size. The startup list waits for Shoehorn instead of dropping
+# workloads, so the buffers above no longer decide whether it completes.
 resources:
   requests:
     cpu: 100m
