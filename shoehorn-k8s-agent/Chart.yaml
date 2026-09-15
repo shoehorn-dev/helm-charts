@@ -2,7 +2,7 @@ apiVersion: v2
 name: shoehorn-k8s-agent
 description: Kubernetes agent for Shoehorn, the Intelligent Developer Platform. Discovers and syncs workloads.
 type: application
-version: 0.5.102
+version: 0.5.103
 appVersion: "0.6.0"
 
 home: https://shoehorn.dev
@@ -51,6 +51,10 @@ annotations:
     - url: https://artifacthub.io/packages/helm/shoehorn/shoehorn
 
   artifacthub.io/changes: |
+    - kind: added
+      description: "agent.fullSyncMaxWait sets how long the agent's startup full sync may wait for Shoehorn before it gives up and withholds its completion (SHOEHORN_FULL_SYNC_MAX_WAIT). Empty keeps the agent's default of 15 minutes; 1m to 24h allowed."
+    - kind: changed
+      description: "agent.pushRetries now has a maximum of 10 and agent.pushTimeout accepts 1s to 5m, as the agent does. pushRetries limits the pushes after the startup full sync; with a matching agent release, the startup full sync's pushes are retried until Shoehorn accepts them. examples/values-large-cluster.yaml explains memory with a measurement: about 15 MiB per 1,000 Deployments and Pods after the startup list and a peak of about 30 MiB per 1,000 during it, so its 512Mi limit is too small at 20,000 objects."
     - kind: added
       description: "agent.kubernetes.apiQPS and agent.kubernetes.apiBurst set the agent's Kubernetes API client rate limit. Empty keeps the agent's default of 50 requests/sec with a burst of 100, up from client-go's 5/10, which made pushes with connected resources take minutes. A negative apiQPS turns client-side limiting off. examples/values-large-cluster.yaml sets 200/400."
     - kind: added
