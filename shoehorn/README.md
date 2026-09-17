@@ -178,7 +178,7 @@ Key parameters:
 | `global.storageClass` | Default storage class for PVCs | `""` |
 | `global.annotations` | Catalog annotations (`shoehorn.dev/` prefixed) applied to every workload; per-service `<svc>.annotations` keys override | `{}` |
 | `secret.defaultName` | Fallback Secret name for refs without `name:` | `""` |
-| `auth.provider` | `zitadel` or `okta` | `zitadel` |
+| `auth.provider` | `zitadel`, `okta`, or `entra-id` (see `examples/values-entraid.yaml`) | `zitadel` |
 | `auth.audience` | Expected JWT audience; empty defaults to the provider's client_id | `""` |
 | `ingressRoute.enabled` | Traefik IngressRoute | `true` |
 | `ingress.enabled` | Standard Kubernetes Ingress | `false` |
