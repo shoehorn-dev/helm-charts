@@ -126,15 +126,15 @@ spec:
         # GitHub Integration
         {{- if .Values.auth.github.appId }}
         - name: GITHUB_APP_ID
-          value: {{ .Values.auth.github.appId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.github.appId "auth.github.appId") | quote }}
         {{- end }}
         {{- if .Values.auth.github.installationId }}
         - name: GITHUB_APP_INSTALLATION_ID
-          value: {{ .Values.auth.github.installationId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.github.installationId "auth.github.installationId") | quote }}
         {{- end }}
         {{- if .Values.auth.github.installationId }}
         - name: GITHUB_INSTALLATION_ID
-          value: {{ .Values.auth.github.installationId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.github.installationId "auth.github.installationId") | quote }}
         {{- end }}
         {{- if .Values.auth.github.appId }}
         - name: GITHUB_APP_PRIVATE_KEY_PATH

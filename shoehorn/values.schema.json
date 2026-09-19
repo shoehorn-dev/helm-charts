@@ -253,8 +253,8 @@
         "zitadel": {
           "type": "object",
           "properties": {
-            "projectId": { "type": "string" },
-            "clientId": { "type": "string" },
+            "projectId": { "type": ["string", "integer"] },
+            "clientId": { "type": ["string", "integer"] },
             "externalUrl": { "type": "string", "format": "uri" },
             "insecure": { "type": "boolean", "default": false },
             "serviceUserPatSecretRef": {
@@ -309,13 +309,13 @@
           "type": "object",
           "description": "GitHub integration. App ID and installation ID are public identifiers.",
           "properties": {
-            "appId": { "type": "string" },
-            "installationId": { "type": "string" },
+            "appId": { "type": ["string", "integer"] },
+            "installationId": { "type": ["string", "integer"] },
             "forge": {
               "type": "object",
               "properties": {
-                "appId": { "type": "string" },
-                "installationId": { "type": "string" },
+                "appId": { "type": ["string", "integer"] },
+                "installationId": { "type": ["string", "integer"] },
                 "organization": { "type": "string" }
               }
             }

@@ -1,0 +1,4 @@
+auth:
+  github:
+    appId: 123456
+    installationId: 87654321

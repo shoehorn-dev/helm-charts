@@ -186,9 +186,9 @@ spec:
         - name: ZITADEL_URL
           value: {{ .Values.auth.zitadel.externalUrl | quote }}
         - name: ZITADEL_PROJECT_ID
-          value: {{ .Values.auth.zitadel.projectId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.zitadel.projectId "auth.zitadel.projectId") | quote }}
         - name: ZITADEL_CLIENT_ID
-          value: {{ .Values.auth.zitadel.clientId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.zitadel.clientId "auth.zitadel.clientId") | quote }}
         - name: ZITADEL_INSECURE
           value: {{ .Values.auth.zitadel.insecure | default false | quote }}
         - name: APP_SCHEME
@@ -237,13 +237,13 @@ spec:
         # GitHub (appId / installationId are public).
         {{- if .Values.auth.github.appId }}
         - name: GITHUB_APP_ID
-          value: {{ .Values.auth.github.appId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.github.appId "auth.github.appId") | quote }}
         {{- end }}
         {{- if .Values.auth.github.installationId }}
         - name: GITHUB_APP_INSTALLATION_ID
-          value: {{ .Values.auth.github.installationId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.github.installationId "auth.github.installationId") | quote }}
         - name: GITHUB_INSTALLATION_ID
-          value: {{ .Values.auth.github.installationId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.github.installationId "auth.github.installationId") | quote }}
         {{- end }}
         {{- if .Values.auth.github.appId }}
         - name: GITHUB_APP_PRIVATE_KEY_PATH
@@ -253,11 +253,11 @@ spec:
         # GitHub Forge App (separate from auth.github)
         {{- if .Values.auth.github.forge.appId }}
         - name: GITHUB_FORGE_APP_ID
-          value: {{ .Values.auth.github.forge.appId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.github.forge.appId "auth.github.forge.appId") | quote }}
         {{- end }}
         {{- if .Values.auth.github.forge.installationId }}
         - name: GITHUB_FORGE_INSTALLATION_ID
-          value: {{ .Values.auth.github.forge.installationId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.github.forge.installationId "auth.github.forge.installationId") | quote }}
         {{- end }}
         {{- if .Values.auth.github.forge.appId }}
         # Set only when the GitHub App is configured. The private key file
