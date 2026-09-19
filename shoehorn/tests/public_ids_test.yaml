@@ -13,9 +13,6 @@ set:
   auth.zitadel.externalUrl: https://example.test
   secret.defaultName: shoehorn-shared
 tests:
-  # Zitadel and GitHub ids are all digits and must work as a number or a string.
-  # The --set path (an exact int64) is covered by the CI template step;
-  # helm-unittest's `set` always produces a float, like a values file.
   - it: renders a quoted Zitadel id exactly
     template: templates/deployment-api.yaml
     set:
@@ -55,8 +52,6 @@ tests:
             name: GITHUB_INSTALLATION_ID
             value: "87654321"
 
-  # The README example uses idp.example.com; the error names it as the example
-  # value rather than calling the domain missing.
   - it: says the domain is still the example value
     template: templates/deployment-api.yaml
     set:

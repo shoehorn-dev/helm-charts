@@ -1,4 +1,3 @@
-# GitHub App and installation ids are short enough to survive as a YAML number.
 auth:
   github:
     appId: 123456

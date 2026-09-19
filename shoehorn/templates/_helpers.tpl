@@ -436,13 +436,7 @@ Namespace helpers - all components deploy to Release.Namespace
 {{- end }}
 
 {{/*
-Render a public numeric id (Zitadel project or client id, GitHub App or
-installation id) exactly. `--set` passes digits as an exact int64 and a quoted
-value is a string. An unquoted number in a values file reaches the chart as a
-float64, which holds integers exactly only below 2^53: a shorter id prints as
-itself, a longer one has already lost digits (349308689758290610 arrives as
-349308689758290624), so it is refused with the fix instead of rendering a wrong
-id. Usage: include "shoehorn.publicId" (list .Values.auth.zitadel.projectId "auth.zitadel.projectId")
+Render a public numeric id exactly; refuse a number YAML has already rounded (2^53 and up).
 */}}
 {{- define "shoehorn.publicId" -}}
 {{- $v := index . 0 -}}
