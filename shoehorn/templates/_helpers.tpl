@@ -436,12 +436,36 @@ Namespace helpers - all components deploy to Release.Namespace
 {{- end }}
 
 {{/*
+Render a public numeric id (Zitadel project or client id, GitHub App or
+installation id) exactly. `--set` passes digits as an exact int64 and a quoted
+value is a string. An unquoted number in a values file reaches the chart as a
+float64, which holds integers exactly only below 2^53: a shorter id prints as
+itself, a longer one has already lost digits (349308689758290610 arrives as
+349308689758290624), so it is refused with the fix instead of rendering a wrong
+id. Usage: include "shoehorn.publicId" (list .Values.auth.zitadel.projectId "auth.zitadel.projectId")
+*/}}
+{{- define "shoehorn.publicId" -}}
+{{- $v := index . 0 -}}
+{{- $name := index . 1 -}}
+{{- if kindIs "float64" $v -}}
+  {{- if or (ge $v 9007199254740992.0) (ne $v (floor $v)) -}}
+    {{- fail (printf "\n\n%s is too long a number for YAML to keep exactly; quote it in your values file (%s: \"349308689758290610\") or pass it with --set-string." $name (last (splitList "." $name))) -}}
+  {{- end -}}
+  {{- printf "%.0f" $v -}}
+{{- else -}}
+  {{- toString $v -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Validate required plain values at template render time.
 Each *SecretRef is validated by the shoehorn.secretRef helper itself when called.
 */}}
 {{- define "shoehorn.validateValues" -}}
-{{- if or (not .Values.global.domain) (eq .Values.global.domain "idp.example.com") -}}
+{{- if not .Values.global.domain -}}
   {{- fail "\n\nglobal.domain is required. Set it to the hostname customers will use to reach Shoehorn on your infra (e.g. idp.acme.internal). Pass --set global.domain=YOUR_DOMAIN or override it in your values file." -}}
+{{- else if eq .Values.global.domain "idp.example.com" -}}
+  {{- fail "\n\nglobal.domain still has the example value 'idp.example.com'. Set it to the hostname customers will use to reach Shoehorn on your infra (e.g. idp.acme.internal)." -}}
 {{- end -}}
 {{- if .Values.ingressRoute.enabled -}}
   {{/* The kube-system lookup tells us whether `lookup` has live cluster access.
@@ -460,13 +484,15 @@ Each *SecretRef is validated by the shoehorn.secretRef helper itself when called
   {{- if not .Values.auth.zitadel.projectId -}}
     {{- fail "\n\nauth.zitadel.projectId is required when auth.provider is 'zitadel'." -}}
   {{- end -}}
-  {{- if eq .Values.auth.zitadel.projectId "YOUR_PROJECT_ID" -}}
+  {{- $_ := include "shoehorn.publicId" (list .Values.auth.zitadel.projectId "auth.zitadel.projectId") -}}
+  {{- if eq (toString .Values.auth.zitadel.projectId) "YOUR_PROJECT_ID" -}}
     {{- fail "\n\nauth.zitadel.projectId still has the example placeholder 'YOUR_PROJECT_ID'. Set it to the project ID from your Zitadel console." -}}
   {{- end -}}
   {{- if not .Values.auth.zitadel.clientId -}}
     {{- fail "\n\nauth.zitadel.clientId is required when auth.provider is 'zitadel'." -}}
   {{- end -}}
-  {{- if eq .Values.auth.zitadel.clientId "YOUR_CLIENT_ID" -}}
+  {{- $_ := include "shoehorn.publicId" (list .Values.auth.zitadel.clientId "auth.zitadel.clientId") -}}
+  {{- if eq (toString .Values.auth.zitadel.clientId) "YOUR_CLIENT_ID" -}}
     {{- fail "\n\nauth.zitadel.clientId still has the example placeholder 'YOUR_CLIENT_ID'. Set it to the OIDC client ID from your Zitadel app." -}}
   {{- end -}}
   {{- if not .Values.auth.zitadel.externalUrl -}}

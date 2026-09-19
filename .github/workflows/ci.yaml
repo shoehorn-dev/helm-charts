@@ -49,6 +49,20 @@ jobs:
             --set auth.zitadel.externalUrl=https://auth.example.com \
             > /dev/null
 
+      # Zitadel ids are 18 digits. --set passes them as exact integers, and the
+      # chart must render them unchanged (helm-unittest can only produce floats,
+      # so this path is checked here).
+      - name: Template shoehorn with numeric Zitadel ids
+        run: |
+          out=$(helm template ci-test shoehorn/ \
+            --set global.domain=ci.example.com \
+            --set secret.defaultName=ci-test \
+            --set auth.zitadel.projectId=349308689758290610 \
+            --set auth.zitadel.clientId=349310449335993010 \
+            --set auth.zitadel.externalUrl=https://auth.example.com)
+          echo "$out" | grep -q 'value: "349308689758290610"'
+          echo "$out" | grep -q 'value: "349310449335993010"'
+
       - name: Lint shoehorn-k8s-agent
         run: |
           helm lint shoehorn-k8s-agent/ \

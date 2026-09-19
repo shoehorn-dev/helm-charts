@@ -1,0 +1,6 @@
+# Real Zitadel ids are 18 digits. Unquoted, YAML reads them as a float and
+# drops digits (349308689758290610 becomes 349308689758290624).
+auth:
+  zitadel:
+    projectId: 349308689758290610
+    clientId: 349310449335993010
