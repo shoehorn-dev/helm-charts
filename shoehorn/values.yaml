@@ -633,8 +633,7 @@ meilisearch:
   image:
     repository: getmeili/meilisearch
     tag: "v1.48.3"
-  # Migrate the data directory in place when the image moves to a newer version.
-  # Back up first: see "Upgrading Meilisearch" in the chart README.
+  # Migrate the data directory in place on a version bump. Back up first: see the chart README.
   upgradeOnStart: true
   # Extra CLI flags appended to the meilisearch binary. Empty for normal operation.
   extraArgs: []
