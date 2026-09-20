@@ -535,7 +535,12 @@
         "extraArgs": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Extra CLI flags appended to the meilisearch binary, e.g. [\"--experimental-dumpless-upgrade\"] for an in-place version migration. Clear once the upgrade task completes."
+          "description": "Extra CLI flags appended to the meilisearch binary."
+        },
+        "upgradeOnStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Migrate the data directory in place when the chart moves Meilisearch to a newer version. Without it the new version refuses the old data."
         },
         "masterKeySecretRef": {
           "$ref": "#/$defs/secretKeyRef",

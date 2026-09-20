@@ -633,10 +633,9 @@ meilisearch:
   image:
     repository: getmeili/meilisearch
     tag: "v1.48.3"
-  # Extra CLI flags appended to the meilisearch binary. Empty for normal
-  # operation. For an in-place data migration across a Meilisearch version
-  # bump, set ["--experimental-dumpless-upgrade"], run helm upgrade, then
-  # clear it again. See "Upgrading Meilisearch" in the chart README.
+  # Migrate the data directory in place on a version bump. Back up first: see the chart README.
+  upgradeOnStart: true
+  # Extra CLI flags appended to the meilisearch binary. Empty for normal operation.
   extraArgs: []
   resources:
     requests: { cpu: 250m, memory: 512Mi }
