@@ -633,12 +633,8 @@ meilisearch:
   image:
     repository: getmeili/meilisearch
     tag: "v1.48.3"
-  # Migrate the data directory in place when a chart upgrade moves Meilisearch
-  # to a newer version (MEILI_EXPERIMENTAL_DUMPLESS_UPGRADE). Without it the new
-  # version refuses the old data and the pod crashloops. A no-op when the version
-  # is unchanged. Back up before upgrading: see "Upgrading Meilisearch" in the
-  # chart README. Meilisearch v1.51 renamed the flag (--upgrade-db); revisit this
-  # when the image tag reaches v1.51.
+  # Migrate the data directory in place when the image moves to a newer version.
+  # Back up first: see "Upgrading Meilisearch" in the chart README.
   upgradeOnStart: true
   # Extra CLI flags appended to the meilisearch binary. Empty for normal operation.
   extraArgs: []

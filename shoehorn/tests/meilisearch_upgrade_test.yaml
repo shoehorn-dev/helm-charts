@@ -17,8 +17,29 @@ tests:
           content:
             name: MEILI_EXPERIMENTAL_DUMPLESS_UPGRADE
             value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MEILI_UPGRADE_DB
+            value: "true"
 
-  - it: leaves the upgrade flag out when turned off
+  - it: sets both names whatever the image tag says
+    documentIndex: 1
+    set:
+      meilisearch.image.tag: v1.53.1
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MEILI_EXPERIMENTAL_DUMPLESS_UPGRADE
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MEILI_UPGRADE_DB
+            value: "true"
+
+  - it: leaves the upgrade flags out when turned off
     documentIndex: 1
     set:
       meilisearch.upgradeOnStart: false
@@ -27,4 +48,9 @@ tests:
           path: spec.template.spec.containers[0].env
           content:
             name: MEILI_EXPERIMENTAL_DUMPLESS_UPGRADE
+            value: "true"
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MEILI_UPGRADE_DB
             value: "true"
