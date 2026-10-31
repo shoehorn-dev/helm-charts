@@ -29,6 +29,18 @@ rules:
       - nodes
     verbs:
       - list
+  {{- if .Values.agent.connected.enabled }}
+  # Connected-resource resolution: ClusterRoles and ClusterRoleBindings are
+  # cluster-scoped so they live here (namespace-scoped Roles/RoleBindings are
+  # in scoped-role.yaml via the per-namespace Roles).
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources:
+      - clusterroles
+      - clusterrolebindings
+    verbs:
+      - get
+      - list
+  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

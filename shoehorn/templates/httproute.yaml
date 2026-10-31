@@ -33,6 +33,40 @@ spec:
         {{- toYaml .Values.httpRoute.filters.api | nindent 8 }}
       {{- end }}
 
+    # MCP endpoints - served at the API root, outside /api/v1, so the
+    # catch-all below would otherwise hand them to the web app and MCP would
+    # not work at all on Envoy Gateway installs.
+    #
+    # The two oauth-protected-resource paths are the RFC 9728 discovery
+    # document clients fetch after a 401 to find the authorization server. The
+    # root form is what the WWW-Authenticate challenge advertises; the
+    # /mcp-suffixed form is what a client following RFC 9728 section 3.1
+    # constructs on its own.
+    #
+    # Exact matches take precedence over the PathPrefix catch-all under the
+    # Gateway API matching rules, so ordering here is for readability.
+    - matches:
+        - path:
+            type: Exact
+            value: /mcp
+        - path:
+            type: Exact
+            value: /.well-known/mcp
+        - path:
+            type: Exact
+            value: /.well-known/oauth-protected-resource
+        - path:
+            type: Exact
+            value: /.well-known/oauth-protected-resource/mcp
+      backendRefs:
+        - name: {{ include "shoehorn.fullname" . }}-api
+          namespace: {{ include "shoehorn.namespace.backend" . }}
+          port: 8080
+      {{- if .Values.httpRoute.filters.api }}
+      filters:
+        {{- toYaml .Values.httpRoute.filters.api | nindent 8 }}
+      {{- end }}
+
     # Web frontend - serves the SvelteKit application (catch-all)
     - matches:
         - path:

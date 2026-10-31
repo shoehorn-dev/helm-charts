@@ -40,7 +40,7 @@ spec:
         command: ['sh', '-c', 'until nc -z {{ include "shoehorn.redpanda.host" . }} {{ include "shoehorn.redpanda.port" . }}; do echo waiting for redpanda; sleep 2; done;']
       # Run database migrations before starting the API
       - name: migrate
-        image: {{ include "shoehorn.componentImage" (dict "component" .Values.api "Values" .Values) }}
+        image: {{ include "shoehorn.componentImage" (dict "component" .Values.api "Values" .Values "Chart" .Chart) }}
         command: ["/api", "--migrate-only"]
         env:
         {{- include "shoehorn.secretRef" (dict "env" "POSTGRES_PASSWORD" "ref" .Values.postgresql.superuserPasswordSecretRef "root" .) | nindent 8 }}
@@ -59,7 +59,7 @@ spec:
       - name: api
         securityContext:
           {{- toYaml .Values.securityContext | nindent 12 }}
-        image: {{ include "shoehorn.componentImage" (dict "component" .Values.api "Values" .Values) }}
+        image: {{ include "shoehorn.componentImage" (dict "component" .Values.api "Values" .Values "Chart" .Chart) }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - name: http
@@ -135,6 +135,34 @@ spec:
         - name: AUTH_AUDIENCE
           value: {{ .Values.auth.audience | quote }}
         {{- end }}
+        {{- with .Values.auth.mcp }}
+        {{- /*
+          Always emit MCP_OAUTH_ENABLED, both true and false. Omitting it on
+          the false branch would hand the decision to the platform's own
+          default, which is on: auth.mcp.enabled=false would then silently
+          enable OAuth and this values file would misreport the running state.
+        */}}
+        - name: MCP_OAUTH_ENABLED
+          value: {{ .enabled | quote }}
+        {{- if .audience }}
+        - name: MCP_AUTH_AUDIENCE
+          value: {{ .audience | quote }}
+        {{- end }}
+        {{- if .clientId }}
+        - name: MCP_OAUTH_CLIENT_ID
+          value: {{ .clientId | quote }}
+        {{- end }}
+        {{- if .callbackPort }}
+        - name: MCP_OAUTH_CALLBACK_PORT
+          value: {{ .callbackPort | quote }}
+        {{- end }}
+        {{- end }}
+        {{- with .Values.mcp }}
+        {{- if .resourceUrl }}
+        - name: MCP_RESOURCE_URL
+          value: {{ .resourceUrl | quote }}
+        {{- end }}
+        {{- end }}
 
         # Bootstrap admin (first login gets tenant:admin if no roles in DB).
         {{- if .Values.rbac.roleAssignment }}
@@ -158,9 +186,9 @@ spec:
         - name: ZITADEL_URL
           value: {{ .Values.auth.zitadel.externalUrl | quote }}
         - name: ZITADEL_PROJECT_ID
-          value: {{ .Values.auth.zitadel.projectId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.zitadel.projectId "auth.zitadel.projectId") | quote }}
         - name: ZITADEL_CLIENT_ID
-          value: {{ .Values.auth.zitadel.clientId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.zitadel.clientId "auth.zitadel.clientId") | quote }}
         - name: ZITADEL_INSECURE
           value: {{ .Values.auth.zitadel.insecure | default false | quote }}
         - name: APP_SCHEME
@@ -209,13 +237,13 @@ spec:
         # GitHub (appId / installationId are public).
         {{- if .Values.auth.github.appId }}
         - name: GITHUB_APP_ID
-          value: {{ .Values.auth.github.appId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.github.appId "auth.github.appId") | quote }}
         {{- end }}
         {{- if .Values.auth.github.installationId }}
         - name: GITHUB_APP_INSTALLATION_ID
-          value: {{ .Values.auth.github.installationId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.github.installationId "auth.github.installationId") | quote }}
         - name: GITHUB_INSTALLATION_ID
-          value: {{ .Values.auth.github.installationId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.github.installationId "auth.github.installationId") | quote }}
         {{- end }}
         {{- if .Values.auth.github.appId }}
         - name: GITHUB_APP_PRIVATE_KEY_PATH
@@ -225,11 +253,11 @@ spec:
         # GitHub Forge App (separate from auth.github)
         {{- if .Values.auth.github.forge.appId }}
         - name: GITHUB_FORGE_APP_ID
-          value: {{ .Values.auth.github.forge.appId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.github.forge.appId "auth.github.forge.appId") | quote }}
         {{- end }}
         {{- if .Values.auth.github.forge.installationId }}
         - name: GITHUB_FORGE_INSTALLATION_ID
-          value: {{ .Values.auth.github.forge.installationId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.github.forge.installationId "auth.github.forge.installationId") | quote }}
         {{- end }}
         {{- if .Values.auth.github.forge.appId }}
         # Set only when the GitHub App is configured. The private key file
@@ -258,6 +286,15 @@ spec:
         # Notification channel secrets (operator-provisioned)
         {{- range .Values.notifications.secrets }}
         {{- include "shoehorn.secretRef" (dict "env" (printf "NOTIFICATIONS_SECRET_%s" (.name | upper)) "ref" .secretRef "root" $) | nindent 8 }}
+        {{- end }}
+
+        # Cloud providers
+        {{- if .Values.cloudProviders.upcloud.enabled }}
+        {{- include "shoehorn.secretRef" (dict "env" "UPCLOUD_TOKEN" "ref" .Values.cloudProviders.upcloud.tokenSecretRef "root" . "optional" true) | nindent 8 }}
+        {{- with .Values.cloudProviders.upcloud.apiBaseUrl }}
+        - name: UPCLOUD_API_BASE_URL
+          value: {{ . | quote }}
+        {{- end }}
         {{- end }}
 
         volumeMounts:

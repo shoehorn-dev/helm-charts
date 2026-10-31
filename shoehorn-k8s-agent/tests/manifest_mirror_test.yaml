@@ -1,0 +1,26 @@
+suite: manifest mirror toggle
+templates:
+  - templates/configmap.yaml
+release:
+  name: test-release
+  namespace: test-ns
+set:
+  shoehorn.apiURL: https://shoehorn.example.test
+  shoehorn.cluster.id: test-cluster
+  shoehorn.apiToken: test-token
+tests:
+  - it: turns the mirror on by default
+    asserts:
+      - equal:
+          path: data.SHOEHORN_MANIFEST_MIRROR_ENABLED
+          value: "true"
+
+  # The agent's own default is on, so leaving the key out would not turn the
+  # mirror off. Disabling it must render an explicit "false".
+  - it: renders an explicit false when the mirror is disabled
+    set:
+      agent.manifestMirror.enabled: false
+    asserts:
+      - equal:
+          path: data.SHOEHORN_MANIFEST_MIRROR_ENABLED
+          value: "false"

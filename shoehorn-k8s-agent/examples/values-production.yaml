@@ -14,8 +14,6 @@ shoehorn:
   cluster:
     id: "prod-us-east-1"
     name: "Production US East"
-    # Link to your K8s dashboard (optional)
-    dashboardURL: "https://k8s-dashboard.example.com"
 
 # Agent configuration
 agent:

@@ -2,8 +2,8 @@ apiVersion: v2
 name: shoehorn-k8s-agent
 description: Kubernetes agent for Shoehorn, the Intelligent Developer Platform. Discovers and syncs workloads.
 type: application
-version: 0.5.001
-appVersion: "0.5.001"
+version: 0.5.103
+appVersion: "0.6.0"
 
 home: https://shoehorn.dev
 icon: https://shoehorn.dev/maskot1.png
@@ -51,6 +51,28 @@ annotations:
     - url: https://artifacthub.io/packages/helm/shoehorn/shoehorn
 
   artifacthub.io/changes: |
+    - kind: added
+      description: "agent.fullSyncMaxWait sets how long the agent's startup full sync may wait for Shoehorn before it gives up and withholds its completion (SHOEHORN_FULL_SYNC_MAX_WAIT). Empty keeps the agent's default of 15 minutes; 1m to 24h allowed."
+    - kind: changed
+      description: "agent.pushRetries now has a maximum of 10 and agent.pushTimeout accepts 1s to 5m, as the agent does. pushRetries limits the pushes after the startup full sync; with a matching agent release, the startup full sync's pushes are retried until Shoehorn accepts them. examples/values-large-cluster.yaml explains memory with a measurement: about 15 MiB per 1,000 Deployments and Pods after the startup list and a peak of about 30 MiB per 1,000 during it, so its 512Mi limit is too small at 20,000 objects."
+    - kind: added
+      description: "agent.kubernetes.apiQPS and agent.kubernetes.apiBurst set the agent's Kubernetes API client rate limit. Empty keeps the agent's default of 50 requests/sec with a burst of 100, up from client-go's 5/10, which made pushes with connected resources take minutes. A negative apiQPS turns client-side limiting off. examples/values-large-cluster.yaml sets 200/400."
+    - kind: added
+      description: "terminationGracePeriodSeconds, default 45. On shutdown the agent pushes its last batch for up to 25 seconds and only then releases its leader lease; the Kubernetes default of 30 seconds could kill it mid-push and drop that batch."
+    - kind: changed
+      description: "agent.manifestMirror.enabled now defaults to true, matching the agent. SHOEHORN_MANIFEST_MIRROR_ENABLED is always rendered, so setting it to false turns the mirror off; before, false rendered nothing and the agent's own default applied. Nothing is stored until the platform also sets MANIFEST_MIRROR_ENABLED."
+    - kind: removed
+      description: "Dashboard URL references removed from configuration and documentation."
+    - kind: changed
+      description: "agent.annotations.defaultLevel now defaults to 'full' (was 'basic'), giving the Shoehorn UI resource requests/limits and QoS class without per-workload annotations. All levels read from the pod object the agent already watches, so this adds no extra API calls, only a slightly larger push payload."
+    - kind: added
+      description: "agent.gitops.argocd.enabled and agent.gitops.fluxcd.enabled as the primary GitOps switch, resolved through a single internal helper. The legacy agent.gitops.tool value still works and renders byte-identically. A validation guard now fails the render when ArgoCD credentials are set without ArgoCD enabled, or when both tools are enabled, instead of silently doing nothing. agent.gitops.argocd.serverURL/token are now optional (only used for UI Sync/Refresh actions)."
+    - kind: fixed
+      description: "commandPollInterval default drift: chart default is now 30s, matching the documented value (was rendering 10s)."
+    - kind: added
+      description: "agent.connected.enabled to resolve connected resources (Services, ConfigMaps, Secrets, PVCs) per workload. SECURITY: enabling this grants the agent read access to Secret values in watched namespaces (Kubernetes list on secrets returns data, not just names); the agent only ever transmits Secret key names. Disabled by default."
+    - kind: removed
+      description: "Network observer DaemonSet and its netobserver.* values removed. Service relationships are now inferred on the platform from cluster specs, routes, and network policies, so the eBPF observer is no longer needed. NetworkPolicy and CiliumNetworkPolicy coverage is unaffected: the main agent still watches them."
     - kind: fixed
       description: "Image tag default now includes the 'v' prefix, fixing ImagePullBackOff when image.tag is not set"
     - kind: added

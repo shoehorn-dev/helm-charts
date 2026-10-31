@@ -1,0 +1,127 @@
+suite: Kubernetes API client rate limit
+templates:
+  - templates/configmap.yaml
+release:
+  name: test-release
+  namespace: test-ns
+set:
+  shoehorn.apiURL: https://shoehorn.example.test
+  shoehorn.cluster.id: test-cluster
+  shoehorn.apiToken: test-token
+tests:
+  # Empty leaves the agent's own default (50 requests/sec, burst 100) in charge.
+  - it: renders neither setting by default
+    asserts:
+      - notExists:
+          path: data.SHOEHORN_K8S_API_QPS
+      - notExists:
+          path: data.SHOEHORN_K8S_API_BURST
+
+  - it: renders a raised limit
+    set:
+      agent.kubernetes.apiQPS: 200
+      agent.kubernetes.apiBurst: 400
+    asserts:
+      - equal:
+          path: data.SHOEHORN_K8S_API_QPS
+          value: "200"
+      - equal:
+          path: data.SHOEHORN_K8S_API_BURST
+          value: "400"
+
+  - it: renders a fractional limit
+    set:
+      agent.kubernetes.apiQPS: 7.5
+      agent.kubernetes.apiBurst: 15
+    asserts:
+      - equal:
+          path: data.SHOEHORN_K8S_API_QPS
+          value: "7.5"
+
+  - it: renders a negative QPS, which turns client-side limiting off
+    set:
+      agent.kubernetes.apiQPS: -1
+    asserts:
+      - equal:
+          path: data.SHOEHORN_K8S_API_QPS
+          value: "-1"
+
+  # client-go reads a QPS of 0 as its own default of 5/s; the agent refuses it.
+  - it: rejects a QPS of 0
+    set:
+      agent.kubernetes.apiQPS: 0
+    asserts:
+      - failedTemplate: {}
+
+  - it: rejects a burst of 0
+    set:
+      agent.kubernetes.apiBurst: 0
+    asserts:
+      - failedTemplate: {}
+
+  # The chart's convention is quoted values, so the string form is bounded like
+  # the number form: the agent refuses anything outside these ranges at startup.
+  - it: renders a quoted limit
+    set:
+      agent.kubernetes.apiQPS: "200"
+      agent.kubernetes.apiBurst: "400"
+    asserts:
+      - equal:
+          path: data.SHOEHORN_K8S_API_QPS
+          value: "200"
+      - equal:
+          path: data.SHOEHORN_K8S_API_BURST
+          value: "400"
+
+  - it: renders the highest quoted limits
+    set:
+      agent.kubernetes.apiQPS: "10000"
+      agent.kubernetes.apiBurst: "20000"
+    asserts:
+      - equal:
+          path: data.SHOEHORN_K8S_API_QPS
+          value: "10000"
+      - equal:
+          path: data.SHOEHORN_K8S_API_BURST
+          value: "20000"
+
+  - it: renders a quoted fractional QPS
+    set:
+      agent.kubernetes.apiQPS: "0.5"
+    asserts:
+      - equal:
+          path: data.SHOEHORN_K8S_API_QPS
+          value: "0.5"
+
+  - it: renders a quoted negative QPS
+    set:
+      agent.kubernetes.apiQPS: "-2.5"
+    asserts:
+      - equal:
+          path: data.SHOEHORN_K8S_API_QPS
+          value: "-2.5"
+
+  - it: rejects a quoted QPS above 10000
+    set:
+      agent.kubernetes.apiQPS: "10000.5"
+    asserts:
+      - failedTemplate: {}
+
+  - it: rejects a quoted QPS of 20000
+    set:
+      agent.kubernetes.apiQPS: "20000"
+    asserts:
+      - failedTemplate: {}
+
+  # The agent reads "-0" as 0 and refuses it.
+  - it: rejects a quoted negative zero QPS
+    set:
+      agent.kubernetes.apiQPS: "-0"
+    asserts:
+      - failedTemplate: {}
+
+  - it: rejects a quoted burst above 20000
+    set:
+      agent.kubernetes.apiBurst: "20001"
+    asserts:
+      - failedTemplate: {}

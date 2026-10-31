@@ -16,7 +16,7 @@ helm install shoehorn-k8s-agent oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn-
 
 ## Introduction
 
-This chart deploys the Shoehorn Kubernetes agent on a Kubernetes cluster using [Helm](https://helm.sh). The agent runs as a Deployment with leader election for HA. An optional eBPF DaemonSet (`netobserver`) captures pod-to-pod TCP flows for service dependency mapping.
+This chart deploys the Shoehorn Kubernetes agent on a Kubernetes cluster using [Helm](https://helm.sh). The agent runs as a Deployment with leader election for HA.
 
 The agent image is published to [`docker.io/shoehorned/shoehorn-k8s-agent`](https://hub.docker.com/r/shoehorned/shoehorn-k8s-agent). The chart is published to `oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn-k8s-agent`.
 
@@ -28,7 +28,6 @@ The agent image is published to [`docker.io/shoehorned/shoehorn-k8s-agent`](http
 - metrics-server (optional, for `full` monitoring level)
 - ArgoCD or FluxCD installed (optional, for GitOps integration)
 - Cilium CNI (optional, for `CiliumNetworkPolicy` visibility)
-- Linux kernel 5.2+ with BTF (`CONFIG_DEBUG_INFO_BTF=y`) on nodes if `netobserver.enabled=true`
 
 ## Installing the Chart
 
@@ -95,7 +94,6 @@ The chart fails template rendering if any of these are missing, with a clear err
 | Parameter | Description | Default |
 |---|---|---|
 | `shoehorn.cluster.name` | Display name | falls back to `cluster.id` |
-| `shoehorn.cluster.dashboardURL` | Link to K8s dashboard, ArgoCD UI, etc. | `""` |
 | `shoehorn.cluster.provider` | Cloud provider (auto-detected if empty) | `""` |
 | `shoehorn.cluster.region` | Cloud region (auto-detected if empty) | `""` |
 | `shoehorn.cluster.environment` | Deployment environment, e.g. production, staging | `""` |
@@ -110,8 +108,14 @@ The chart fails template rendering if any of these are missing, with a clear err
 | `agent.kubernetes.labelSelector` | Label selector filter | `""` |
 | `agent.kubernetes.watchedKinds` | Resource kinds to watch (empty = defaults, includes Pod) | `[]` |
 | `agent.kubernetes.scopeMode` | `cluster` (cluster-wide watch) or `namespaces` (one watch per namespace, per-namespace RBAC) | `cluster` |
+| `agent.kubernetes.apiQPS` | Kubernetes API requests per second for the agent's client (empty = agent default 50; negative turns client-side limiting off) | `""` |
+| `agent.kubernetes.apiBurst` | Kubernetes API request burst (empty = agent default 100) | `""` |
 
 `namespaces` and `excludeNamespaces` are mutually exclusive: when `namespaces` is set, `excludeNamespaces` is ignored. NetworkPolicy and CiliumNetworkPolicy informers are always on and unaffected by `watchedKinds`.
+
+`apiQPS` and `apiBurst` limit the agent's own Kubernetes API calls. They are separate from `agent.rateLimit`, which limits how many watched events a second enter the agent.
+- With connected resources on, a push makes about 2 + 7 × (namespaces in the push) calls, one at a time. A push therefore takes the limiter's wait plus every call's response time.
+- On clusters with many namespaces, raise the limit so a large push finishes quickly, and inside the agent's 20-second shutdown window. The API server's priority and fairness still protect the server.
 
 With `scopeMode: cluster` (the default), the agent watches the whole cluster and filters to `namespaces` in-process. With `scopeMode: namespaces` it runs one watch per entry in `namespaces` (which must be non-empty) and the chart swaps the cluster-wide ClusterRole for a Role in each watched namespace plus a minimal ClusterRole. Use it to run one install per tenant on a shared cluster. See [`examples/values-scoped.yaml`](examples/values-scoped.yaml).
 
@@ -159,22 +163,9 @@ Without leader election, multiple replicas would emit duplicate events.
 | `agent.gitops.argocd.token` | ArgoCD API token (pass via `--set`, never check in) | `""` |
 | `agent.gitops.fluxcd.namespace` | | `flux-system` |
 | `agent.gitops.commandPollInterval` | How often to poll Shoehorn for pending commands | `10s` |
+| `agent.manifestMirror.enabled` | Send sanitized ArgoCD Application manifests to Shoehorn for MCP. Secrets, env values and credential-bearing fields are stripped in the cluster first. Nothing is stored until the platform sets `MANIFEST_MIRROR_ENABLED`. Set `false` to stop sending | `true` |
 
 GitOps watching is independent of workload watching. Enable one without changing the other. FluxCD doesn't need a token (the agent watches `Kustomization` and `HelmRelease` CRDs directly).
-
-### Network Observer (eBPF)
-
-Optional DaemonSet that captures pod-to-pod TCP connections.
-
-| Parameter | Description | Default |
-|---|---|---|
-| `netobserver.enabled` | Deploy the DaemonSet | `false` |
-| `netobserver.flushInterval` | Aggregation flush | `60s` |
-| `netobserver.intraClusterOnly` | Only intra-cluster flows | `true` |
-| `netobserver.excludePorts` | Ports to skip | `443,5432,6379,3306,27017` |
-| `netobserver.namespaces` / `excludeNamespaces` | Namespace filter | `[]` |
-
-Gracefully no-ops if eBPF loading fails.
 
 ### Resources and image
 
@@ -193,8 +184,10 @@ Gracefully no-ops if eBPF loading fails.
 | `agent.logLevel` / `logFormat` | `info` / `json` |
 | `agent.batchInterval` / `batchSize` | `30s` / `100` |
 | `agent.heartbeatInterval` | `5m` |
+| `agent.fullSyncMaxWait` | `""` (agent default 15m; 1m to 24h). How long the startup full sync may wait for Shoehorn before giving up; bounds the agent's memory during an outage |
 | `agent.metrics.sampleInterval` | `5m` |
 | `agent.metrics.windowHours` | `168` (7 days) |
+| `terminationGracePeriodSeconds` | `45` (the agent pushes its last batch for up to 25s, then releases its lease) |
 
 ## Common scenarios
 
@@ -253,12 +246,6 @@ helm install shoehorn-k8s-agent oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn-
 ```
 
 No token needed. Add `--set agent.gitops.watchAllNamespaces=true` if Flux resources are spread across tenant namespaces.
-
-### Enable network flow capture
-
-```bash
---set netobserver.enabled=true
-```
 
 ## RBAC
 

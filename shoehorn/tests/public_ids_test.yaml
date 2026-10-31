@@ -1,0 +1,63 @@
+suite: public ids and the example domain
+templates:
+  - templates/deployment-api.yaml
+  # deployment-api.yaml checksums the backend ConfigMap.
+  - templates/configmap-backend.yaml
+release:
+  name: test-release
+  namespace: test-ns
+set:
+  image.tag: 0.0.0-test
+  global.domain: idp.acme.test
+  auth.provider: zitadel
+  auth.zitadel.externalUrl: https://example.test
+  secret.defaultName: shoehorn-shared
+tests:
+  - it: renders a quoted Zitadel id exactly
+    template: templates/deployment-api.yaml
+    set:
+      auth.zitadel.projectId: "349308689758290610"
+      auth.zitadel.clientId: "349310449335993010"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ZITADEL_PROJECT_ID
+            value: "349308689758290610"
+
+  - it: refuses an unquoted Zitadel id from a values file, which YAML has already rounded
+    template: templates/deployment-api.yaml
+    values:
+      - values/zitadel-ids-unquoted.yaml
+    asserts:
+      - failedTemplate:
+          errorPattern: auth\.zitadel\.projectId .*quote
+
+  - it: accepts short unquoted GitHub ids from a values file
+    template: templates/deployment-api.yaml
+    set:
+      auth.zitadel.projectId: "349308689758290610"
+      auth.zitadel.clientId: "349310449335993010"
+    values:
+      - values/github-ids-unquoted.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GITHUB_APP_ID
+            value: "123456"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GITHUB_INSTALLATION_ID
+            value: "87654321"
+
+  - it: says the domain is still the example value
+    template: templates/deployment-api.yaml
+    set:
+      global.domain: idp.example.com
+      auth.zitadel.projectId: "349308689758290610"
+      auth.zitadel.clientId: "349310449335993010"
+    asserts:
+      - failedTemplate:
+          errorPattern: global\.domain still has the example value

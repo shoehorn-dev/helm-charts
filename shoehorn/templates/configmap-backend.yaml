@@ -89,6 +89,21 @@ data:
   DEBUG_GITHUB_API: {{ .Values.api.env.DEBUG_GITHUB_API | quote }}
   {{- end }}
 
+  # RBAC audit log retention (worker's scheduler-gated retention job)
+  {{- if .Values.worker.env.AUDIT_LOG_RETENTION_DAYS }}
+  AUDIT_LOG_RETENTION_DAYS: {{ .Values.worker.env.AUDIT_LOG_RETENTION_DAYS | quote }}
+  {{- end }}
+
+  # Pod event retention (api's k8s agent push-processing cleanup; keeps
+  # overnight on-call diagnosis window from getting purged too early).
+  # Two knobs reach this one key, so emit it exactly once: the raw
+  # api.env escape hatch wins over the typed k8s value when both are set.
+  {{- if hasKey .Values.api.env "POD_EVENT_RETENTION_HOURS" }}
+  POD_EVENT_RETENTION_HOURS: {{ .Values.api.env.POD_EVENT_RETENTION_HOURS | quote }}
+  {{- else if .Values.k8s.podEventRetentionHours }}
+  POD_EVENT_RETENTION_HOURS: {{ .Values.k8s.podEventRetentionHours | quote }}
+  {{- end }}
+
   {{- if hasKey .Values.api.env "GITHUB_SECURITY_CODEQL_ENABLED" }}
   GITHUB_SECURITY_CODEQL_ENABLED: {{ .Values.api.env.GITHUB_SECURITY_CODEQL_ENABLED | quote }}
   {{- else }}
@@ -103,6 +118,14 @@ data:
   GITHUB_SECURITY_DEPENDABOT_ENABLED: {{ .Values.api.env.GITHUB_SECURITY_DEPENDABOT_ENABLED | quote }}
   {{- else }}
   GITHUB_SECURITY_DEPENDABOT_ENABLED: "true"
+  {{- end }}
+  {{- if hasKey .Values.api.env "MCP_DOCS_RANKING_SCORE_THRESHOLD" }}
+  MCP_DOCS_RANKING_SCORE_THRESHOLD: {{ .Values.api.env.MCP_DOCS_RANKING_SCORE_THRESHOLD | quote }}
+  {{- end }}
+
+  # Manifest mirror (preview, off by default). Absent = platform default false.
+  {{- if hasKey .Values.api.env "MANIFEST_MIRROR_ENABLED" }}
+  MANIFEST_MIRROR_ENABLED: {{ .Values.api.env.MANIFEST_MIRROR_ENABLED | quote }}
   {{- end }}
 
   # SMTP

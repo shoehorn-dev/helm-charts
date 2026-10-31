@@ -253,7 +253,12 @@ Return the proper image name
 {{/*
 Return the proper component image name.
 
-Tag precedence:    component.image.tag > .Values.image.tag.
+Tag precedence:    component.image.tag > .Values.image.tag > Chart.AppVersion.
+  The AppVersion fallback is prefixed with "v" to match the release workflow's
+  tag format (images are published as v0.6.0, not 0.6.0), matching
+  "shoehorn.image" above. It exists because the release workflow rewrites
+  Chart.yaml only: a hardcoded default in values.yaml goes stale the moment a
+  release ships and silently installs an older platform than the chart claims.
 Registry handling:
   - If component.image.repository already starts with a registry host
     (first path segment contains `.` or `:`, e.g. `ghcr.io/foo/bar` or
@@ -267,7 +272,7 @@ Shoehorn does not publish a `:latest` tag. Render fails if no tag is set.
 */}}
 {{- define "shoehorn.componentImage" -}}
 {{- $componentRepo := .component.image.repository -}}
-{{- $tag := .component.image.tag | default .Values.image.tag -}}
+{{- $tag := .component.image.tag | default .Values.image.tag | default (printf "v%s" .Chart.AppVersion) -}}
 {{- if not $tag -}}
 {{- fail (printf "shoehorn.componentImage: no tag set for %s. Set component.image.tag or .Values.image.tag (Shoehorn does not publish :latest)." $componentRepo) -}}
 {{- end -}}
@@ -431,12 +436,30 @@ Namespace helpers - all components deploy to Release.Namespace
 {{- end }}
 
 {{/*
+Render a public numeric id exactly; refuse a number YAML has already rounded (2^53 and up).
+*/}}
+{{- define "shoehorn.publicId" -}}
+{{- $v := index . 0 -}}
+{{- $name := index . 1 -}}
+{{- if kindIs "float64" $v -}}
+  {{- if or (ge $v 9007199254740992.0) (ne $v (floor $v)) -}}
+    {{- fail (printf "\n\n%s is too long a number for YAML to keep exactly; quote it in your values file (%s: \"349308689758290610\") or pass it with --set-string." $name (last (splitList "." $name))) -}}
+  {{- end -}}
+  {{- printf "%.0f" $v -}}
+{{- else -}}
+  {{- toString $v -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Validate required plain values at template render time.
 Each *SecretRef is validated by the shoehorn.secretRef helper itself when called.
 */}}
 {{- define "shoehorn.validateValues" -}}
-{{- if or (not .Values.global.domain) (eq .Values.global.domain "idp.example.com") -}}
+{{- if not .Values.global.domain -}}
   {{- fail "\n\nglobal.domain is required. Set it to the hostname customers will use to reach Shoehorn on your infra (e.g. idp.acme.internal). Pass --set global.domain=YOUR_DOMAIN or override it in your values file." -}}
+{{- else if eq .Values.global.domain "idp.example.com" -}}
+  {{- fail "\n\nglobal.domain still has the example value 'idp.example.com'. Set it to the hostname customers will use to reach Shoehorn on your infra (e.g. idp.acme.internal)." -}}
 {{- end -}}
 {{- if .Values.ingressRoute.enabled -}}
   {{/* The kube-system lookup tells us whether `lookup` has live cluster access.
@@ -455,13 +478,15 @@ Each *SecretRef is validated by the shoehorn.secretRef helper itself when called
   {{- if not .Values.auth.zitadel.projectId -}}
     {{- fail "\n\nauth.zitadel.projectId is required when auth.provider is 'zitadel'." -}}
   {{- end -}}
-  {{- if eq .Values.auth.zitadel.projectId "YOUR_PROJECT_ID" -}}
+  {{- $_ := include "shoehorn.publicId" (list .Values.auth.zitadel.projectId "auth.zitadel.projectId") -}}
+  {{- if eq (toString .Values.auth.zitadel.projectId) "YOUR_PROJECT_ID" -}}
     {{- fail "\n\nauth.zitadel.projectId still has the example placeholder 'YOUR_PROJECT_ID'. Set it to the project ID from your Zitadel console." -}}
   {{- end -}}
   {{- if not .Values.auth.zitadel.clientId -}}
     {{- fail "\n\nauth.zitadel.clientId is required when auth.provider is 'zitadel'." -}}
   {{- end -}}
-  {{- if eq .Values.auth.zitadel.clientId "YOUR_CLIENT_ID" -}}
+  {{- $_ := include "shoehorn.publicId" (list .Values.auth.zitadel.clientId "auth.zitadel.clientId") -}}
+  {{- if eq (toString .Values.auth.zitadel.clientId) "YOUR_CLIENT_ID" -}}
     {{- fail "\n\nauth.zitadel.clientId still has the example placeholder 'YOUR_CLIENT_ID'. Set it to the OIDC client ID from your Zitadel app." -}}
   {{- end -}}
   {{- if not .Values.auth.zitadel.externalUrl -}}

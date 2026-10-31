@@ -2,8 +2,8 @@ apiVersion: v2
 name: shoehorn
 description: Intelligent Platform for Engineering - Internal Developer Platform
 type: application
-version: 0.4.43
-appVersion: "0.5.3"
+version: 0.5.107
+appVersion: "0.6.0"
 
 home: https://shoehorn.dev
 icon: https://shoehorn.dev/maskot1.png
@@ -71,6 +71,36 @@ annotations:
        url: https://shoehorn.dev/dashboard.png
 
   artifacthub.io/changes: |
+    - kind: fixed
+      description: "A default install pulled the v0.5.3 images whatever the chart version, because image.tag was hardcoded in values.yaml while the release workflow rewrites Chart.yaml only. The tag now follows the chart's appVersion, so the 0.7.0 chart installs the 0.7.0 platform. Set image.tag yourself only to pin a specific build; per-service tags and image.tag both still take precedence."
+    - kind: fixed
+      description: "The worker never reached the release's Valkey. It reads VALKEY_ADDR, which the chart did not set, so it fell back to valkey:6379 and its distributed scheduler and identity provider caching ran without Valkey. The worker now gets VALKEY_ADDR built the same way as the api."
+    - kind: changed
+      description: "Updated the default Valkey version to 9.1.2 and Redpanda to v26.1.17. Both are patch releases on the lines the chart already ships; Valkey 9.1.2 carries upstream security fixes. No values change is needed."
+    - kind: fixed
+      description: "POD_EVENT_RETENTION_HOURS could be written twice into the backend ConfigMap on installs that set api.env.POD_EVENT_RETENTION_HOURS, because the new k8s.podEventRetentionHours value added a second copy. It is now emitted once, with api.env taking precedence when both are set."
+    - kind: changed
+      description: "Updated the default Meilisearch version to v1.48.3, which includes the CVE-2026-57823 and CVE-2026-57824 security fixes. Upgrading an existing install migrates search data in place; see Upgrading Meilisearch in the chart README."
+    - kind: fixed
+      description: "Forge crash-looped on installs using auth.provider entra-id. The forge deployment got ENTRA_TENANT_ID and ENTRA_CLIENT_ID but never ENTRA_CLIENT_SECRET, which the service requires at startup, so browser sign-in worked while Forge never came up."
+    - kind: added
+      description: "examples/values-entraid.yaml, a reference values file for running Shoehorn against Microsoft Entra ID for both sign-in and org data sync."
+    - kind: changed
+      description: "auth.mcp.enabled now defaults to true: MCP clients can sign in with an OIDC bearer token from your IdP out of the box. Personal access tokens keep working, and an install that cannot resolve its audience or public MCP URL logs a warning and stays on tokens only instead of failing to start. Set auth.mcp.enabled=false to opt out."
+    - kind: fixed
+      description: "MCP_OAUTH_ENABLED is now always rendered, true or false. Previously the false case emitted nothing, so auth.mcp.enabled=false would have been overridden by the platform default."
+    - kind: added
+      description: "auth.mcp.enabled and auth.mcp.audience to turn on the MCP OAuth resource-server leg (personal access tokens keep working either way)."
+    - kind: added
+      description: "mcp.resourceUrl to override the canonical MCP endpoint URL advertised in RFC 9728 Protected Resource Metadata (empty derives https://<domain>/mcp)."
+    - kind: added
+      description: "api.env pass-through for MCP_DOCS_RANKING_SCORE_THRESHOLD and POD_EVENT_RETENTION_HOURS; absent keys fall back to compiled platform defaults."
+    - kind: fixed
+      description: "Web pod could crash-loop under readOnlyRootFilesystem because nginx writes to /var/lib/nginx/tmp; added a writable nginx-lib-tmp emptyDir mount."
+    - kind: added
+      description: "MCP endpoints (/mcp and /.well-known/mcp) routed to the API service via Ingress and IngressRoute."
+    - kind: added
+      description: "ORGDATA_DATABASE_URL is now set when \"database\" is included in auth.orgdata.providers, enabling org data sync from the in-cluster database."
     - kind: added
       description: "meilisearch.extraArgs to pass CLI flags to Meilisearch (e.g. --experimental-dumpless-upgrade for an in-place version migration). See Upgrading Meilisearch in the chart README."
     - kind: changed

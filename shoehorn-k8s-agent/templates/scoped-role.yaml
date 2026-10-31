@@ -1,5 +1,5 @@
 {{- if and .Values.rbac.create (eq .Values.agent.kubernetes.scopeMode "namespaces") -}}
-{{- if and (eq .Values.agent.kubernetes.scopeMode "namespaces") .Values.agent.gitops.tool .Values.agent.gitops.watchAllNamespaces }}
+{{- if and (eq .Values.agent.kubernetes.scopeMode "namespaces") (include "shoehorn-agent.gitopsTool" .) .Values.agent.gitops.watchAllNamespaces }}
 {{- fail "agent.kubernetes.scopeMode=namespaces is incompatible with agent.gitops.watchAllNamespaces=true: set watchAllNamespaces=false so the per-namespace gitops Role is created, or use cluster scope mode" }}
 {{- end }}
 {{- $root := . -}}
@@ -75,13 +75,32 @@ rules:
       - get
       - list
 
-  {{- if $root.Values.agent.helm.enabled }}
-  # Read-only access to Secrets, required to detect Helm releases
-  # (helm.sh/release.v1 Secrets). Only "list" is granted.
+  {{- if or $root.Values.agent.helm.enabled $root.Values.agent.connected.enabled }}
+  # Read-only access to Secrets: Helm release detection and connected-resource
+  # collection (key names only; values are never transmitted). Only "list" is granted.
   - apiGroups: [""]
     resources:
       - secrets
     verbs:
+      - list
+  {{- end }}
+
+  {{- if $root.Values.agent.connected.enabled }}
+  # Connected-resource resolution (namespace-scoped subset)
+  - apiGroups: [""]
+    resources:
+      - serviceaccounts
+      - configmaps
+      - persistentvolumeclaims
+    verbs:
+      - get
+      - list
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources:
+      - roles
+      - rolebindings
+    verbs:
+      - get
       - list
   {{- end }}
 ---

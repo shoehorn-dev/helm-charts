@@ -44,7 +44,7 @@ spec:
       - name: crawler
         securityContext:
           {{- toYaml .Values.securityContext | nindent 12 }}
-        image: {{ include "shoehorn.componentImage" (dict "component" .Values.crawler "Values" .Values) }}
+        image: {{ include "shoehorn.componentImage" (dict "component" .Values.crawler "Values" .Values "Chart" .Chart) }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - name: http
@@ -56,6 +56,9 @@ spec:
         envFrom:
         - configMapRef:
             name: {{ include "shoehorn.fullname" . }}-backend
+        - configMapRef:
+            name: {{ include "shoehorn.fullname" . }}-backend-overrides
+            optional: true
         env:
         - name: LOG_LEVEL
           value: {{ .Values.crawler.logLevel | default "info" | quote }}
@@ -123,15 +126,15 @@ spec:
         # GitHub Integration
         {{- if .Values.auth.github.appId }}
         - name: GITHUB_APP_ID
-          value: {{ .Values.auth.github.appId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.github.appId "auth.github.appId") | quote }}
         {{- end }}
         {{- if .Values.auth.github.installationId }}
         - name: GITHUB_APP_INSTALLATION_ID
-          value: {{ .Values.auth.github.installationId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.github.installationId "auth.github.installationId") | quote }}
         {{- end }}
         {{- if .Values.auth.github.installationId }}
         - name: GITHUB_INSTALLATION_ID
-          value: {{ .Values.auth.github.installationId | quote }}
+          value: {{ include "shoehorn.publicId" (list .Values.auth.github.installationId "auth.github.installationId") | quote }}
         {{- end }}
         {{- if .Values.auth.github.appId }}
         - name: GITHUB_APP_PRIVATE_KEY_PATH
