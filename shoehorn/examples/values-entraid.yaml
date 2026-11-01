@@ -7,8 +7,8 @@
 # Before applying, complete the Entra setup steps at:
 #   https://docs.shoehorn.dev/integrations/entra-id
 # Register a single-tenant app, expose an API (scope access_as_user), add the
-# groups claim, and grant the Graph permissions User.Read.All +
-# GroupMember.Read.All with admin consent.
+# groups claim, and grant Graph application permissions User.Read.All,
+# Group.Read.All, and GroupMember.Read.All with admin consent.
 #
 # Entra orgdata reuses the same app registration and client secret as auth, so
 # there's only one credential to create (entra_client_secret), no separate
