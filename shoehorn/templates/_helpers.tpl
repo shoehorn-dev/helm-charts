@@ -114,22 +114,6 @@ Web selector labels
 {{- end }}
 
 {{/*
-EventBus labels
-*/}}
-{{- define "shoehorn.eventbus.labels" -}}
-{{ include "shoehorn.labels" . }}
-{{ include "shoehorn.componentLabels" "eventbus" }}
-{{- end }}
-
-{{/*
-EventBus selector labels
-*/}}
-{{- define "shoehorn.eventbus.selectorLabels" -}}
-{{ include "shoehorn.selectorLabels" . }}
-{{ include "shoehorn.componentLabels" "eventbus" }}
-{{- end }}
-
-{{/*
 Worker labels
 */}}
 {{- define "shoehorn.worker.labels" -}}
@@ -390,13 +374,6 @@ Redpanda broker port - for init-container connectivity checks
 */}}
 {{- define "shoehorn.redpanda.port" -}}
 {{- include "shoehorn.redpanda.brokers" . | splitList ":" | last -}}
-{{- end }}
-
-{{/*
-EventBus GRPC address
-*/}}
-{{- define "shoehorn.eventbus.grpc" -}}
-{{- include "shoehorn.fullname" . }}-eventbus.{{ .Release.Namespace }}.svc.cluster.local:9083
 {{- end }}
 
 {{/*

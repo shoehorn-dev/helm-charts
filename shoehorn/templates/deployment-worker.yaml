@@ -92,6 +92,23 @@ spec:
         # Meilisearch (secret only, host/port/protocol in ConfigMap)
         {{- include "shoehorn.secretRef" (dict "env" "MEILISEARCH_MASTER_KEY" "ref" .Values.meilisearch.masterKeySecretRef "root" .) | nindent 8 }}
 
+        # Redpanda/Kafka topic tuning. The worker is the only service that
+        # creates Redpanda topics and enforces their retention config on
+        # boot, so it's the only deployment that needs these (REDPANDA_BROKERS
+        # itself comes from the shared backend ConfigMap via envFrom above).
+        - name: REDPANDA_TOPIC_PARTITIONS
+          value: {{ .Values.redpanda.topicPartitions | default 1 | int64 | quote }}
+        - name: REDPANDA_REPLICATION_FACTOR
+          value: {{ .Values.redpanda.replicationFactor | default 1 | int64 | quote }}
+        - name: REDPANDA_TOPIC_RETENTION_MS
+          value: {{ .Values.redpanda.topicRetentionMs | default 86400000 | int64 | quote }}
+        - name: REDPANDA_TOPIC_RETENTION_BYTES
+          value: {{ .Values.redpanda.topicRetentionBytes | default 134217728 | int64 | quote }}
+        - name: REDPANDA_TOPIC_SEGMENT_BYTES
+          value: {{ .Values.redpanda.topicSegmentBytes | default 16777216 | int64 | quote }}
+        - name: REDPANDA_TOPIC_SEGMENT_MS
+          value: {{ .Values.redpanda.topicSegmentMs | default 86400000 | int64 | quote }}
+
         # Distributed Tracing (OpenTelemetry)
         - name: TRACING_ENABLED
           value: {{ .Values.global.tracing.enabled | default false | quote }}

@@ -39,7 +39,7 @@ The `--set` values above are the minimum the chart requires beyond credentials. 
 
 ## Introduction
 
-This chart deploys Shoehorn on a Kubernetes cluster using the [Helm](https://helm.sh) package manager. It bundles the Shoehorn microservices (api, web, eventbus, worker, crawler, forge) along with PostgreSQL, Valkey, Meilisearch, and Redpanda.
+This chart deploys Shoehorn on a Kubernetes cluster using the [Helm](https://helm.sh) package manager. It bundles the Shoehorn microservices (api, web, worker, crawler, forge) along with PostgreSQL, Valkey, Meilisearch, and Redpanda.
 
 Container images live on [Docker Hub](https://hub.docker.com/u/shoehorned). The chart is published to `oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn`.
 
@@ -197,7 +197,7 @@ Key parameters:
 | `global.mtls.enabled` | gRPC mTLS between services | `false` |
 | `auth.orgdata.enabled` | Sync users and teams from IdPs | `false` |
 
-Per-service overrides (`api`, `web`, `eventbus`, `worker`, `crawler`, `forge`) accept `replicaCount`, `autoscaling`, `resources`, `env`, and `logLevel`.
+Per-service overrides (`api`, `web`, `worker`, `crawler`, `forge`) accept `replicaCount`, `autoscaling`, `resources`, `env`, and `logLevel`.
 
 The chart fails template rendering when a required `*SecretRef` can't resolve to a Secret name, or when an auth provider is missing required fields. Errors surface as plain messages in `helm install` output.
 
@@ -395,9 +395,9 @@ global:
 
 Set `redpanda.developerMode: true` only for throwaway local or CI installs where losing the bus on restart is fine. The setting takes effect when the Redpanda pod next restarts.
 
-`redpanda.topicPartitions` (default `1`) sets the partition count for topics the eventbus creates on startup. One partition fits a single broker. Raise it (with a matching `redpanda.replicationFactor`) only on a multi-broker cluster. Partition count applies to new topics only: existing topics keep theirs until recreated.
+`redpanda.topicPartitions` (default `1`) sets the partition count for topics the worker creates on startup. One partition fits a single broker. Raise it (with a matching `redpanda.replicationFactor`) only on a multi-broker cluster. Partition count applies to new topics only: existing topics keep theirs until recreated.
 
-`redpanda.topicRetentionMs`, `topicRetentionBytes`, `topicSegmentBytes`, and `topicSegmentMs` cap how much the event bus keeps on disk. Defaults hold roughly a day per topic with a 128 MiB-per-partition ceiling. The eventbus applies these to existing topics on startup, so changing them takes effect on the next eventbus restart without recreating topics. Tune retention down for tighter installs or up for longer replay/compliance windows.
+`redpanda.topicRetentionMs`, `topicRetentionBytes`, `topicSegmentBytes`, and `topicSegmentMs` cap how much the event bus keeps on disk. Defaults hold roughly a day per topic with a 128 MiB-per-partition ceiling. The worker applies these to existing topics on startup, so changing them takes effect on the next worker restart without recreating topics. Tune retention down for tighter installs or up for longer replay/compliance windows.
 
 ### Securing the event bus
 

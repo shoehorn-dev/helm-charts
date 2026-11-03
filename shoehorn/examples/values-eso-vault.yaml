@@ -214,7 +214,6 @@ extraVolumeMounts:
 replicaCount:
   api: 2
   web: 2
-  eventbus: 2
   worker: 2
   crawler: 2
   forge: 2

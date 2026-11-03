@@ -40,7 +40,6 @@ auth:
 replicaCount:
   api: 1
   web: 1
-  eventbus: 1
   worker: 1
   crawler: 1
   forge: 1

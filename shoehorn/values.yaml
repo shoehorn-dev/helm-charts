@@ -26,7 +26,7 @@ global:
     enabled: false
     otlpEndpoint: ""        # e.g. "jaeger-collector.observability:4317"
 
-  # gRPC mTLS for inter-service traffic (api, forge, worker, crawler, eventbus, cerbos)
+  # gRPC mTLS for inter-service traffic (api, forge, worker, crawler, cerbos)
   mtls:
     enabled: false
     createCertificates: true
@@ -102,7 +102,6 @@ registryCredentials:
 replicaCount:
   api: 1
   web: 1
-  eventbus: 1
   worker: 1
   crawler: 1
   forge: 1
@@ -251,34 +250,6 @@ web:
   readinessProbe:
     httpGet: { path: /, port: 4173 }
     initialDelaySeconds: 5
-    periodSeconds: 5
-  autoscaling:
-    enabled: false
-    minReplicas: 2
-    maxReplicas: 4
-    targetCPUUtilizationPercentage: 70
-
-# EventBus
-eventbus:
-  name: eventbus
-  logLevel: "info"
-  annotations: {}
-  image:
-    repository: shoehorned/shoehorn-eventbus
-    tag: ""
-  resources:
-    requests: { cpu: 100m, memory: 256Mi }
-    limits:   { cpu: 500m, memory: 512Mi }
-  env:
-    GRPC_PORT: "9083"
-    HTTP_PORT: "8083"
-  livenessProbe:
-    httpGet: { path: /healthz, port: 8083 }
-    initialDelaySeconds: 20
-    periodSeconds: 10
-  readinessProbe:
-    httpGet: { path: /readiness, port: 8083 }
-    initialDelaySeconds: 10
     periodSeconds: 5
   autoscaling:
     enabled: false
