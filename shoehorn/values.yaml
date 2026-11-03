@@ -632,7 +632,7 @@ meilisearch:
     key: meilisearch_master_key
   image:
     repository: getmeili/meilisearch
-    tag: "v1.48.3"
+    tag: "v1.56.1"
   # Migrate the data directory in place on a version bump. Back up first: see the chart README.
   upgradeOnStart: true
   # Extra CLI flags appended to the meilisearch binary. Empty for normal operation.
@@ -767,7 +767,7 @@ redpanda:
     enabled: false
   image:
     repository: redpandadata/redpanda
-    tag: v26.1.17
+    tag: v26.2.2
   resources:
     requests: { cpu: 500m, memory: 1Gi }
     limits:   { cpu: 2000m, memory: 4Gi }
@@ -810,23 +810,6 @@ redpanda:
     keyFile: "/etc/redpanda/certs/tls.key"
     caFile: "/etc/redpanda/certs/ca.crt"
     requireClientAuth: false
-
-# Kroki: diagram rendering for TechDocs (PlantUML, C4, BlockDiag, BPMN, ...).
-# Mermaid/Nomnoml/GraphViz render client-side and don't need this.
-kroki:
-  annotations: {}
-  enabled: false
-  image:
-    repository: yuzutech/kroki
-    tag: "0.30.1"
-    pullPolicy: IfNotPresent
-  replicas: 1
-  resources:
-    requests: { cpu: 100m, memory: 256Mi }
-    limits:   { cpu: 500m, memory: 512Mi }
-  external:
-    enabled: false
-    url: ""
 
 serviceAccount:
   create: true

@@ -186,15 +186,6 @@
         }
       }
     },
-    "kroki": {
-      "type": "object",
-      "description": "Kroki diagram-rendering sidecar (used by TechDocs)",
-      "additionalProperties": true,
-      "properties": {
-        "annotations": { "$ref": "#/$defs/catalogAnnotations" },
-        "enabled": { "type": "boolean", "default": false }
-      }
-    },
     "ingress": {
       "type": "object",
       "description": "Standard Kubernetes Ingress configuration",

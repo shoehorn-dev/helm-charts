@@ -247,6 +247,30 @@ helm upgrade shoehorn ... --values custom-values.yaml --wait
 
 Redpanda comes back on a PVC and keeps its data across restarts. Producers (api, worker, crawler, forge) get connection errors during the recreate and reconnect once it is ready.
 
+### Changing a data volume size
+
+`postgresql.persistence.size`, `meilisearch.persistence.size`, `valkey.persistence.size`, and `redpanda.persistence.size` hit the same `volumeClaimTemplates` immutability as above: on an existing release, `helm upgrade` fails if the new value differs from what's already deployed, because the chart renders it straight into `volumeClaimTemplates`. The chart checks this at render time (via `lookup`, so it only fires against a live cluster, never on an offline `helm template`) and fails with a message naming the component and the old and new size, instead of the apiserver's generic `StatefulSet.apps "..." is invalid` error.
+
+**Growing** a volume:
+
+1. Confirm the StorageClass supports it: `kubectl get storageclass <name> -o jsonpath='{.allowVolumeExpansion}'` should print `true`.
+2. Patch the PVC directly - the StatefulSet's `volumeClaimTemplates` only drives the initial PVC creation, not resizes:
+   ```bash
+   kubectl patch pvc data-shoehorn-valkey-0 -n shoehorn -p '{"spec":{"resources":{"requests":{"storage":"20Gi"}}}}'
+   ```
+3. Recreate the StatefulSet so the chart's declared size matches reality. The existing PVC is reused as-is - this step doesn't touch the data, it just stops the next unrelated upgrade from hitting the same immutability error:
+   ```bash
+   kubectl delete statefulset shoehorn-valkey -n shoehorn
+   helm upgrade shoehorn ... --values custom-values.yaml --wait
+   ```
+
+**Shrinking** isn't supported by Kubernetes PVC resize at all, with or without this chart - growing is the only direction the API accepts. Shrinking means destroying the PVC and letting a new, smaller one get provisioned, which loses everything on it. Back up first (see Upgrading Meilisearch below for the Meilisearch case), then:
+```bash
+kubectl delete statefulset shoehorn-valkey -n shoehorn
+kubectl delete pvc data-shoehorn-valkey-0 -n shoehorn
+helm upgrade shoehorn ... --values custom-values.yaml --wait
+```
+
 ### Upgrading Meilisearch
 
 Meilisearch won't start when its data directory was written by an older version. Boot a v1.53 image on a v1.45 volume and the pod crashloops with a "database version is incompatible" error until the data is migrated. The chart moves the default `meilisearch.image.tag` with platform releases: expect this whenever a release changes the version.
