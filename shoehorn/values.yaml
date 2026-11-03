@@ -632,7 +632,7 @@ meilisearch:
     key: meilisearch_master_key
   image:
     repository: getmeili/meilisearch
-    tag: "v1.48.3"
+    tag: "v1.56.1"
   # Migrate the data directory in place on a version bump. Back up first: see the chart README.
   upgradeOnStart: true
   # Extra CLI flags appended to the meilisearch binary. Empty for normal operation.
@@ -767,7 +767,7 @@ redpanda:
     enabled: false
   image:
     repository: redpandadata/redpanda
-    tag: v26.1.17
+    tag: v26.2.2
   resources:
     requests: { cpu: 500m, memory: 1Gi }
     limits:   { cpu: 2000m, memory: 4Gi }
