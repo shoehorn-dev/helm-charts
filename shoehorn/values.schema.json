@@ -214,7 +214,6 @@
       "properties": {
         "api": { "type": "integer", "minimum": 1, "default": 1 },
         "web": { "type": "integer", "minimum": 1, "default": 1 },
-        "eventbus": { "type": "integer", "minimum": 1, "default": 1 },
         "search": { "type": "integer", "minimum": 1, "default": 1 },
         "worker": { "type": "integer", "minimum": 1, "default": 1 },
         "crawler": { "type": "integer", "minimum": 1, "default": 1 },
@@ -486,7 +485,6 @@
     },
     "api": { "$ref": "#/$defs/serviceConfig" },
     "web": { "$ref": "#/$defs/serviceConfig" },
-    "eventbus": { "$ref": "#/$defs/serviceConfig" },
     "search": { "$ref": "#/$defs/serviceConfig" },
     "worker": { "$ref": "#/$defs/serviceConfig" },
     "crawler": { "$ref": "#/$defs/serviceConfig" },

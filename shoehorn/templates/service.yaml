@@ -35,28 +35,6 @@ spec:
       name: http
   selector:
     {{- include "shoehorn.web.selectorLabels" . | nindent 4 }}
-# EventBus Service
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ include "shoehorn.fullname" . }}-eventbus
-  namespace: {{ include "shoehorn.namespace.backend" . }}
-  labels:
-    {{- include "shoehorn.eventbus.labels" . | nindent 4 }}
-spec:
-  type: ClusterIP
-  ports:
-    - port: 9083
-      targetPort: grpc
-      protocol: TCP
-      name: grpc
-    - port: 8083
-      targetPort: http
-      protocol: TCP
-      name: http
-  selector:
-    {{- include "shoehorn.eventbus.selectorLabels" . | nindent 4 }}
 
 # Worker Service
 ---

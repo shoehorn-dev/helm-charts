@@ -31,21 +31,6 @@ spec:
     matchLabels:
       {{- include "shoehorn.web.selectorLabels" . | nindent 6 }}
 {{- end }}
-{{- if or (ge (int .Values.replicaCount.eventbus) 2) .Values.eventbus.autoscaling.enabled }}
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: {{ include "shoehorn.fullname" . }}-eventbus
-  namespace: {{ include "shoehorn.namespace.backend" . }}
-  labels:
-    {{- include "shoehorn.eventbus.labels" . | nindent 4 }}
-spec:
-  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
-  selector:
-    matchLabels:
-      {{- include "shoehorn.eventbus.selectorLabels" . | nindent 6 }}
-{{- end }}
 {{- if or (ge (int .Values.replicaCount.worker) 2) .Values.worker.autoscaling.enabled }}
 ---
 apiVersion: policy/v1

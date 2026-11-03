@@ -58,32 +58,6 @@ spec:
           averageUtilization: {{ .Values.web.autoscaling.targetCPUUtilizationPercentage }}
     {{- end }}
 {{- end }}
-{{- if .Values.eventbus.autoscaling.enabled }}
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: {{ include "shoehorn.fullname" . }}-eventbus
-  namespace: {{ include "shoehorn.namespace.backend" . }}
-  labels:
-    {{- include "shoehorn.eventbus.labels" . | nindent 4 }}
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: {{ include "shoehorn.fullname" . }}-eventbus
-  minReplicas: {{ .Values.eventbus.autoscaling.minReplicas }}
-  maxReplicas: {{ .Values.eventbus.autoscaling.maxReplicas }}
-  metrics:
-    {{- if .Values.eventbus.autoscaling.targetCPUUtilizationPercentage }}
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: {{ .Values.eventbus.autoscaling.targetCPUUtilizationPercentage }}
-    {{- end }}
-{{- end }}
 {{- if .Values.worker.autoscaling.enabled }}
 ---
 apiVersion: autoscaling/v2

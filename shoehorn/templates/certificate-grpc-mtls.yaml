@@ -1,6 +1,6 @@
 {{- /*
   Shared gRPC mTLS certificate. Mounted by api, forge, worker, crawler,
-  eventbus, and cerbos. They all use the same secret.
+  and cerbos. They all use the same secret.
 */ -}}
 {{- if and .Values.global.mtls.enabled .Values.global.mtls.createCertificates }}
 ---
@@ -32,8 +32,6 @@ spec:
     - {{ include "shoehorn.fullname" . }}-worker.{{ include "shoehorn.namespace.backend" . }}.svc.cluster.local
     - {{ include "shoehorn.fullname" . }}-crawler
     - {{ include "shoehorn.fullname" . }}-crawler.{{ include "shoehorn.namespace.backend" . }}.svc.cluster.local
-    - {{ include "shoehorn.fullname" . }}-eventbus
-    - {{ include "shoehorn.fullname" . }}-eventbus.{{ include "shoehorn.namespace.backend" . }}.svc.cluster.local
     - {{ include "shoehorn.fullname" . }}-cerbos
     - {{ include "shoehorn.fullname" . }}-cerbos.{{ include "shoehorn.namespace.backend" . }}.svc.cluster.local
   issuerRef:

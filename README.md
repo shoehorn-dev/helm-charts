@@ -10,7 +10,7 @@ Helm charts for [Shoehorn](https://shoehorn.dev), the Intelligent Developer Plat
 
 | Chart | Description |
 |-------|-------------|
-| [shoehorn](./shoehorn) | Full platform deployment (api, web, eventbus, worker, crawler, forge + datastores) |
+| [shoehorn](./shoehorn) | Full platform deployment (api, web, worker, crawler, forge + datastores) |
 | [shoehorn-k8s-agent](./shoehorn-k8s-agent) | Kubernetes agent for workload discovery, GitOps, and eBPF network flows |
 
 ## Repository

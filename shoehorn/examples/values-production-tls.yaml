@@ -15,7 +15,7 @@ global:
     name: "Your Company"
     slug: "your-company"
 
-  # Enable mTLS for ALL gRPC services (API, Forge, Worker, Crawler, Eventbus, Cerbos)
+  # Enable mTLS for ALL gRPC services (API, Forge, Worker, Crawler, Cerbos)
   mtls:
     enabled: true  # PRODUCTION: Enable mutual TLS
     createCertificates: true  # Let chart create certificates via cert-manager
