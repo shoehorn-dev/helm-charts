@@ -1,0 +1,64 @@
+suite: persistence.size validation against a live StatefulSet
+release:
+  name: test-release
+  namespace: test-ns
+  upgrade: true
+templates:
+  - templates/statefulset-valkey.yaml
+set:
+  secret.defaultName: test-secret
+kubernetesProvider:
+  scheme:
+    "apps/v1/StatefulSet":
+      gvr:
+        group: apps
+        version: v1
+        resource: statefulsets
+      namespaced: true
+tests:
+  - it: renders normally on a fresh install with no live StatefulSet yet
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: renders normally when persistence.size matches the live StatefulSet
+    set:
+      valkey.persistence.size: 10Gi
+    kubernetesProvider:
+      objects:
+        - apiVersion: apps/v1
+          kind: StatefulSet
+          metadata:
+            name: test-release-shoehorn-valkey
+            namespace: test-ns
+          spec:
+            volumeClaimTemplates:
+              - metadata:
+                  name: data
+                spec:
+                  resources:
+                    requests:
+                      storage: 10Gi
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: fails fast with an actionable message when persistence.size would change an existing StatefulSet
+    set:
+      valkey.persistence.size: 1Gi
+    kubernetesProvider:
+      objects:
+        - apiVersion: apps/v1
+          kind: StatefulSet
+          metadata:
+            name: test-release-shoehorn-valkey
+            namespace: test-ns
+          spec:
+            volumeClaimTemplates:
+              - metadata:
+                  name: data
+                spec:
+                  resources:
+                    requests:
+                      storage: 10Gi
+    asserts:
+      - failedTemplate:
+          errorPattern: "valkey\\.persistence\\.size changed from 10Gi to 1Gi"

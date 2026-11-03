@@ -436,6 +436,28 @@ Namespace helpers - all components deploy to Release.Namespace
 {{- end }}
 
 {{/*
+Fails fast when persistence.size no longer matches a live StatefulSet, instead of
+letting the apiserver reject the whole helm upgrade with a raw "Forbidden: updates to
+statefulset spec... are forbidden" error (volumeClaimTemplates is immutable). Skips
+silently when lookup has no cluster access (helm template/lint) or the StatefulSet
+doesn't exist yet (fresh install) - see shoehorn.validateValues for that convention.
+Usage: {{ include "shoehorn.persistence.validateSize" (dict "root" $ "component" "valkey" "size" .Values.valkey.persistence.size) }}
+*/}}
+{{- define "shoehorn.persistence.validateSize" -}}
+{{- $name := printf "%s-%s" (include "shoehorn.fullname" .root) .component -}}
+{{- $sts := lookup "apps/v1" "StatefulSet" (include "shoehorn.namespace.data" .root) $name -}}
+{{- if $sts -}}
+{{- $claims := $sts.spec.volumeClaimTemplates | default list -}}
+{{- if $claims -}}
+{{- $liveSize := (index $claims 0).spec.resources.requests.storage -}}
+{{- if and $liveSize (ne $liveSize .size) -}}
+{{- fail (printf "\n\n%s.persistence.size changed from %s to %s, but Kubernetes StatefulSets cannot update volumeClaimTemplates in place - the apiserver would reject this whole upgrade. Revert the value, or see the chart README 'Changing a data volume size' section to recreate the %s StatefulSet." .component $liveSize .size $name) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Render a public numeric id exactly; refuse a number YAML has already rounded (2^53 and up).
 */}}
 {{- define "shoehorn.publicId" -}}
