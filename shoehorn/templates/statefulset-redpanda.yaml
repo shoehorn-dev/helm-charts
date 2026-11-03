@@ -161,6 +161,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
   {{- if .Values.redpanda.persistence.enabled }}
+  {{- include "shoehorn.persistence.validateSize" (dict "root" $ "component" "redpanda" "size" .Values.redpanda.persistence.size) }}
   volumeClaimTemplates:
   - metadata:
       name: data

@@ -140,6 +140,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
   {{- if .Values.postgresql.persistence.enabled }}
+  {{- include "shoehorn.persistence.validateSize" (dict "root" $ "component" "postgresql" "size" .Values.postgresql.persistence.size) }}
   volumeClaimTemplates:
   - metadata:
       name: data

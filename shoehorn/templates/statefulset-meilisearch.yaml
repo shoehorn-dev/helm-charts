@@ -146,6 +146,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
   {{- if .Values.meilisearch.persistence.enabled }}
+  {{- include "shoehorn.persistence.validateSize" (dict "root" $ "component" "meilisearch" "size" .Values.meilisearch.persistence.size) }}
   volumeClaimTemplates:
   - metadata:
       name: data
