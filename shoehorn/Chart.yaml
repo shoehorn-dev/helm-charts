@@ -71,6 +71,8 @@ annotations:
        url: https://shoehorn.dev/dashboard.png
 
   artifacthub.io/changes: |
+    - kind: removed
+      description: "Breaking: removed the optional self-hosted Kroki diagram-rendering sidecar (kroki.enabled, kroki.image, kroki.resources, kroki.external.*) and its Ingress route at /kroki. It rendered extra diagram types (PlantUML, C4, BlockDiag, BPMN, and others) for the docs viewer; Mermaid, GraphViz, and Nomnoml diagrams are unaffected, since those already render client-side. Remove any kroki.* values from your values file before upgrading if you had it enabled."
     - kind: fixed
       description: "Changing postgresql.persistence.size, meilisearch.persistence.size, valkey.persistence.size, or redpanda.persistence.size on an existing release failed the whole helm upgrade with a raw StatefulSet 'Forbidden' error from the apiserver, because volumeClaimTemplates is immutable. The chart now catches this at render time and fails with a message naming the old and new size and pointing at 'Changing a data volume size' in the README, instead of three concatenated apiserver errors."
     - kind: fixed

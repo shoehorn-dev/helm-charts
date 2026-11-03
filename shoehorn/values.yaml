@@ -811,23 +811,6 @@ redpanda:
     caFile: "/etc/redpanda/certs/ca.crt"
     requireClientAuth: false
 
-# Kroki: diagram rendering for TechDocs (PlantUML, C4, BlockDiag, BPMN, ...).
-# Mermaid/Nomnoml/GraphViz render client-side and don't need this.
-kroki:
-  annotations: {}
-  enabled: false
-  image:
-    repository: yuzutech/kroki
-    tag: "0.30.1"
-    pullPolicy: IfNotPresent
-  replicas: 1
-  resources:
-    requests: { cpu: 100m, memory: 256Mi }
-    limits:   { cpu: 500m, memory: 512Mi }
-  external:
-    enabled: false
-    url: ""
-
 serviceAccount:
   create: true
   annotations: {}

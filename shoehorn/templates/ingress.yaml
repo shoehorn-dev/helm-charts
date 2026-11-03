@@ -76,18 +76,5 @@ spec:
                 name: {{ include "shoehorn.fullname" $ }}-api
                 port:
                   number: 8080
-          {{- if or $.Values.kroki.enabled $.Values.kroki.external.enabled }}
-          - path: /kroki
-            pathType: Prefix
-            backend:
-              service:
-                {{- if $.Values.kroki.external.enabled }}
-                name: {{ include "shoehorn.fullname" $ }}-kroki-external
-                {{- else }}
-                name: {{ include "shoehorn.fullname" $ }}-kroki
-                {{- end }}
-                port:
-                  number: 8000
-          {{- end }}
     {{- end }}
 {{- end }}
