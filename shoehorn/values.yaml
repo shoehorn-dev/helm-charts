@@ -603,7 +603,7 @@ meilisearch:
     key: meilisearch_master_key
   image:
     repository: getmeili/meilisearch
-    tag: "v1.56.1"
+    tag: "v1.56.2"
   # Migrate the data directory in place on a version bump. Back up first: see the chart README.
   upgradeOnStart: true
   # Extra CLI flags appended to the meilisearch binary. Empty for normal operation.
