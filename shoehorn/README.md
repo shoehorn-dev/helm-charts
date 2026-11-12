@@ -173,7 +173,7 @@ Key parameters:
 
 | Parameter | Description | Default |
 |---|---|---|
-| `global.domain` | Hostname users reach Shoehorn at (no default — chart fails fast if unset, e.g. `idp.acme.internal`) | _(required)_ |
+| `global.domain` | Hostname users reach Shoehorn at (no default; chart fails fast if unset, e.g. `idp.acme.internal`) | _(required)_ |
 | `global.organization.slug` | URL-safe org identifier (required) | `""` |
 | `global.storageClass` | Default storage class for PVCs | `""` |
 | `global.annotations` | Catalog annotations (`shoehorn.dev/` prefixed) applied to every workload; per-service `<svc>.annotations` keys override | `{}` |
@@ -213,6 +213,33 @@ Supported: Zitadel (default), Okta. See:
 
 - [`examples/values-okta.yaml`](examples/values-okta.yaml)
 - [Okta integration guide](https://docs.shoehorn.dev/integrations/okta)
+
+### First login
+
+Every login goes through your IdP via OIDC. There's no local-user or port-forward fallback. A new install starts with no roles assigned, so set a bootstrap admin before the first login:
+
+| Parameter | Description | Default |
+|---|---|---|
+| `rbac.roleAssignment.tenantAdmin.user` | Email of the account that gets `tenant:admin` on its first login, only while no roles exist yet | `""` |
+| `rbac.roleAssignment.tenantAdmin.group` | IdP group whose members get `tenant:admin` on first login instead. If both are set, `user` wins | `""` |
+
+Without one of these set, no one can reach `/admin/roles` to grant access after install. `helm install`/`helm upgrade` prints the resolved bootstrap account (or a warning if neither is set) in its NOTES. After the first login, manage roles at `https://<global.domain>/admin/roles`.
+
+### MCP (Model Context Protocol)
+
+Ships from platform v0.7.0. The chart's `appVersion` is still 0.6.0 as of this README, so on today's published chart these settings render but have no effect until you upgrade.
+
+`auth.mcp.enabled` is on by default: it lets MCP clients sign in to `/mcp` with an OIDC bearer token from your IdP, alongside personal access tokens, which keep working either way. If the audience or the public MCP URL can't be resolved, the platform logs a warning and falls back to personal access tokens only instead of refusing to start; set `auth.mcp.enabled` explicitly to turn that warning into a startup error once you depend on OAuth.
+
+| Parameter | Description | Default |
+|---|---|---|
+| `auth.mcp.enabled` | Turn the MCP OAuth resource server on/off | `true` |
+| `auth.mcp.audience` | Expected audience for MCP bearer tokens; empty auto-derives from the active provider | `""` |
+| `auth.mcp.clientId` | OAuth app an admin registered in the IdP for MCP clients to authenticate as. Required before the MCP setup page can offer company login: no supported IdP lets a client self-register | `""` |
+| `auth.mcp.callbackPort` | Loopback port the MCP client listens on for the sign-in redirect; must match the IdP's registered redirect URI, port included | `8080` |
+| `mcp.resourceUrl` | Canonical MCP endpoint advertised in the RFC 9728 Protected Resource Metadata document; empty derives `https://<global.domain>/mcp` | `""` |
+
+Set `auth.mcp.enabled=false` to opt out and keep MCP clients on personal access tokens only.
 
 ## Upgrading
 

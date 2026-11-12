@@ -141,6 +141,19 @@ Per-resource annotations:
 | `shoehorn.dev/collect-pod-metrics` | `"true"` / `"false"` |
 | `shoehorn.dev/collect-events` | `"true"` / `"false"` |
 
+### Optional discovery (broader RBAC)
+
+Both are off by default and independent of each other. Turning one on doesn't turn on the other.
+
+| Parameter | What it adds | Default |
+|---|---|---|
+| `agent.connected.enabled` | Resolves Services, ConfigMaps, Secrets, ServiceAccounts, RoleBindings, ClusterRoleBindings, Roles, ClusterRoles, and PVCs connected to each workload | `false` |
+| `agent.helm.enabled` | Reads `helm.sh/release.v1` Secrets to surface Helm releases and the resources each one manages | `false` |
+| `agent.helm.namespace` | Namespace to scan for release Secrets, or `""` for all | `""` |
+| `agent.helm.interval` | How often the agent rescans for releases (30s to 1h) | `5m` |
+
+**SECURITY:** both grant `list` on Secrets in the watched namespaces, and Kubernetes' `list` on Secrets returns full secret data, not just names. With `agent.connected.enabled`, the agent only ever transmits Secret *key names*, never values, but the RBAC grant still allows reading them. `agent.helm.enabled` only reads `helm.sh/release.v1` Secrets, but the RBAC grant covers every Secret in scope. Leave both off unless you need the discovery they provide.
+
 ### High availability
 
 | Parameter | Description | Default |
@@ -156,14 +169,18 @@ Without leader election, multiple replicas would emit duplicate events.
 
 | Parameter | Description | Default |
 |---|---|---|
-| `agent.gitops.tool` | `argocd`, `fluxcd`, or `""` (off) | `""` |
+| `agent.gitops.argocd.enabled` | The one knob to turn on ArgoCD drift detection; grants the needed in-cluster RBAC automatically | `false` |
+| `agent.gitops.fluxcd.enabled` | The one knob to turn on FluxCD drift detection | `false` |
+| `agent.gitops.tool` | Legacy override: `argocd`, `fluxcd`, or `""`. Still works and renders byte-identically to the flags above. Non-empty, it takes precedence over `argocd.enabled`/`fluxcd.enabled`; leave it `""` and use those instead | `""` |
 | `agent.gitops.watchAllNamespaces` | `false` = scoped Role on the tool's namespace; `true` = ClusterRole | `false` |
 | `agent.gitops.argocd.namespace` | | `argocd` |
-| `agent.gitops.argocd.serverURL` | For sync/refresh commands | `""` |
-| `agent.gitops.argocd.token` | ArgoCD API token (pass via `--set`, never check in) | `""` |
+| `agent.gitops.argocd.serverURL` | Optional; only powers the Sync/Refresh buttons and deep-link in the Shoehorn UI | `""` |
+| `agent.gitops.argocd.token` | Optional ArgoCD API token for Sync/Refresh (pass via `--set`, never check in); stored as a Secret | `""` |
 | `agent.gitops.fluxcd.namespace` | | `flux-system` |
-| `agent.gitops.commandPollInterval` | How often to poll Shoehorn for pending commands | `10s` |
-| `agent.manifestMirror.enabled` | Send sanitized ArgoCD Application manifests to Shoehorn for MCP. Secrets, env values and credential-bearing fields are stripped in the cluster first. Nothing is stored until the platform sets `MANIFEST_MIRROR_ENABLED`. Set `false` to stop sending | `true` |
+| `agent.gitops.commandPollInterval` | How often to poll Shoehorn for pending commands | `30s` |
+| `agent.manifestMirror.enabled` | Send sanitized ArgoCD Application manifests to Shoehorn for MCP. Secrets, env values and credential-bearing fields are stripped in the cluster first. Needs `agent.gitops.argocd.enabled` (reuses its watch, no extra RBAC). Nothing is stored until the platform sets `MANIFEST_MIRROR_ENABLED`. Set `false` to stop sending | `true` |
+
+The render fails fast on a bad combination: enabling both `argocd.enabled` and `fluxcd.enabled`, an `agent.gitops.tool` outside `argocd`/`fluxcd`/`""`, or setting `argocd.serverURL`/`argocd.token` while ArgoCD isn't the effective tool.
 
 GitOps watching is independent of workload watching. Enable one without changing the other. FluxCD doesn't need a token (the agent watches `Kustomization` and `HelmRelease` CRDs directly).
 
@@ -233,7 +250,7 @@ Then install:
 helm install shoehorn-k8s-agent oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn-k8s-agent \
   -f examples/values-production.yaml \
   --set shoehorn.apiToken=sha_... \
-  --set agent.gitops.tool=argocd \
+  --set agent.gitops.argocd.enabled=true \
   --set agent.gitops.argocd.serverURL=https://argocd.example.com \
   --set agent.gitops.argocd.token=<argocd-token> \
   --set agent.gitops.watchAllNamespaces=true
@@ -242,7 +259,7 @@ helm install shoehorn-k8s-agent oci://ghcr.io/shoehorn-dev/helm-charts/shoehorn-
 ### FluxCD
 
 ```bash
---set agent.gitops.tool=fluxcd
+--set agent.gitops.fluxcd.enabled=true
 ```
 
 No token needed. Add `--set agent.gitops.watchAllNamespaces=true` if Flux resources are spread across tenant namespaces.
