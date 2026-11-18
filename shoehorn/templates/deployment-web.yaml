@@ -58,15 +58,6 @@ spec:
           {{- toYaml .Values.web.readinessProbe | nindent 12 }}
         resources:
           {{- toYaml .Values.web.resources | nindent 12 }}
-        volumeMounts:
-        - name: nginx-cache
-          mountPath: /var/cache/nginx
-        - name: nginx-run
-          mountPath: /var/run
-        - name: nginx-tmp
-          mountPath: /tmp
-        - name: nginx-lib-tmp
-          mountPath: /var/lib/nginx/tmp
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -79,16 +70,3 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      volumes:
-      - name: nginx-cache
-        emptyDir:
-          sizeLimit: 10Mi
-      - name: nginx-run
-        emptyDir:
-          sizeLimit: 1Mi
-      - name: nginx-tmp
-        emptyDir:
-          sizeLimit: 1Mi
-      - name: nginx-lib-tmp
-        emptyDir:
-          sizeLimit: 1Mi
