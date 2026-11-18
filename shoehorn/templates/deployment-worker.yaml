@@ -92,6 +92,20 @@ spec:
         # Meilisearch (secret only, host/port/protocol in ConfigMap)
         {{- include "shoehorn.secretRef" (dict "env" "MEILISEARCH_MASTER_KEY" "ref" .Values.meilisearch.masterKeySecretRef "root" .) | nindent 8 }}
 
+        # Keycloak directory indexing. The worker builds its own admin client
+        # independently of AUTH_PROVIDER/the api service - this is the only
+        # provider the worker indexes users from directly, so it's gated on
+        # the admin secret being configured at all, not on auth.provider.
+        {{- if and .Values.auth.keycloak.adminClientSecretRef .Values.auth.keycloak.adminClientSecretRef.key }}
+        - name: KEYCLOAK_URL
+          value: {{ .Values.auth.keycloak.url | quote }}
+        - name: KEYCLOAK_REALM
+          value: {{ .Values.auth.keycloak.realm | quote }}
+        - name: KEYCLOAK_ADMIN_CLIENT_ID
+          value: {{ .Values.auth.keycloak.adminClientId | default "shoehorn-api" | quote }}
+        {{- include "shoehorn.secretRef" (dict "env" "KEYCLOAK_ADMIN_CLIENT_SECRET" "ref" .Values.auth.keycloak.adminClientSecretRef "root" .) | nindent 8 }}
+        {{- end }}
+
         # Redpanda/Kafka topic tuning. The worker is the only service that
         # creates Redpanda topics and enforces their retention config on
         # boot, so it's the only deployment that needs these (REDPANDA_BROKERS

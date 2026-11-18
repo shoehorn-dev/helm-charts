@@ -237,7 +237,7 @@
       "properties": {
         "provider": {
           "type": "string",
-          "enum": ["zitadel", "okta", "entra-id"],
+          "enum": ["zitadel", "okta", "entra-id", "keycloak"],
           "default": "zitadel"
         },
         "zitadel": {
@@ -292,6 +292,37 @@
             "clientSecretRef": {
               "$ref": "#/$defs/secretKeyRef",
               "description": "OIDC client secret. Required when auth.provider is \"entra-id\"."
+            }
+          }
+        },
+        "keycloak": {
+          "type": "object",
+          "description": "Keycloak OIDC configuration. Required fields become mandatory when auth.provider = \"keycloak\". Unlike Okta, Keycloak does not default a token's audience to the client_id - auth.audience is also required for this provider.",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "Base Keycloak URL (e.g. 'https://keycloak.example.com'), no trailing slash, no /realms path."
+            },
+            "realm": {
+              "type": "string",
+              "description": "Keycloak realm name."
+            },
+            "clientId": {
+              "type": "string",
+              "description": "OIDC client ID for the login client."
+            },
+            "clientSecretRef": {
+              "$ref": "#/$defs/secretKeyRef",
+              "description": "Login client secret. Required when auth.provider is \"keycloak\"."
+            },
+            "adminClientId": {
+              "type": "string",
+              "description": "Service-account client ID used for directory sync. Separate from the login client above.",
+              "default": "shoehorn-api"
+            },
+            "adminClientSecretRef": {
+              "$ref": "#/$defs/secretKeyRef",
+              "description": "Service-account client secret. Required when orgdata syncs from Keycloak."
             }
           }
         },
@@ -425,6 +456,33 @@
             "properties": {
               "zitadel": {
                 "required": ["projectId", "clientId", "externalUrl"]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "provider": { "const": "keycloak" } },
+            "required": ["provider"]
+          },
+          "then": {
+            "required": ["keycloak", "audience"],
+            "properties": {
+              "audience": {
+                "minLength": 1,
+                "description": "Keycloak does not default a token's audience to the client_id - this must be set explicitly (usually to the login client's ID, via a dedicated Audience protocol mapper)."
+              },
+              "keycloak": {
+                "required": ["url", "realm", "clientId", "clientSecretRef"],
+                "properties": {
+                  "url": { "minLength": 1 },
+                  "realm": { "minLength": 1 },
+                  "clientId": { "minLength": 1 },
+                  "clientSecretRef": {
+                    "required": ["key"],
+                    "properties": { "key": { "minLength": 1 } }
+                  }
+                }
               }
             }
           }

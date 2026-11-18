@@ -1,0 +1,154 @@
+suite: Keycloak auth provider wiring
+templates:
+  - templates/deployment-api.yaml
+  - templates/deployment-forge.yaml
+  - templates/deployment-worker.yaml
+  - templates/configmap-backend.yaml
+release:
+  name: test-release
+  namespace: test-ns
+set:
+  image.tag: 0.0.0-test
+  global.domain: idp.acme.test
+  secret.defaultName: shoehorn-shared
+tests:
+  - it: refuses a keycloak config missing the required fields
+    template: templates/deployment-api.yaml
+    set:
+      auth.provider: keycloak
+    asserts:
+      - failedTemplate:
+          errorPattern: "auth/audience.*minLength|auth/keycloak.*validation failed"
+
+  - it: api gets KEYCLOAK_URL/REALM/CLIENT_ID/SECRET and AUTH_AUDIENCE when keycloak is the login provider
+    template: templates/deployment-api.yaml
+    set:
+      auth.provider: keycloak
+      auth.audience: shoehorn-web
+      auth.keycloak.url: https://keycloak.example.com
+      auth.keycloak.realm: shoehorn
+      auth.keycloak.clientId: shoehorn-web
+      auth.keycloak.clientSecretRef.key: keycloak_client_secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AUTH_PROVIDER
+            value: "keycloak"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AUTH_AUDIENCE
+            value: "shoehorn-web"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KEYCLOAK_URL
+            value: "https://keycloak.example.com"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KEYCLOAK_REALM
+            value: "shoehorn"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KEYCLOAK_CLIENT_ID
+            value: "shoehorn-web"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KEYCLOAK_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: shoehorn-shared
+                key: keycloak_client_secret
+
+  - it: forge also gets AUTH_AUDIENCE - regression for the pre-existing gap where forge never emitted it at all
+    template: templates/deployment-forge.yaml
+    set:
+      auth.provider: keycloak
+      auth.audience: shoehorn-web
+      auth.keycloak.url: https://keycloak.example.com
+      auth.keycloak.realm: shoehorn
+      auth.keycloak.clientId: shoehorn-web
+      auth.keycloak.clientSecretRef.key: keycloak_client_secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AUTH_AUDIENCE
+            value: "shoehorn-web"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KEYCLOAK_CLIENT_ID
+            value: "shoehorn-web"
+
+  - it: api and worker get the admin client vars when orgdata syncs from keycloak, even if keycloak is not the login provider
+    template: templates/deployment-worker.yaml
+    set:
+      auth.provider: zitadel
+      auth.zitadel.projectId: "1"
+      auth.zitadel.clientId: "2"
+      auth.zitadel.externalUrl: https://auth.example.com
+      auth.keycloak.url: https://keycloak.example.com
+      auth.keycloak.realm: shoehorn
+      auth.keycloak.adminClientId: shoehorn-api
+      auth.keycloak.adminClientSecretRef.key: keycloak_admin_client_secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KEYCLOAK_URL
+            value: "https://keycloak.example.com"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KEYCLOAK_ADMIN_CLIENT_ID
+            value: "shoehorn-api"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KEYCLOAK_ADMIN_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: shoehorn-shared
+                key: keycloak_admin_client_secret
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KEYCLOAK_CLIENT_ID
+
+  - it: forge never gets the admin client vars - forge does not do orgdata sync
+    template: templates/deployment-forge.yaml
+    set:
+      auth.provider: zitadel
+      auth.zitadel.projectId: "1"
+      auth.zitadel.clientId: "2"
+      auth.zitadel.externalUrl: https://auth.example.com
+      auth.keycloak.url: https://keycloak.example.com
+      auth.keycloak.realm: shoehorn
+      auth.keycloak.adminClientSecretRef.key: keycloak_admin_client_secret
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KEYCLOAK_ADMIN_CLIENT_ID
+
+  - it: zitadel (the default provider) emits zero Keycloak env vars
+    template: templates/deployment-api.yaml
+    set:
+      auth.provider: zitadel
+      auth.zitadel.projectId: "1"
+      auth.zitadel.clientId: "2"
+      auth.zitadel.externalUrl: https://auth.example.com
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KEYCLOAK_URL
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KEYCLOAK_CLIENT_ID
