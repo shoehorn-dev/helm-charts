@@ -234,6 +234,28 @@ spec:
         {{- end }}
         {{- end }}
 
+        {{- $keycloakAdminConfigured := and .Values.auth.keycloak.adminClientSecretRef .Values.auth.keycloak.adminClientSecretRef.key }}
+        {{- if or (eq .Values.auth.provider "keycloak") $keycloakAdminConfigured }}
+        # Keycloak: URL/realm are shared by the login client and the
+        # admin/service-account client below, so emit them whenever either
+        # is configured, not only when Keycloak is the login provider.
+        - name: KEYCLOAK_URL
+          value: {{ .Values.auth.keycloak.url | quote }}
+        - name: KEYCLOAK_REALM
+          value: {{ .Values.auth.keycloak.realm | quote }}
+        {{- end }}
+        {{- if eq .Values.auth.provider "keycloak" }}
+        - name: KEYCLOAK_CLIENT_ID
+          value: {{ .Values.auth.keycloak.clientId | quote }}
+        {{- include "shoehorn.secretRef" (dict "env" "KEYCLOAK_CLIENT_SECRET" "ref" .Values.auth.keycloak.clientSecretRef "root" .) | nindent 8 }}
+        {{- end }}
+        {{- if $keycloakAdminConfigured }}
+        # Keycloak admin/service-account client (directory sync via the admin API)
+        - name: KEYCLOAK_ADMIN_CLIENT_ID
+          value: {{ .Values.auth.keycloak.adminClientId | default "shoehorn-api" | quote }}
+        {{- include "shoehorn.secretRef" (dict "env" "KEYCLOAK_ADMIN_CLIENT_SECRET" "ref" .Values.auth.keycloak.adminClientSecretRef "root" .) | nindent 8 }}
+        {{- end }}
+
         # GitHub (appId / installationId are public).
         {{- if .Values.auth.github.appId }}
         - name: GITHUB_APP_ID

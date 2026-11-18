@@ -115,6 +115,10 @@ spec:
         # Auth (JWT verification on gRPC)
         - name: AUTH_PROVIDER
           value: {{ .Values.auth.provider | quote }}
+        {{- if .Values.auth.audience }}
+        - name: AUTH_AUDIENCE
+          value: {{ .Values.auth.audience | quote }}
+        {{- end }}
 
         {{- if eq .Values.auth.provider "zitadel" }}
         # Zitadel Provider
@@ -166,6 +170,17 @@ spec:
         - name: ENTRA_AUTHORITY
           value: {{ .Values.auth.entraId.authority | quote }}
         {{- end }}
+        {{- end }}
+
+        {{- if eq .Values.auth.provider "keycloak" }}
+        # Keycloak Provider
+        - name: KEYCLOAK_URL
+          value: {{ .Values.auth.keycloak.url | quote }}
+        - name: KEYCLOAK_REALM
+          value: {{ .Values.auth.keycloak.realm | quote }}
+        - name: KEYCLOAK_CLIENT_ID
+          value: {{ .Values.auth.keycloak.clientId | quote }}
+        {{- include "shoehorn.secretRef" (dict "env" "KEYCLOAK_CLIENT_SECRET" "ref" .Values.auth.keycloak.clientSecretRef "root" .) | nindent 8 }}
         {{- end }}
 
         # Cerbos Authorization

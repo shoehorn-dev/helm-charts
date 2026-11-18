@@ -1,0 +1,125 @@
+# Shoehorn with Keycloak: Reference Values
+# ======================================
+# Minimal working configuration for deploying Shoehorn against an existing
+# Keycloak realm, using Keycloak for both authentication (OIDC) and orgdata
+# sync (user/team directory).
+#
+# Before applying, complete the Keycloak setup steps at:
+#   https://docs.shoehorn.dev/integrations/keycloak
+# Create the login client with an Audience protocol mapper (Keycloak does
+# NOT default a token's audience to the client_id, unlike Okta), add a
+# Group Membership mapper, and create a separate service-account client for
+# orgdata sync.
+#
+# Usage:
+#   # postgres_password and db_password must be URL-safe (they get embedded
+#   # in DATABASE_URL). Use `openssl rand -hex`, not `-base64`. Base64 produces
+#   # `/` characters that break the connection-string parser at the first one.
+#   kubectl create secret generic shoehorn-auth-secrets -n shoehorn \
+#     --from-literal=keycloak_client_secret='<login-client-secret>' \
+#     --from-literal=keycloak_admin_client_secret='<service-account-secret>' \
+#     --from-literal=auth_encryption_key="$(openssl rand -base64 32)" \
+#     --from-literal=secrets_encryption_key="$(openssl rand -base64 32)" \
+#     --from-literal=jwt_secret="$(openssl rand -hex 32)" \
+#     --from-literal=postgres_password="$(openssl rand -hex 24)" \
+#     --from-literal=db_password="$(openssl rand -hex 24)" \
+#     --from-literal=valkey_password='<valkey-password>' \
+#     --from-literal=meilisearch_master_key="$(openssl rand -base64 32)"
+#
+#   helm install shoehorn ./shoehorn -n shoehorn --create-namespace \
+#     -f ./shoehorn/examples/values-keycloak.yaml
+#
+# CHANGE_ME: review every value marked below before deploying.
+
+global:
+  # CHANGE_ME: your Shoehorn hostname (used for the Keycloak redirect allowlist)
+  domain: idp.acme.internal
+
+  organization:
+    # CHANGE_ME
+    name: "Acme Corp"
+    slug: "acme-corp"
+
+# Point the chart at the Kubernetes Secret you created above.
+# defaultName sets the fallback `name:` for every *SecretRef below. Each
+# ref then only needs to specify which `key:` inside this Secret holds the
+# credential.
+secret:
+  defaultName: shoehorn-auth-secrets
+
+# Authentication: Keycloak OIDC
+# ──────────────────────────
+# auth.provider = "keycloak" triggers values.schema.json's conditional
+# require on auth.keycloak.{url,realm,clientId,clientSecretRef} AND on
+# auth.audience - unlike Okta/Entra/Zitadel, Keycloak does not default a
+# token's audience to the client_id, so this must be set explicitly. Helm
+# will refuse to install if any of these are empty.
+auth:
+  provider: keycloak
+
+  # CHANGE_ME: must equal the login client's ID below. Requires a dedicated
+  # Audience protocol mapper on that client - see the setup guide.
+  audience: shoehorn-web
+
+  keycloak:
+    # CHANGE_ME: your Keycloak base URL. No trailing slash, no /realms path.
+    url: https://keycloak.acme.internal
+    # CHANGE_ME: the realm Shoehorn's clients live in.
+    realm: shoehorn
+    # CHANGE_ME: the login client's ID. Public identifier, not a secret.
+    clientId: shoehorn-web
+
+    # Login client secret. Required for Keycloak auth.
+    clientSecretRef:
+      key: keycloak_client_secret
+
+    # Service-account client, separate from the login client above. Required
+    # when orgdata.providers includes "keycloak". Create a second,
+    # confidential client with Service Accounts enabled and the
+    # realm-management roles (manage-users, view-users, query-groups,
+    # query-users) assigned - see the setup guide. On Keycloak 26.8.2+ this
+    # client also needs `kc-admin-api` added as a DEFAULT client scope, or
+    # every admin API call 401s.
+    adminClientId: shoehorn-api
+    adminClientSecretRef:
+      key: keycloak_admin_client_secret
+
+  # Org data sync. Keycloak's admin API is the user/team source of truth.
+  orgdata:
+    enabled: true
+    providers: ["keycloak"]
+    primaryProvider: "keycloak"
+
+  # Required session keys. All three resolve against secret.defaultName.
+  session:
+    maxAge: "8h"
+    jwtSecretRef:
+      key: jwt_secret
+    encryptionKeyRef:
+      key: auth_encryption_key
+    secretsEncryptionKeyRef:
+      key: secrets_encryption_key
+
+  csrf:
+    enabled: true
+
+# Infrastructure credentials. Same shoehorn-auth-secrets Secret, different keys.
+postgresql:
+  superuserPasswordSecretRef:
+    key: postgres_password
+  passwordSecretRef:
+    key: db_password
+
+valkey:
+  passwordSecretRef:
+    key: valkey_password
+
+meilisearch:
+  masterKeySecretRef:
+    key: meilisearch_master_key
+
+# Image configuration. The chart ships with `image.tag` set to the release
+# version, so this block only needs an entry when pinning to a different tag
+# or pointing at a mirror.
+# image:
+#   tag: "v0.5.21"

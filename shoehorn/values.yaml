@@ -367,7 +367,7 @@ forge:
     maxReplicas: 4
     targetCPUUtilizationPercentage: 70
 
-# Authentication (OIDC). Providers: zitadel, okta, entra-id.
+# Authentication (OIDC). Providers: zitadel, okta, entra-id, keycloak.
 auth:
   provider: zitadel
 
@@ -409,6 +409,26 @@ auth:
     clientId: ""
     authority: ""
     clientSecretRef:                # required when auth.provider is "entra-id"
+      name: ""
+      key: ""
+
+  # Keycloak does NOT default a token's `aud` to the client_id the way Okta
+  # does - auth.audience above is REQUIRED when provider is "keycloak" (set
+  # it to the login client's ID, via a dedicated Audience protocol mapper on
+  # that client). Built-in realm client IDs (account, admin-cli, etc.) are
+  # rejected as an audience value - that would accept a token minted for any
+  # client in the realm, not just this one.
+  keycloak:
+    url: ""                         # e.g. https://keycloak.example.com, no trailing slash
+    realm: ""
+    clientId: ""                    # the login client's ID
+    clientSecretRef:                # required when auth.provider is "keycloak"
+      name: ""
+      key: ""
+    # Admin/service-account client, separate from the login client above.
+    # Optional: only needed to sync users/teams from Keycloak (orgdata).
+    adminClientId: "shoehorn-api"
+    adminClientSecretRef:           # required when orgdata syncs from Keycloak
       name: ""
       key: ""
 
