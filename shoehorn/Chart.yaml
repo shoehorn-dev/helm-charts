@@ -71,6 +71,8 @@ annotations:
        url: https://shoehorn.dev/dashboard.png
 
   artifacthub.io/changes: |
+    - kind: changed
+      description: "The web pod no longer runs nginx; it's served by a small Go static file server on the same distroless base the other platform services already use, closing nginx's own CVE history rather than just reducing its base-OS surface. No values change needed. The nginx-cache/nginx-run/nginx-tmp/nginx-lib-tmp emptyDir volumes - including the one added for the crash-loop fix mentioned further down this list - are removed, since the new server needs no writable paths at all."
     - kind: removed
       description: "Breaking: removed the eventbus Deployment, Service, HPA, PDB, and its gRPC mTLS certificate entry. It only ever exposed health and reflection on gRPC; the worker already imported the same event-bus client in-process and is now the one that creates Redpanda topics and enforces their retention config on boot. If you set eventbus.* (image, resources, autoscaling, env) or replicaCount.eventbus, remove those values before upgrading - they're no longer read. redpanda.topicPartitions, replicationFactor, topicRetentionMs/Bytes, and topicSegmentBytes/Ms keep working unchanged; they now apply to the worker deployment instead."
     - kind: removed
