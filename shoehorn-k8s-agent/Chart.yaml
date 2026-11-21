@@ -52,6 +52,8 @@ annotations:
 
   artifacthub.io/changes: |
     - kind: added
+      description: "agent.nodeInfo.enabled collects per-node version facts and the control-plane version for Shoehorn's Infrastructure CVE inventory. On by default."
+    - kind: added
       description: "agent.fullSyncMaxWait sets how long the agent's startup full sync may wait for Shoehorn before it gives up and withholds its completion (SHOEHORN_FULL_SYNC_MAX_WAIT). Empty keeps the agent's default of 15 minutes; 1m to 24h allowed."
     - kind: changed
       description: "agent.pushRetries now has a maximum of 10 and agent.pushTimeout accepts 1s to 5m, as the agent does. pushRetries limits the pushes after the startup full sync; with a matching agent release, the startup full sync's pushes are retried until Shoehorn accepts them. examples/values-large-cluster.yaml explains memory with a measurement: about 15 MiB per 1,000 Deployments and Pods after the startup list and a peak of about 30 MiB per 1,000 during it, so its 512Mi limit is too small at 20,000 objects."

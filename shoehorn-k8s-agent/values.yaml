@@ -192,6 +192,10 @@ agent:
   manifestMirror:
     enabled: true
 
+  # Node and control-plane version collection for the Infrastructure CVE inventory.
+  nodeInfo:
+    enabled: true
+
   # Annotation-based monitoring configuration
   # Provides fine-grained control over which resources are monitored
   annotations:

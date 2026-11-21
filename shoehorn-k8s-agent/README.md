@@ -204,6 +204,7 @@ GitOps watching is independent of workload watching. Enable one without changing
 | `agent.fullSyncMaxWait` | `""` (agent default 15m; 1m to 24h). How long the startup full sync may wait for Shoehorn before giving up; bounds the agent's memory during an outage |
 | `agent.metrics.sampleInterval` | `5m` |
 | `agent.metrics.windowHours` | `168` (7 days) |
+| `agent.nodeInfo.enabled` | `true`. Per-node version facts and the control-plane version for the Infrastructure CVE inventory |
 | `terminationGracePeriodSeconds` | `45` (the agent pushes its last batch for up to 25s, then releases its lease) |
 
 ## Common scenarios

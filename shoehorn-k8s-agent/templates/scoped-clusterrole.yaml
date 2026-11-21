@@ -19,11 +19,8 @@ rules:
       {{- end }}
     verbs:
       - get
-  # Node count (heartbeat) and provider detection. The agent only lists nodes,
-  # it never gets one by name and never watches them, so list is the complete
-  # set (intentionally tighter than cluster mode's get/list/watch). Read-only,
-  # not tenant-sensitive. Remove if your policy forbids it; the agent degrades
-  # gracefully (heartbeat omits nodeCount, provider stays unset).
+  # Node count (heartbeat), provider detection, and per-node version facts
+  # (agent.nodeInfo.enabled). List only - read-only, not tenant-sensitive.
   - apiGroups: [""]
     resources:
       - nodes
