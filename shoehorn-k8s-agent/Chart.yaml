@@ -52,7 +52,7 @@ annotations:
 
   artifacthub.io/changes: |
     - kind: added
-      description: "agent.nodeInfo.enabled collects per-node version facts (OS image, kernel, kubelet, container runtime) and the control-plane version, for Shoehorn's Infrastructure CVE inventory. No extra RBAC: node listing reuses the existing node-count grant, and control-plane discovery is served by Kubernetes' own default system:public-info-viewer binding. On by default. SHOEHORN_NODE_INFO_ENABLED is always rendered, same as the manifest mirror's toggle. Nothing is stored until the platform also consumes it."
+      description: "agent.nodeInfo.enabled collects per-node version facts and the control-plane version for Shoehorn's Infrastructure CVE inventory. On by default."
     - kind: added
       description: "agent.fullSyncMaxWait sets how long the agent's startup full sync may wait for Shoehorn before it gives up and withholds its completion (SHOEHORN_FULL_SYNC_MAX_WAIT). Empty keeps the agent's default of 15 minutes; 1m to 24h allowed."
     - kind: changed
