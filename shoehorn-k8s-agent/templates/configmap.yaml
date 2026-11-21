@@ -99,3 +99,6 @@ data:
   {{- /* Always rendered: the agent's own default is on, so omitting the key
          would not turn the mirror off. */}}
   SHOEHORN_MANIFEST_MIRROR_ENABLED: {{ .Values.agent.manifestMirror.enabled | quote }}
+  {{- /* Always rendered: the agent's own default is on, so omitting the key
+         would not turn node/control-plane version collection off. */}}
+  SHOEHORN_NODE_INFO_ENABLED: {{ .Values.agent.nodeInfo.enabled | quote }}

@@ -192,6 +192,19 @@ agent:
   manifestMirror:
     enabled: true
 
+  # Node/control-plane version collection (on by default)
+  # The agent collects per-node version facts (OS image, kernel, kubelet,
+  # container runtime, architecture) and the control-plane version, for
+  # Shoehorn's Infrastructure CVE inventory. Needs NO extra RBAC: node
+  # listing reuses the same List call the node-count heartbeat already
+  # makes, and control-plane discovery (/version) is served by Kubernetes'
+  # own default system:public-info-viewer binding, not a grant this chart
+  # makes. Either call failing (e.g. a hardened cluster that removed that
+  # default binding) just omits that field for the cycle. Set false to turn
+  # collection off.
+  nodeInfo:
+    enabled: true
+
   # Annotation-based monitoring configuration
   # Provides fine-grained control over which resources are monitored
   annotations:
