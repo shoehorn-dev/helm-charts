@@ -141,6 +141,10 @@ httpRoute:
   gatewayName: eg
   gatewayNamespace: envoy-gateway-system
   annotations: {}
+  # Request timeout on the API and MCP rules. Envoy Gateway's default is 15s,
+  # which cuts a slow request before the API answers it with its own 504 at
+  # 30s. Keep it above 35s, or set "" to leave the gateway's default.
+  apiRequestTimeout: "40s"
   filters:
     api: []
     web: []
@@ -188,6 +192,10 @@ notifications:
 api:
   name: api
   logLevel: "info"
+  # The API waits up to 35s for in-flight requests when it shuts down, then
+  # takes about 10s to flush events, metrics and traces. Keep it at 45 or more;
+  # Kubernetes' default grace period is 30s.
+  terminationGracePeriodSeconds: 45
   annotations: {}
     # team: "platform-team"
     # repositoryUrl: "https://github.com/org/shoehorn-api"

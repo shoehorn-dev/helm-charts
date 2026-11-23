@@ -79,9 +79,9 @@ spec:
         {{- include "shoehorn.secretRef" (dict "env" "DB_PASSWORD" "ref" .Values.postgresql.passwordSecretRef "root" .) | nindent 8 }}
         - name: DATABASE_URL
           {{- if .Values.postgresql.tls.enabled }}
-          value: "postgresql://app_user:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode={{ .Values.postgresql.tls.sslMode | default "require" }}"
+          value: "postgresql://app_user:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:{{ include "shoehorn.postgresql.port" . }}/{{ include "shoehorn.postgresql.database" . }}?sslmode={{ .Values.postgresql.tls.sslMode | default "require" }}"
           {{- else }}
-          value: "postgresql://app_user:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode=disable"
+          value: "postgresql://app_user:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:{{ include "shoehorn.postgresql.port" . }}/{{ include "shoehorn.postgresql.database" . }}?sslmode=disable"
           {{- end }}
         - name: DB_HOST
           value: {{ include "shoehorn.postgresql.host" . }}
