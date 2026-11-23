@@ -1,0 +1,121 @@
+suite: API gateway and shutdown timeouts
+templates:
+  - templates/httproute.yaml
+  - templates/deployment-api.yaml
+  # The API's checksum/config annotation hashes this ConfigMap.
+  - templates/configmap-backend.yaml
+release:
+  name: test-release
+  namespace: test-ns
+set:
+  image.tag: 0.0.0-test
+  global.domain: example.com
+  auth.provider: zitadel
+  auth.zitadel.projectId: test
+  auth.zitadel.clientId: test
+  auth.zitadel.externalUrl: https://example.test
+  secret.defaultName: shoehorn-shared
+tests:
+  # Envoy Gateway cuts a request at 15 s by default, before the API answers a
+  # slow request with its own JSON 504 at 30 s (written within 35 s).
+  - it: gives the API and MCP rules a request timeout above the API's own
+    template: templates/httproute.yaml
+    set:
+      httpRoute.enabled: true
+    asserts:
+      - equal:
+          path: spec.rules[0].timeouts.request
+          value: 40s
+      - equal:
+          path: spec.rules[1].timeouts.request
+          value: 40s
+      - notExists:
+          path: spec.rules[2].timeouts
+
+  - it: leaves the gateway default when the timeout is set empty
+    template: templates/httproute.yaml
+    set:
+      httpRoute.enabled: true
+      httpRoute.apiRequestTimeout: ""
+    asserts:
+      - notExists:
+          path: spec.rules[0].timeouts
+      - notExists:
+          path: spec.rules[1].timeouts
+
+  # The API waits up to 35 s for in-flight requests on shutdown; Kubernetes
+  # kills the pod after 30 s unless the grace period is longer.
+  - it: gives the API pod a grace period longer than its shutdown wait
+    template: templates/deployment-api.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 45
+
+  - it: takes an operator's grace period
+    template: templates/deployment-api.yaml
+    set:
+      api.terminationGracePeriodSeconds: 90
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 90
+
+  - it: renders a zero grace period rather than dropping it
+    template: templates/deployment-api.yaml
+    set:
+      api.terminationGracePeriodSeconds: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 0
+
+  - it: takes an operator's route timeout as a string
+    template: templates/httproute.yaml
+    set:
+      httpRoute.enabled: true
+      httpRoute.apiRequestTimeout: 1m
+    asserts:
+      - equal:
+          path: spec.rules[0].timeouts.request
+          value: 1m
+
+  - it: refuses a route timeout without a unit
+    template: templates/httproute.yaml
+    set:
+      httpRoute.enabled: true
+      httpRoute.apiRequestTimeout: "60"
+    asserts:
+      - failedTemplate: {}
+
+  - it: refuses a route timeout given as a number
+    template: templates/httproute.yaml
+    set:
+      httpRoute.enabled: true
+      httpRoute.apiRequestTimeout: 60
+    asserts:
+      - failedTemplate: {}
+
+  # helm upgrade --reuse-values keeps the old release's values, which have
+  # neither key: the defaults must still render.
+  - it: gives the 45s grace period when an upgrade's values lack the key
+    template: templates/deployment-api.yaml
+    set:
+      api.terminationGracePeriodSeconds: null
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 45
+
+  - it: gives the 40s route timeout when an upgrade's values lack the key
+    template: templates/httproute.yaml
+    set:
+      httpRoute.enabled: true
+      httpRoute.apiRequestTimeout: null
+    asserts:
+      - equal:
+          path: spec.rules[0].timeouts.request
+          value: 40s
+      - equal:
+          path: spec.rules[1].timeouts.request
+          value: 40s

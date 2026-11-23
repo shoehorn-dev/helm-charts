@@ -49,6 +49,12 @@ jobs:
             --set auth.zitadel.externalUrl=https://auth.example.com \
             > /dev/null
 
+      - name: Install helm-unittest
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest.git --version v1.0.3 --verify=false
+
+      - name: Unit test shoehorn
+        run: helm unittest shoehorn/
+
       # helm-unittest can't produce the exact integers --set passes.
       - name: Template shoehorn with numeric Zitadel ids
         run: |

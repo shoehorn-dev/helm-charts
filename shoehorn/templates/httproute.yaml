@@ -28,6 +28,10 @@ spec:
         - name: {{ include "shoehorn.fullname" . }}-api
           namespace: {{ include "shoehorn.namespace.backend" . }}
           port: 8080
+      {{- with include "shoehorn.apiRequestTimeout" . }}
+      timeouts:
+        request: {{ . | quote }}
+      {{- end }}
       {{- if .Values.httpRoute.filters.api }}
       filters:
         {{- toYaml .Values.httpRoute.filters.api | nindent 8 }}
@@ -62,6 +66,10 @@ spec:
         - name: {{ include "shoehorn.fullname" . }}-api
           namespace: {{ include "shoehorn.namespace.backend" . }}
           port: 8080
+      {{- with include "shoehorn.apiRequestTimeout" . }}
+      timeouts:
+        request: {{ . | quote }}
+      {{- end }}
       {{- if .Values.httpRoute.filters.api }}
       filters:
         {{- toYaml .Values.httpRoute.filters.api | nindent 8 }}

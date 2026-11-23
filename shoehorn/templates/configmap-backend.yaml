@@ -16,8 +16,8 @@ data:
   {{- end }}
 
   # Database
-  DB_PORT: "5432"
-  DB_NAME: "shoehorn"
+  DB_PORT: {{ include "shoehorn.postgresql.port" . | quote }}
+  DB_NAME: {{ include "shoehorn.postgresql.database" . | quote }}
   DB_USER: "app_user"
   {{- if .Values.postgresql.tls.enabled }}
   DB_SSLMODE: {{ .Values.postgresql.tls.sslMode | default "require" | quote }}

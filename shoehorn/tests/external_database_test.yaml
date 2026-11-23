@@ -1,0 +1,81 @@
+suite: external PostgreSQL addresses
+templates:
+  - templates/deployment-api.yaml
+  - templates/deployment-crawler.yaml
+  - templates/deployment-forge.yaml
+  - templates/configmap-backend.yaml
+release:
+  name: shoehorn
+  namespace: shoehorn
+set:
+  image.tag: 0.0.0-test
+  global.domain: example.com
+  auth.provider: zitadel
+  auth.zitadel.projectId: test
+  auth.zitadel.clientId: test
+  auth.zitadel.externalUrl: https://example.test
+  secret.defaultName: shoehorn-shared
+tests:
+  # A managed database often listens on another port (UpCloud 11569,
+  # DigitalOcean 25060) under its own database name and user.
+  - it: points migrations at the external server's port, database and user
+    template: templates/deployment-api.yaml
+    set:
+      postgresql.external.enabled: true
+      postgresql.external.host: db.example.com
+      postgresql.external.port: 11569
+      postgresql.external.database: shdb
+      postgresql.external.user: migrator
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[?(@.name == "migrate")].env[?(@.name == "MIGRATION_DATABASE_URL")].value
+          value: "postgresql://migrator:$(POSTGRES_PASSWORD)@db.example.com:11569/shdb?sslmode=disable"
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "api")].env[?(@.name == "DATABASE_URL")].value
+          value: "postgresql://app_user:$(DB_PASSWORD)@db.example.com:11569/shdb?sslmode=disable"
+
+  - it: points the crawler at the external server
+    template: templates/deployment-crawler.yaml
+    set:
+      postgresql.external.enabled: true
+      postgresql.external.host: db.example.com
+      postgresql.external.port: 11569
+      postgresql.external.database: shdb
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name == "DATABASE_URL")].value
+          pattern: "@db\\.example\\.com:11569/shdb\\?"
+
+  - it: points Forge at the external server
+    template: templates/deployment-forge.yaml
+    set:
+      postgresql.external.enabled: true
+      postgresql.external.host: db.example.com
+      postgresql.external.port: 11569
+      postgresql.external.database: shdb
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name == "DATABASE_URL")].value
+          pattern: "@db\\.example\\.com:11569/shdb\\?"
+
+  - it: gives the backend the external port and database
+    template: templates/configmap-backend.yaml
+    set:
+      postgresql.external.enabled: true
+      postgresql.external.host: db.example.com
+      postgresql.external.port: 11569
+      postgresql.external.database: shdb
+    asserts:
+      - equal:
+          path: data.DB_PORT
+          value: "11569"
+      - equal:
+          path: data.DB_NAME
+          value: shdb
+
+  - it: keeps the bundled database's address
+    template: templates/deployment-api.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[?(@.name == "migrate")].env[?(@.name == "MIGRATION_DATABASE_URL")].value
+          value: "postgresql://shoehorn_user:$(POSTGRES_PASSWORD)@shoehorn-postgresql.shoehorn.svc.cluster.local:5432/shoehorn?sslmode=disable"

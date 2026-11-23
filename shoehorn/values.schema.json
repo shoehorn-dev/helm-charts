@@ -160,7 +160,12 @@
       "description": "Envoy Gateway HTTPRoute configuration (alternative to ingressRoute and ingress)",
       "additionalProperties": true,
       "properties": {
-        "enabled": { "type": "boolean", "default": false }
+        "enabled": { "type": "boolean", "default": false },
+        "apiRequestTimeout": {
+          "type": "string",
+          "description": "Request timeout on the API and MCP rules, a Gateway API duration such as 40s or 1m; empty keeps the gateway's default",
+          "pattern": "^$|^([0-9]{1,5}(h|m|s|ms)){1,4}$"
+        }
       }
     },
     "service": {
@@ -541,7 +546,20 @@
         }
       }
     },
-    "api": { "$ref": "#/$defs/serviceConfig" },
+    "api": {
+      "allOf": [
+        { "$ref": "#/$defs/serviceConfig" },
+        {
+          "properties": {
+            "terminationGracePeriodSeconds": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Seconds Kubernetes waits before killing the API pod; keep it above the API's 35s shutdown wait"
+            }
+          }
+        }
+      ]
+    },
     "web": { "$ref": "#/$defs/serviceConfig" },
     "search": { "$ref": "#/$defs/serviceConfig" },
     "worker": { "$ref": "#/$defs/serviceConfig" },

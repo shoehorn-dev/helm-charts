@@ -71,6 +71,12 @@ annotations:
        url: https://shoehorn.dev/dashboard.png
 
   artifacthub.io/changes: |
+    - kind: fixed
+      description: "With an external PostgreSQL (postgresql.external.enabled), the API, crawler and Forge now connect on postgresql.external.port to postgresql.external.database, and migrations run as postgresql.external.user. They used to use port 5432 and the shoehorn database whatever was set, so a managed database on another port couldn't be reached."
+    - kind: fixed
+      description: "On Envoy Gateway (httpRoute.enabled), a slow API request ended at the gateway's 15s default with a plain-text 504, before the API's own answer. The API and MCP routes now allow 40s (httpRoute.apiRequestTimeout; set it to an empty string to keep the gateway's default)."
+    - kind: fixed
+      description: "The API pod's grace period is now 45s (api.terminationGracePeriodSeconds), longer than the 35s the API waits for in-flight requests when it shuts down, so a rollout no longer cuts them off."
     - kind: changed
       description: "The web pod no longer runs nginx; it's served by a small Go static file server on the same distroless base the other platform services already use, closing nginx's own CVE history rather than just reducing its base-OS surface. No values change needed. The nginx-cache/nginx-run/nginx-tmp/nginx-lib-tmp emptyDir volumes - including the one added for the crash-loop fix mentioned further down this list - are removed, since the new server needs no writable paths at all."
     - kind: removed

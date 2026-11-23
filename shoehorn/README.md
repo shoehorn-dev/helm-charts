@@ -182,8 +182,14 @@ Key parameters:
 | `auth.audience` | Expected JWT audience; empty defaults to the provider's client_id | `""` |
 | `ingressRoute.enabled` | Traefik IngressRoute | `true` |
 | `ingress.enabled` | Standard Kubernetes Ingress | `false` |
+| `httpRoute.apiRequestTimeout` | Request timeout on the API and MCP routes (Gateway API v1.2+); `""` keeps the gateway's default | `40s` |
+| `api.terminationGracePeriodSeconds` | Seconds Kubernetes waits before killing an API pod; at least 45: the API's 35s shutdown wait plus about 10s of cleanup | `45` |
 | `postgresql.persistence.size` | PVC size | `20Gi` |
 | `postgresql.external.enabled` | Use external PostgreSQL | `false` |
+| `postgresql.external.host` | External PostgreSQL host | `""` |
+| `postgresql.external.port` | External PostgreSQL port | `5432` |
+| `postgresql.external.database` | Database the services use | `shoehorn` |
+| `postgresql.external.user` | User that runs migrations (its password in `postgresql.superuserPasswordSecretRef`) | `shoehorn_user` |
 | `valkey.external.enabled` | Use external Redis/Valkey | `false` |
 | `meilisearch.external.enabled` | Use Meilisearch Cloud | `false` |
 | `redpanda.external.enabled` | Use external Kafka/Redpanda | `false` |

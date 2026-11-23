@@ -284,6 +284,28 @@ PostgreSQL host - returns external host or internal service name
 {{/*
 PostgreSQL port
 */}}
+{{/*
+The database the services use: the external server's when one is configured.
+*/}}
+{{- define "shoehorn.postgresql.database" -}}
+{{- if .Values.postgresql.external.enabled -}}
+{{- .Values.postgresql.external.database | default "shoehorn" -}}
+{{- else -}}
+shoehorn
+{{- end -}}
+{{- end }}
+
+{{/*
+The user that runs migrations: the external server's when one is configured.
+*/}}
+{{- define "shoehorn.postgresql.migrationUser" -}}
+{{- if .Values.postgresql.external.enabled -}}
+{{- .Values.postgresql.external.user | default "shoehorn_user" -}}
+{{- else -}}
+shoehorn_user
+{{- end -}}
+{{- end }}
+
 {{- define "shoehorn.postgresql.port" -}}
 {{- if .Values.postgresql.external.enabled -}}
 {{- .Values.postgresql.external.port -}}
@@ -590,6 +612,18 @@ Usage: {{- include "shoehorn.extraVolumes" . | nindent 6 }}
 Extra volume mounts. Renders user-provided extraVolumeMounts list.
 Usage: {{- include "shoehorn.extraVolumeMounts" . | nindent 8 }}
 */}}
+{{/*
+The API and MCP routes' request timeout: "40s" when an upgrade's reused values
+lack the key, nothing when it's set to "" (the gateway's own default).
+*/}}
+{{- define "shoehorn.apiRequestTimeout" -}}
+{{- if hasKey .Values.httpRoute "apiRequestTimeout" -}}
+{{- .Values.httpRoute.apiRequestTimeout -}}
+{{- else -}}
+40s
+{{- end -}}
+{{- end -}}
+
 {{- define "shoehorn.extraVolumeMounts" -}}
 {{- range .Values.extraVolumeMounts }}
 - {{- toYaml . | nindent 2 }}

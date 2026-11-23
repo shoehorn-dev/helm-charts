@@ -25,6 +25,8 @@ spec:
     spec:
       {{- include "shoehorn.imagePullSecrets" . | nindent 6 }}
       serviceAccountName: {{ include "shoehorn.serviceAccountName" . }}
+      {{- /* 45 when an upgrade's reused values lack the key; an explicit 0 still wins */}}
+      terminationGracePeriodSeconds: {{ ternary .Values.api.terminationGracePeriodSeconds 45 (hasKey .Values.api "terminationGracePeriodSeconds") }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
@@ -46,9 +48,9 @@ spec:
         {{- include "shoehorn.secretRef" (dict "env" "POSTGRES_PASSWORD" "ref" .Values.postgresql.superuserPasswordSecretRef "root" .) | nindent 8 }}
         - name: MIGRATION_DATABASE_URL
           {{- if .Values.postgresql.tls.enabled }}
-          value: "postgresql://shoehorn_user:$(POSTGRES_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode={{ .Values.postgresql.tls.sslMode | default "require" }}"
+          value: "postgresql://{{ include "shoehorn.postgresql.migrationUser" . }}:$(POSTGRES_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:{{ include "shoehorn.postgresql.port" . }}/{{ include "shoehorn.postgresql.database" . }}?sslmode={{ .Values.postgresql.tls.sslMode | default "require" }}"
           {{- else }}
-          value: "postgresql://shoehorn_user:$(POSTGRES_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode=disable"
+          value: "postgresql://{{ include "shoehorn.postgresql.migrationUser" . }}:$(POSTGRES_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:{{ include "shoehorn.postgresql.port" . }}/{{ include "shoehorn.postgresql.database" . }}?sslmode=disable"
           {{- end }}
         {{- include "shoehorn.secretRef" (dict "env" "APP_USER_PASSWORD" "ref" .Values.postgresql.passwordSecretRef "root" .) | nindent 8 }}
         - name: ENVIRONMENT
@@ -84,9 +86,9 @@ spec:
         {{- include "shoehorn.secretRef" (dict "env" "DB_PASSWORD" "ref" .Values.postgresql.passwordSecretRef "root" .) | nindent 8 }}
         - name: DATABASE_URL
           {{- if .Values.postgresql.tls.enabled }}
-          value: "postgresql://app_user:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode={{ .Values.postgresql.tls.sslMode | default "require" }}"
+          value: "postgresql://app_user:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:{{ include "shoehorn.postgresql.port" . }}/{{ include "shoehorn.postgresql.database" . }}?sslmode={{ .Values.postgresql.tls.sslMode | default "require" }}"
           {{- else }}
-          value: "postgresql://app_user:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:5432/shoehorn?sslmode=disable"
+          value: "postgresql://app_user:$(DB_PASSWORD)@{{ include "shoehorn.postgresql.host" . }}:{{ include "shoehorn.postgresql.port" . }}/{{ include "shoehorn.postgresql.database" . }}?sslmode=disable"
           {{- end }}
         {{- include "shoehorn.secretRef" (dict "env" "APP_USER_PASSWORD" "ref" .Values.postgresql.passwordSecretRef "root" .) | nindent 8 }}
         - name: DB_HOST
