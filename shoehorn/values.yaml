@@ -846,11 +846,12 @@ monitoring:
     enabled: true
 
 # RBAC.
-# Role assignment uses runtime env vars: TENANT_ADMIN_USERS, TENANT_ADMIN_GROUPS,
-# TENANT_VIEWER_USERS, TENANT_VIEWER_GROUPS.
+# Role assignment uses runtime env vars: TENANT_ADMIN_USER, TENANT_ADMIN_GROUP.
 rbac:
   enabled: true
   # Bootstrap admin gets tenant:admin on first login when no roles exist in DB.
+  # Keep user set: it is how this admin gets back into their account after
+  # an identity provider switch.
   roleAssignment:
     tenantAdmin:
       user: ""        # email (single)
