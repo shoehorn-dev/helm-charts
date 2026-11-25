@@ -226,8 +226,8 @@ Every login goes through your IdP via OIDC. There's no local-user or port-forwar
 
 | Parameter | Description | Default |
 |---|---|---|
-| `rbac.roleAssignment.tenantAdmin.user` | Email of the account that gets `tenant:admin` on its first login, only while no roles exist yet | `""` |
-| `rbac.roleAssignment.tenantAdmin.group` | IdP group whose members get `tenant:admin` on first login instead. If both are set, `user` wins | `""` |
+| `rbac.roleAssignment.tenantAdmin.user` | Email of the account that gets `tenant:admin` on its first login, only while no roles exist yet. Keep it set: it's how this admin gets back into their account after an identity provider switch | `""` |
+| `rbac.roleAssignment.tenantAdmin.group` | IdP group whose members get `tenant:admin` on first login instead. If both are set, `user` wins. A group doesn't get anyone back in after a provider switch | `""` |
 
 Without one of these set, no one can reach `/admin/roles` to grant access after install. `helm install`/`helm upgrade` prints the resolved bootstrap account (or a warning if neither is set) in its NOTES. After the first login, manage roles at `https://<global.domain>/admin/roles`.
 
