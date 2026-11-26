@@ -1,4 +1,7 @@
-{{- if .Values.podDisruptionBudget.enabled }}
+{{- $pdb := .Values.podDisruptionBudget }}
+{{- $hasMin := or (eq ($pdb.minAvailable | toString) "0") $pdb.minAvailable }}
+{{- $hasMax := or (eq ($pdb.maxUnavailable | toString) "0") $pdb.maxUnavailable }}
+{{- if and $pdb.enabled (gt (int .Values.replicaCount) 1) (or $hasMin $hasMax) }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -8,11 +11,10 @@ metadata:
   annotations:
     {{- include "shoehorn-agent.annotations" . | nindent 4 }}
 spec:
-  {{- if or (eq (.Values.podDisruptionBudget.minAvailable | toString) "0") (.Values.podDisruptionBudget.minAvailable) }}
-  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
-  {{- end }}
-  {{- if or (eq (.Values.podDisruptionBudget.maxUnavailable | toString) "0") (.Values.podDisruptionBudget.maxUnavailable) }}
-  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- if $hasMin }}
+  minAvailable: {{ $pdb.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ $pdb.maxUnavailable }}
   {{- end }}
   selector:
     matchLabels:

@@ -1,0 +1,86 @@
+suite: pod disruption budget
+templates:
+  - templates/poddisruptionbudget.yaml
+release:
+  name: test-release
+  namespace: test-ns
+set:
+  shoehorn.apiURL: https://shoehorn.example.test
+  shoehorn.cluster.id: test-cluster
+  shoehorn.apiToken: test-token
+tests:
+  # A budget over a single replica would block every node drain.
+  - it: renders no budget for a single replica
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: lets one replica go at a time with two or more
+    set:
+      replicaCount: 2
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.maxUnavailable
+          value: 1
+      - notExists:
+          path: spec.minAvailable
+
+  # Kubernetes rejects a budget that sets both fields.
+  - it: uses minAvailable alone when it is set without clearing maxUnavailable
+    set:
+      replicaCount: 3
+      podDisruptionBudget.minAvailable: 2
+    asserts:
+      - equal:
+          path: spec.minAvailable
+          value: 2
+      - notExists:
+          path: spec.maxUnavailable
+
+  - it: keeps an explicit minAvailable of 0
+    set:
+      replicaCount: 2
+      podDisruptionBudget.minAvailable: 0
+    asserts:
+      - equal:
+          path: spec.minAvailable
+          value: 0
+      - notExists:
+          path: spec.maxUnavailable
+
+  - it: keeps an explicit maxUnavailable of 0
+    set:
+      replicaCount: 2
+      podDisruptionBudget.maxUnavailable: 0
+    asserts:
+      - equal:
+          path: spec.maxUnavailable
+          value: 0
+
+  - it: takes a percentage
+    set:
+      replicaCount: 4
+      podDisruptionBudget.maxUnavailable: 25%
+    asserts:
+      - equal:
+          path: spec.maxUnavailable
+          value: 25%
+
+  - it: renders nothing when neither field is set
+    set:
+      replicaCount: 2
+      podDisruptionBudget.maxUnavailable: null
+      podDisruptionBudget.minAvailable: null
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders nothing when disabled
+    set:
+      replicaCount: 2
+      podDisruptionBudget.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0

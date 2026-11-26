@@ -428,20 +428,25 @@
     },
     "podDisruptionBudget": {
       "type": "object",
-      "description": "PodDisruptionBudget configuration",
+      "description": "PodDisruptionBudget, rendered only when replicaCount is 2 or more",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Enable PodDisruptionBudget for high availability",
+          "description": "Create a PodDisruptionBudget when replicaCount is 2 or more",
           "default": true
         },
         "maxUnavailable": {
-          "type": ["integer", "null"],
-          "description": "Max unavailable pods (use 0 for single replica mode)"
+          "type": ["integer", "string", "null"],
+          "minimum": 0,
+          "pattern": "^[0-9]{1,3}%$",
+          "description": "Agent pods that may be down during a voluntary disruption",
+          "default": 1
         },
         "minAvailable": {
-          "type": ["integer", "null"],
-          "description": "Min available pods (use 2 for HA mode with 3 replicas)"
+          "type": ["integer", "string", "null"],
+          "minimum": 0,
+          "pattern": "^[0-9]{1,3}%$",
+          "description": "Agent pods that must stay up; takes precedence over maxUnavailable"
         }
       }
     },

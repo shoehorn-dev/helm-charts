@@ -160,8 +160,9 @@ Both are off by default and independent of each other. Turning one on doesn't tu
 |---|---|---|
 | `replicaCount` | Replicas (use 3 for HA) | `1` |
 | `leaderElection.enabled` | Leader election (required when `replicaCount > 1`) | `true` |
-| `podDisruptionBudget.enabled` | PDB | `true` |
-| `podDisruptionBudget.maxUnavailable` | | `0` |
+| `podDisruptionBudget.enabled` | PDB, created only when `replicaCount` is 2 or more | `true` |
+| `podDisruptionBudget.maxUnavailable` | Agent pods, or a percentage such as `25%`, that may be down at once | `1` |
+| `podDisruptionBudget.minAvailable` | Agent pods, or a percentage, that must stay up; takes precedence over `maxUnavailable` | |
 
 Without leader election, multiple replicas would emit duplicate events.
 
