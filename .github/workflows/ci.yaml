@@ -90,6 +90,9 @@ jobs:
             --set shoehorn.cluster.id=ci-test \
             > /dev/null
 
+      - name: Unit test shoehorn-k8s-agent
+        run: helm unittest shoehorn-k8s-agent/
+
   validate-examples:
     name: Validate Example Values
     runs-on: ubuntu-latest

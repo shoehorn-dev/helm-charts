@@ -287,17 +287,11 @@ tolerations: []
 # Affinity
 affinity: {}
 
-# PodDisruptionBudget configuration
+# PodDisruptionBudget, rendered only when replicaCount is 2 or more
 podDisruptionBudget:
-  # Enable PodDisruptionBudget for high availability
   enabled: true
-  # For single replica mode (replicas: 1):
-  #   maxUnavailable: 0  # Prevents disruption of only pod
-  #   minAvailable: null
-  # For HA mode (replicas: 3):
-  #   maxUnavailable: null
-  #   minAvailable: 2  # Ensures 2/3 pods always available
-  maxUnavailable: 0
+  # Set minAvailable instead to keep a fixed number running; it takes precedence
+  maxUnavailable: 1
   minAvailable:
 
 # Seconds Kubernetes waits after SIGTERM before killing the agent. On shutdown
@@ -313,12 +307,5 @@ leaderElection:
   # Namespace for leader election lease (defaults to release namespace)
   namespace: ""
 
-# Replica count
-# Single replica (replicaCount: 1):
-#   - Simple deployment, single point of failure
-#   - Set podDisruptionBudget.maxUnavailable: 0
-# High availability (replicaCount: 3):
-#   - Leader election ensures only 1 pod sends events
-#   - Set podDisruptionBudget.minAvailable: 2
-#   - Pod anti-affinity recommended (see affinity below)
+# Replicas; 2 or more adds a PodDisruptionBudget, and HA works best with 3 and pod anti-affinity
 replicaCount: 1
