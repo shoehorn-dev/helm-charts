@@ -1,0 +1,33 @@
+suite: external PostgreSQL over TLS
+templates:
+  - templates/clusterissuer-selfsigned.yaml
+release:
+  name: test-release
+  namespace: test-ns
+set:
+  image.tag: 0.0.0-test
+  global.domain: idp.acme.test
+  secret.defaultName: shoehorn-shared
+  postgresql.enabled: false
+  postgresql.external.enabled: true
+  postgresql.external.host: db.example.com
+tests:
+  # An external server brings its own certificate. postgresql.tls only sets
+  # sslmode on the connection then, so it must not also create the in-cluster
+  # CA chain, which needs cert-manager (2026-11-27 parity audit, 5g).
+  - it: creates no CA for TLS to an external database
+    set:
+      postgresql.tls.enabled: true
+      postgresql.tls.sslMode: verify-full
+      postgresql.tls.createCertificate: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: still creates the CA when gRPC mTLS needs it
+    set:
+      postgresql.tls.enabled: true
+      global.mtls.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 3

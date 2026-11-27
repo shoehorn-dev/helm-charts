@@ -1,0 +1,85 @@
+suite: worker identity issuer
+templates:
+  - templates/deployment-worker.yaml
+  # The worker's checksum/config annotation includes the backend ConfigMap.
+  - templates/configmap-backend.yaml
+release:
+  name: test-release
+  namespace: test-ns
+set:
+  # Chart refuses to default to :latest, so component renders need an explicit tag.
+  image.tag: 0.0.0-test
+  global.domain: idp.acme.test
+  secret.defaultName: shoehorn-shared
+tests:
+  # IdP group sync runs in the worker and stores members in the authid form
+  # sign-in writes, which needs the provider's issuer. The chart gave the issuer
+  # only to the api, so the worker wrote raw subjects: every synced person showed
+  # up twice in their team, once without a name (2026-11-27 release audit, B1).
+  - it: gives the worker the Okta domain and issuer
+    template: templates/deployment-worker.yaml
+    set:
+      auth.provider: okta
+      auth.okta.domain: acme.okta.com
+      auth.okta.clientId: okta-client
+      auth.okta.clientSecretRef.key: OKTA_CLIENT_SECRET
+      auth.okta.issuer: https://acme.okta.com/oauth2/custom
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OKTA_DOMAIN
+            value: acme.okta.com
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OKTA_ISSUER
+            value: https://acme.okta.com/oauth2/custom
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ZITADEL_URL
+            value: https://auth.example.com
+          any: true
+
+  - it: leaves OKTA_ISSUER out when only the domain is set
+    template: templates/deployment-worker.yaml
+    set:
+      auth.provider: okta
+      auth.okta.domain: acme.okta.com
+      auth.okta.clientId: okta-client
+      auth.okta.clientSecretRef.key: OKTA_CLIENT_SECRET
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OKTA_ISSUER
+          any: true
+
+  - it: gives the worker the Zitadel URL when Zitadel signs people in
+    template: templates/deployment-worker.yaml
+    set:
+      auth.provider: zitadel
+      auth.zitadel.projectId: test
+      auth.zitadel.clientId: test
+      auth.zitadel.externalUrl: https://zitadel.acme.test
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ZITADEL_URL
+            value: https://zitadel.acme.test
+
+  - it: gives the worker the Entra tenant
+    template: templates/deployment-worker.yaml
+    set:
+      auth.provider: entra-id
+      auth.entraId.tenantId: 0b5c-tenant
+      auth.entraId.clientId: entra-client
+      auth.entraId.clientSecretRef.key: ENTRA_CLIENT_SECRET
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTRA_TENANT_ID
+            value: 0b5c-tenant

@@ -39,7 +39,15 @@
           "description": "Distributed tracing (OpenTelemetry) configuration",
           "properties": {
             "enabled": { "type": "boolean", "default": false },
-            "otlpEndpoint": { "type": "string" }
+            "otlpEndpoint": { "type": "string" },
+            "caSecretRef": {
+              "type": "object",
+              "description": "Secret holding the PEM CA that signed the tracing collector's TLS certificate",
+              "properties": {
+                "name": { "type": "string" },
+                "key": { "type": "string" }
+              }
+            }
           }
         },
         "mtls": {

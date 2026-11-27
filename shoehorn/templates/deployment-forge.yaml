@@ -210,6 +210,7 @@ spec:
         - name: GRPC_TLS_CA_FILE
           value: {{ .Values.global.mtls.caFile | quote }}
         {{- end }}
+        {{- include "shoehorn.tracingCaEnv" . | nindent 8 }}
 
         # GitHub Forge App (separate from auth.github)
         {{- if .Values.auth.github.forge.appId }}
@@ -235,6 +236,7 @@ spec:
         volumeMounts:
         {{- include "shoehorn.extraVolumeMounts" . | nindent 8 }}
         {{- include "shoehorn.grpcMtlsVolumeMounts" . | nindent 8 }}
+        {{- include "shoehorn.tracingCaVolumeMounts" . | nindent 8 }}
 
         livenessProbe:
           {{- toYaml .Values.forge.livenessProbe | nindent 12 }}
@@ -245,6 +247,7 @@ spec:
       volumes:
       {{- include "shoehorn.extraVolumes" . | nindent 6 }}
       {{- include "shoehorn.grpcMtlsVolumes" . | nindent 6 }}
+      {{- include "shoehorn.tracingCaVolumes" . | nindent 6 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

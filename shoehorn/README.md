@@ -200,6 +200,8 @@ Key parameters:
 | `redpanda.developerMode` | Run Redpanda in developer mode (no fsync) | `false` |
 | `smtp.enabled` | SMTP delivery | `false` |
 | `global.tracing.enabled` | OpenTelemetry tracing | `false` |
+| `global.tracing.otlpEndpoint` | OTLP gRPC endpoint of your collector | `""` |
+| `global.tracing.caSecretRef` | Secret `name` and `key` holding the PEM CA that signed the collector's certificate. Needed outside development unless `global.mtls.enabled` and the mesh CA signed it | unset |
 | `global.mtls.enabled` | gRPC mTLS between services | `false` |
 | `auth.orgdata.enabled` | Sync users and teams from IdPs | `false` |
 

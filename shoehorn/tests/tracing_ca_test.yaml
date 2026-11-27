@@ -1,0 +1,87 @@
+suite: tracing collector CA
+templates:
+  - templates/deployment-api.yaml
+  - templates/deployment-worker.yaml
+  - templates/deployment-crawler.yaml
+  - templates/deployment-forge.yaml
+  # The checksum/config annotations include the backend ConfigMap.
+  - templates/configmap-backend.yaml
+release:
+  name: test-release
+  namespace: test-ns
+set:
+  # Chart refuses to default to :latest, so component renders need an explicit tag.
+  image.tag: 0.0.0-test
+  global.domain: idp.acme.test
+  auth.provider: zitadel
+  auth.zitadel.projectId: test
+  auth.zitadel.clientId: test
+  auth.zitadel.externalUrl: https://example.test
+  secret.defaultName: shoehorn-shared
+  global.tracing.enabled: true
+  global.tracing.otlpEndpoint: otel-collector.observability:4317
+tests:
+  # Outside development, tracing only connects to the collector over TLS, and
+  # the only CA the chart could supply was the internal mesh CA (global.mtls).
+  # An install tracing to its own collector lost tracing on upgrade to 0.7.0
+  # (2026-11-27 parity audit, 5c).
+  - it: mounts the collector CA and points OpenTelemetry at it
+    set:
+      global.tracing.caSecretRef.name: collector-ca
+      global.tracing.caSecretRef.key: ca.pem
+    templates:
+      - templates/deployment-api.yaml
+      - templates/deployment-worker.yaml
+      - templates/deployment-crawler.yaml
+      - templates/deployment-forge.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE
+            value: /etc/shoehorn/tracing-ca/ca.crt
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: tracing-ca
+            mountPath: /etc/shoehorn/tracing-ca
+            readOnly: true
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: tracing-ca
+            secret:
+              secretName: collector-ca
+              items:
+                - key: ca.pem
+                  path: ca.crt
+              defaultMode: 0444
+
+  - it: falls back to secret.defaultName for the CA secret
+    set:
+      global.tracing.caSecretRef.key: ca.pem
+    template: templates/deployment-worker.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: tracing-ca
+            secret:
+              secretName: shoehorn-shared
+              items:
+                - key: ca.pem
+                  path: ca.crt
+              defaultMode: 0444
+
+  - it: adds nothing when no CA is set
+    templates:
+      - templates/deployment-api.yaml
+      - templates/deployment-worker.yaml
+      - templates/deployment-crawler.yaml
+      - templates/deployment-forge.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE
+          any: true

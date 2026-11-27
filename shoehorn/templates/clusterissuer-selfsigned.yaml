@@ -3,7 +3,9 @@
   bootstrap self-signed issuer → CA Certificate → CA issuer that signs service certs.
   Set certManager.createClusterIssuer: false to use an existing issuer instead.
 */ -}}
-{{- $tlsEnabled := or .Values.global.mtls.enabled .Values.postgresql.tls.enabled .Values.redpanda.tls.enabled .Values.meilisearch.tls.enabled -}}
+{{- /* Postgres TLS needs this CA only for the bundled server; an external one brings its own certificate. */ -}}
+{{- $bundledPgTLS := and .Values.postgresql.tls.enabled (not .Values.postgresql.external.enabled) -}}
+{{- $tlsEnabled := or .Values.global.mtls.enabled $bundledPgTLS .Values.redpanda.tls.enabled .Values.meilisearch.tls.enabled -}}
 {{- if and $tlsEnabled .Values.certManager.createClusterIssuer }}
 ---
 apiVersion: cert-manager.io/v1
