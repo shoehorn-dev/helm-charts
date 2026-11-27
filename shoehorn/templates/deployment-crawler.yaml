@@ -122,6 +122,7 @@ spec:
         - name: GRPC_TLS_CA_FILE
           value: {{ .Values.global.mtls.caFile | quote }}
         {{- end }}
+        {{- include "shoehorn.tracingCaEnv" . | nindent 8 }}
 
         # GitHub Integration
         {{- if .Values.auth.github.appId }}
@@ -163,6 +164,7 @@ spec:
         volumeMounts:
         {{- include "shoehorn.extraVolumeMounts" . | nindent 8 }}
         {{- include "shoehorn.grpcMtlsVolumeMounts" . | nindent 8 }}
+        {{- include "shoehorn.tracingCaVolumeMounts" . | nindent 8 }}
 
         livenessProbe:
           {{- toYaml .Values.crawler.livenessProbe | nindent 12 }}
@@ -173,6 +175,7 @@ spec:
       volumes:
       {{- include "shoehorn.extraVolumes" . | nindent 6 }}
       {{- include "shoehorn.grpcMtlsVolumes" . | nindent 6 }}
+      {{- include "shoehorn.tracingCaVolumes" . | nindent 6 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

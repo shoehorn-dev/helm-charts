@@ -25,6 +25,14 @@ global:
   tracing:
     enabled: false
     otlpEndpoint: ""        # e.g. "jaeger-collector.observability:4317"
+    # CA that signed the collector's TLS certificate. Outside development the
+    # services only send traces over TLS: they verify the collector with this CA,
+    # or with the mesh CA when global.mtls.enabled is true and this is unset.
+    # Mounted into api, worker, crawler and forge as
+    # OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE.
+    caSecretRef:
+      name: ""              # defaults to secret.defaultName
+      key: ""               # key holding the PEM CA, e.g. ca.crt
 
   # gRPC mTLS for inter-service traffic (api, forge, worker, crawler, cerbos)
   mtls:
@@ -222,7 +230,7 @@ api:
     # POD_EVENT_RETENTION_HOURS: "48"           # dead-pod event retention, clamped 2-168
     # Manifest mirror (preview, off by default). Registers the MCP k8s_object
     # accessor and accepts sanitized ArgoCD Application manifests from the agent.
-    # Pair with the shoehorn-k8s-agent chart manifestMirror.enabled.
+    # Pair with the shoehorn-k8s-agent chart agent.manifestMirror.enabled.
     # MANIFEST_MIRROR_ENABLED: "true"
   livenessProbe:
     httpGet: { path: /healthz, port: 8080 }
@@ -699,7 +707,7 @@ valkey:
     key: valkey_password
   image:
     repository: valkey/valkey
-    tag: "9.1.2"
+    tag: "9.1.4"
   replicas: 1
   resources:
     requests: { cpu: 100m, memory: 256Mi }
@@ -766,7 +774,7 @@ redpanda:
     enabled: false
   image:
     repository: redpandadata/redpanda
-    tag: v26.2.2
+    tag: v26.2.7
   resources:
     requests: { cpu: 500m, memory: 1Gi }
     limits:   { cpu: 2000m, memory: 4Gi }

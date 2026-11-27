@@ -106,6 +106,27 @@ spec:
         {{- include "shoehorn.secretRef" (dict "env" "KEYCLOAK_ADMIN_CLIENT_SECRET" "ref" .Values.auth.keycloak.adminClientSecretRef "root" .) | nindent 8 }}
         {{- end }}
 
+        # Identity issuer for IdP team sync. The worker stores group members in
+        # the authid form sign-in writes, which is built from the provider's
+        # issuer. Without it the sync writes no memberships and logs the missing
+        # setting. Same values the api gets; Keycloak's come from the block above.
+        {{- if .Values.auth.okta.domain }}
+        - name: OKTA_DOMAIN
+          value: {{ .Values.auth.okta.domain | quote }}
+        {{- end }}
+        {{- if .Values.auth.okta.issuer }}
+        - name: OKTA_ISSUER
+          value: {{ .Values.auth.okta.issuer | quote }}
+        {{- end }}
+        {{- if eq .Values.auth.provider "zitadel" }}
+        - name: ZITADEL_URL
+          value: {{ .Values.auth.zitadel.externalUrl | quote }}
+        {{- end }}
+        {{- if .Values.auth.entraId.tenantId }}
+        - name: ENTRA_TENANT_ID
+          value: {{ .Values.auth.entraId.tenantId | quote }}
+        {{- end }}
+
         # Redpanda/Kafka topic tuning. The worker is the only service that
         # creates Redpanda topics and enforces their retention config on
         # boot, so it's the only deployment that needs these (REDPANDA_BROKERS
@@ -142,6 +163,7 @@ spec:
         - name: GRPC_TLS_CA_FILE
           value: {{ .Values.global.mtls.caFile | quote }}
         {{- end }}
+        {{- include "shoehorn.tracingCaEnv" . | nindent 8 }}
 
         # UpCloud: this flag alone is what registers the cloud-discovery janitor
         # (cmd/worker/wiring.go gates SetCloudJanitorJob on it). Without it the
@@ -156,9 +178,10 @@ spec:
           value: "true"
         {{- end }}
 
-        {{- if .Values.global.mtls.enabled }}
+        {{- if or .Values.global.mtls.enabled (include "shoehorn.tracingCaConfigured" .) }}
         volumeMounts:
         {{- include "shoehorn.grpcMtlsVolumeMounts" . | nindent 8 }}
+        {{- include "shoehorn.tracingCaVolumeMounts" . | nindent 8 }}
         {{- end }}
 
         livenessProbe:
@@ -167,9 +190,10 @@ spec:
           {{- toYaml .Values.worker.readinessProbe | nindent 12 }}
         resources:
           {{- toYaml .Values.worker.resources | nindent 12 }}
-      {{- if .Values.global.mtls.enabled }}
+      {{- if or .Values.global.mtls.enabled (include "shoehorn.tracingCaConfigured" .) }}
       volumes:
       {{- include "shoehorn.grpcMtlsVolumes" . | nindent 6 }}
+      {{- include "shoehorn.tracingCaVolumes" . | nindent 6 }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
