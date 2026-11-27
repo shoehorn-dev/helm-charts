@@ -851,7 +851,9 @@ rbac:
   enabled: true
   # Bootstrap admin gets tenant:admin on first login when no roles exist in DB.
   # Keep user set: it is how this admin gets back into their account after
-  # an identity provider switch.
+  # an identity provider switch, and nothing from the old provider is removed
+  # until this admin has signed in through the new one. group alone leaves
+  # that removal off.
   roleAssignment:
     tenantAdmin:
       user: ""        # email (single)
