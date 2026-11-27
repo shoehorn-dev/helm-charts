@@ -46,6 +46,9 @@ spec:
           containerPort: 4173
           protocol: TCP
         env:
+        # Same as the backend ConfigMap.
+        - name: ENVIRONMENT
+          value: "production"
         - name: VITE_ENVIRONMENT
           value: {{ .Values.web.env.VITE_ENVIRONMENT }}
         - name: VITE_API_URL
