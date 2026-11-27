@@ -20,15 +20,15 @@
 {{- with .Values.rbac.roleAssignment.tenantAdmin.user }}
    Bootstrap admin: {{ . }}
    This account gets tenant:admin on first login (only if no roles are
-   set yet). After that, manage roles at https://{{ $.Values.global.domain }}/admin/roles.
+   set yet). After that, manage roles at https://{{ $.Values.global.domain }}/admin/directory/roles.
 {{- else }}{{- with .Values.rbac.roleAssignment.tenantAdmin.group }}
    Bootstrap admin group: {{ . }}
    Members get tenant:admin on first login (only if no roles are set
-   yet). After that, manage roles at https://{{ $.Values.global.domain }}/admin/roles.
+   yet). After that, manage roles at https://{{ $.Values.global.domain }}/admin/directory/roles.
 {{- else }}
    No bootstrap admin configured. Set rbac.roleAssignment.tenantAdmin.user
    (or .group) so the first login picks up tenant:admin. Without it, no
-   one can reach /admin/roles to grant access.
+   one can reach /admin/directory/roles to grant access.
 {{- end }}{{- end }}
 {{- else }}
 
