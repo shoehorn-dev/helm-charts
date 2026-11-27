@@ -126,7 +126,7 @@ rbac:
     tenantAdmin:
       # CHANGE_ME: Bootstrap admin email (single user OR single group)
       # Bootstrap admin gets tenant:admin role on first login (if no roles in database)
-      # After bootstrap, manage roles via admin UI at /admin/roles
+      # After bootstrap, manage roles via admin UI at /admin/directory/roles
       user: "admin@example.com"
       # group: "platform-admins"  # OR use a single group instead
 
